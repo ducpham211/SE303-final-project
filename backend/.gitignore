@@ -1,0 +1,80 @@
+# ==========================================
+# 1. SECURITY & SECRETS (QUAN TRỌNG NHẤT)
+# ==========================================
+# Tuyệt đối không push file chứa mật khẩu lên Git
+../.env
+.env.*
+*.secret
+*.pem
+*.key
+
+# ==========================================
+# 2. MAVEN (Công cụ build)
+# ==========================================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# Bỏ qua file jar của maven wrapper (nếu có)
+.mvn/wrapper/maven-wrapper.jar
+
+# ==========================================
+# 3. INTELLIJ IDEA (IDE của bạn)
+# ==========================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+/classes/
+
+# ==========================================
+# 4. CÁC IDE KHÁC (Đề phòng làm việc nhóm)
+# ==========================================
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# VS Code
+.vscode/
+
+# ==========================================
+# 5. LOGS & TEMP FILES
+# ==========================================
+*.log
+logs/
+temp/
+tmp/
+
+# ==========================================
+# 6. HỆ ĐIỀU HÀNH (OS specific)
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Bỏ qua các tài liệu nội bộ của nhóm
+database_design.md
+description.md
+phan_cong_nhiem_vu.md
+phan_tich_yeu_cau.txt
+system-plan.md
+tong_hop_chuc_nang.md
+.env
