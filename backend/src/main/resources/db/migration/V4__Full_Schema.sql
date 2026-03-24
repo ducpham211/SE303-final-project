@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GỘP 3 FILE (V1 + V2 + V3) THÀNH MỘT FILE DUY NHẤT CHUẨN XÁC 100% THEO ENTITY
+-- BẢN CHÍNH THỨC V4: TẠO TOÀN BỘ BẢNG TỪ ĐẦU (PHÁ BỎ LUÔN CHẾ ĐỘ BASELINE CỦA FLYWAY)
 -- ==============================================================================
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS match_posts (
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     team_id uuid REFERENCES teams(id) ON DELETE SET NULL,
     field_id uuid REFERENCES fields(id) ON DELETE SET NULL,
-    booking_id uuid, -- We'll add FK later if needed due to circular dependencies
+    booking_id uuid,
     date date,
     time_start timestamp without time zone,
     time_end timestamp without time zone,
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- ==============================================================================
--- CÁC TRIGGER CẬP NHẬT UPDATED_AT (TỪ V2 CŨ)
+-- CÁC TRIGGER CẬP NHẬT UPDATED_AT
 -- ==============================================================================
 CREATE OR REPLACE FUNCTION public.set_current_timestamp_updated_at()
     RETURNS TRIGGER
@@ -171,7 +171,7 @@ CREATE TRIGGER set_booking_updated_at
     FOR EACH ROW EXECUTE PROCEDURE public.set_current_timestamp_updated_at();
 
 -- ==============================================================================
--- TRIGGER SUPABASE AUTH (TỪ V2 CŨ)
+-- TRIGGER SUPABASE AUTH
 -- ==============================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
     RETURNS trigger

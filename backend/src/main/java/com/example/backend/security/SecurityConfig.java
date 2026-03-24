@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Định nghĩa các API public (Ai cũng xem được)
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/fields").permitAll()
+                        .requestMatchers("/api/fields/**").permitAll()
                         .requestMatchers("/api/match-posts").permitAll()
                         // Bất kỳ API nào khác đều yêu cầu phải có Token hợp lệ
                         .anyRequest().authenticated()

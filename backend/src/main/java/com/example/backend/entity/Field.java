@@ -57,4 +57,10 @@ public class Field {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public List<TimeSlot> getTimeSlots() { return timeSlots; }
+    public void setTimeSlots(List<TimeSlot> timeSlots) { this.timeSlots = timeSlots; }
+
+    public List<Booking> getBookings() { return bookings; }
+    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
 }
