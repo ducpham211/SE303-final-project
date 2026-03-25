@@ -7,7 +7,7 @@ Tài liệu này mô tả chi tiết thiết kế Cơ sở dữ liệu (Database
 ## I. THIẾT KẾ CƠ SỞ DỮ LIỆU (DATABASE SCHEMA)
 
 Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
-
+ 
 ### 1. Phân hệ Người dùng & Đội bóng (Users & Teams)
 
 **Bảng `users` (Người dùng)**
@@ -197,14 +197,12 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 ### 6. APIs Chat & Thông Báo (WebSocket/REST tích hợp)
 
 **REST APIs (Nền tảng):**
-
 - **`GET /api/conversations`**: Lắng danh sách chat (Inbox).
 - **`GET /api/conversations/:id/messages`**: Lấy lịch sử tin nhắn trong phòng chat.
 - **`POST /api/conversations/:id/messages`**: Send tin nhắn (Sẽ trigger event đẩy Socket).
 - **`GET /api/notifications`**: Lấy lịch sử thông báo push.
 
 **WebSocket Events (Real-time):**
-
 - **`Emit: joinRoom`**: Join vào một `conversation_id` cụ thể để lắng nghe tin nhắn.
 - **`Emit: sendMessage`**: Bắn tin nhắn trực tiếp qua Socket thay vì gọi REST (Tùy chọn cho client cần mượt mà).
 - **`Listen: receiveMessage`**: Lắng nghe tin nhắn mới đẩy về cho phòng hoặc cá nhân.
@@ -215,18 +213,15 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 ### 7. APIs Quản Trị Hệ Thống (Admin)
 
 **7.1 Quản lý Người dùng (User Management)**
-
 - **`GET /api/admin/users`**: Lấy danh sách toàn bộ người dùng (Player, Owner) kèm bộ lọc (theo role, trạng thái `ACTIVE` / `BANNED`, điểm trust_score).
 - **`PUT /api/admin/users/:id/status`**: Khóa (Ban) hoặc Mở khóa (Unban) tài khoản người dùng vi phạm (Ví dụ: bùng kèo quá nhiều lần).
 - **`GET /api/admin/reviews`**: Xem toàn bộ lịch sử đánh giá cộng/trừ điểm của hệ thống để xác minh các report gian lận đánh giá.
 
 **7.2 Kiểm duyệt Nội dung & Dữ liệu (Moderation)**
-
 - **`GET /api/admin/fields`**: Lấy danh sách toàn bộ sân bóng trên hệ thống để kiểm duyệt.
 - **`PUT /api/admin/fields/:id/status`**: Đình chỉ / Tạm khóa một sân bóng (khi có khiếu nại sân ảo, lừa đảo cọc).
 - **`DELETE /api/admin/match-posts/:id`**: Xóa bắt buộc một bài đăng tìm kèo trên Bảng tin nếu vi phạm tiêu chuẩn cộng đồng (ngôn từ đả kích, content rác).
 
 **7.3 Thống kê Toàn hệ thống (System Analytics)**
-
 - **`GET /api/admin/dashboard/overview`**: Lấy các key metrics tổng quan: Tổng số Users, Tổng số Sân hiện có, Số lượng Trận đấu đã ghép thành công.
 - **`GET /api/admin/dashboard/transactions`**: Lấy thống kê tổng luồng tiền giao dịch chảy qua hệ thống (Tổng doanh thu của tất cả sân gộp lại) phục vụ cho việc tính phí nền tảng/hoa hồng sau này.
