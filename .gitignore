@@ -105,3 +105,6 @@ out/
 ehthumbs.db
 Thumbs.db
 $RECYCLE.BIN/
+
+# Local AI Agent Config
+AGENTS.md
