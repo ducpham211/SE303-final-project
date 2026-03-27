@@ -1,0 +1,163 @@
+-- --- EXTENSIONS ---
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- --- TABLES ---
+
+-- 1. Users (Người dùng)
+CREATE TABLE users (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email varchar UNIQUE NOT NULL,
+    password varchar NOT NULL,
+    role varchar, -- PLAYER, OWNER, ADMIN
+    full_name varchar,
+    phone varchar UNIQUE,
+    trust_score int4 DEFAULT 100, -- Điểm uy tín hệ thống
+    created_at timestamp DEFAULT now(),
+    updated_at timestamp DEFAULT now()
+);
+COMMENT ON COLUMN users.trust_score IS 'Điểm uy tín: Tăng khi hoàn thành trận, giảm khi bùng kèo';
+
+-- 2. Teams (Đội bóng)
+CREATE TABLE teams (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name varchar NOT NULL,
+    description text,
+    captain_id uuid REFERENCES users(id), -- Người đại diện đội
+    level varchar, -- BEGINNER, INTERMEDIATE, ADVANCED
+    created_at timestamp DEFAULT now()
+);
+
+-- 3. Fields (Sân bóng)
+CREATE TABLE fields (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name varchar NOT NULL,
+    type varchar, -- 5_A_SIDE, 7_A_SIDE...
+    cover_image text,
+    status varchar, -- AVAILABLE, MAINTENANCE
+    created_at timestamp DEFAULT now(),
+    updated_at timestamp DEFAULT now()
+);
+
+-- 4. Time Slots (Khung giờ sân)
+CREATE TABLE time_slots (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    field_id uuid REFERENCES fields(id),
+    start_time timestamp,
+    end_time timestamp,
+    price numeric,
+    created_at timestamp DEFAULT now()
+);
+
+-- 5. Bookings (Đặt sân)
+CREATE TABLE bookings (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES users(id),
+    field_id uuid REFERENCES fields(id),
+    time_slot_id uuid REFERENCES time_slots(id),
+    booking_date date,
+    status varchar, -- PENDING, PAID, CANCELLED
+    deposit_amount numeric,
+    total_amount numeric,
+    note text,
+    created_at timestamp DEFAULT now(),
+    updated_at timestamp DEFAULT now()
+);
+
+-- 6. Match Posts (Bài đăng tìm đối/thành viên)
+CREATE TABLE match_posts (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES users(id), -- Người đăng
+    team_id uuid REFERENCES teams(id),
+    field_id uuid REFERENCES fields(id),
+    booking_id uuid REFERENCES bookings(id), -- Liên kết đơn đặt sân nếu có
+    date date,
+    time_start timestamp,
+    time_end timestamp,
+    post_type varchar, -- FIND_OPPONENT, FIND_MEMBER
+    skill_level varchar,
+    cost_sharing text, -- Chia đôi, thua trả...
+    message text,
+    status varchar, -- OPEN, MATCHED, EXPIRED
+    created_at timestamp DEFAULT now()
+);
+
+-- 7. Match Requests (Yêu cầu tham gia trận)
+CREATE TABLE match_requests (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    requester_id uuid REFERENCES users(id),
+    post_id uuid REFERENCES match_posts(id),
+    status varchar, -- PENDING, ACCEPTED, REJECTED
+    message text,
+    created_at timestamp DEFAULT now()
+);
+
+-- 8. Payments (Giao dịch)
+CREATE TABLE payments (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES users(id),
+    booking_id uuid REFERENCES bookings(id),
+    method varchar, -- MOMO, STRIPE, CASH
+    status varchar,
+    amount numeric,
+    created_at timestamp DEFAULT now()
+);
+
+-- 9. Reviews (Đánh giá & Uy tín)
+CREATE TABLE reviews (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    reviewer_id uuid REFERENCES users(id),
+    reviewee_id uuid REFERENCES users(id),
+    match_id uuid REFERENCES bookings(id),
+    score_change int4, -- VD: -10 nếu bùng kèo
+    reason text,
+    created_at timestamp DEFAULT now()
+);
+
+-- 10. Conversations (Cuộc hội thoại)
+CREATE TABLE conversations (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type varchar, -- DIRECT, GROUP
+    created_at timestamp DEFAULT now()
+);
+
+-- 11. Conversation Members (Thành viên nhóm chat)
+CREATE TABLE conversation_members (
+    conversation_id uuid REFERENCES conversations(id),
+    user_id uuid REFERENCES users(id),
+    joined_at timestamp DEFAULT now(),
+    PRIMARY KEY (conversation_id, user_id)
+);
+
+-- 12. Messages (Tin nhắn)
+CREATE TABLE messages (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id uuid REFERENCES conversations(id),
+    sender_id uuid REFERENCES users(id),
+    content text,
+    created_at timestamp DEFAULT now()
+);
+
+-- 13. Notifications (Thông báo)
+CREATE TABLE notifications (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES users(id),
+    type varchar, -- SYSTEM, BOOKING, MATCH
+    title varchar,
+    content text,
+    is_read bool DEFAULT false,
+    created_at timestamp DEFAULT now()
+);
+
+-- 14. Flyway Schema History (Lịch sử migration)
+CREATE TABLE flyway_schema_history (
+    installed_rank int4 PRIMARY KEY,
+    version varchar,
+    description varchar,
+    type varchar,
+    script varchar,
+    checksum int4,
+    installed_by varchar,
+    installed_on timestamp DEFAULT now(),
+    execution_time int4,
+    success bool
+);
