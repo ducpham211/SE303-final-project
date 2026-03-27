@@ -1,4 +1,4 @@
 package com.example.backend.mapper;
 
-public class userMapper {
+public class UserMapper {
 }

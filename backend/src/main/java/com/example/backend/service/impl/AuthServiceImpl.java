@@ -3,6 +3,8 @@ package com.example.backend.service.impl;
 import com.example.backend.dto.request.AuthRequest;
 import com.example.backend.dto.response.AuthResponse;
 import com.example.backend.service.AuthService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -38,11 +40,20 @@ public class AuthServiceImpl implements AuthService {
         String url = supabaseUrl + "/auth/v1/token?grant_type=password";
         HttpEntity<AuthRequest> entity = new HttpEntity<>(request, createHeaders());
 
-        // Nếu gọi RestTemplate lỗi, nó sẽ tự văng HttpClientErrorException
-        // -> bay thẳng ra GlobalExceptionHandler tóm lấy.
         ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
-        return new AuthResponse(response.getBody(), "Đăng nhập thành công!");
+        try {
+            // Dùng búa bóc cục JSON của Supabase ra
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(response.getBody());
+
+            // Chỉ lấy đúng cái lõi "access_token"
+            String cleanToken = rootNode.path("access_token").asText();
+
+            return new AuthResponse(cleanToken, "Đăng nhập thành công!");
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi phân tích token từ Supabase");
+        }
     }
 
     private HttpHeaders createHeaders() {

@@ -7,16 +7,14 @@ public class FieldResponse {
     private String name;
     private Enums.FieldType type;
     private String coverImage;
-    private Enums.FieldStatus status;
 
     public FieldResponse() {}
 
-    public FieldResponse(String id, String name, Enums.FieldType type, String coverImage, Enums.FieldStatus status) {
+    public FieldResponse(String id, String name, Enums.FieldType type, String coverImage) {
         this.id = id;
         this.name = name;
         this.type = type;
         this.coverImage = coverImage;
-        this.status = status;
     }
 
     public String getId() { return id; }
@@ -30,7 +28,4 @@ public class FieldResponse {
     
     public String getCoverImage() { return coverImage; }
     public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
-    
-    public Enums.FieldStatus getStatus() { return status; }
-    public void setStatus(Enums.FieldStatus status) { this.status = status; }
 }
