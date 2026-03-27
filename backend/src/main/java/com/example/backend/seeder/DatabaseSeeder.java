@@ -85,7 +85,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             field1.setName("Sân bóng Mỹ Đình 1");
             field1.setType(Enums.FieldType.FIVE_A_SIDE);
             field1.setCoverImage("https://example.com/san1.jpg");
-            field1.setStatus(Enums.FieldStatus.AVAILABLE);
             field1.setCreatedAt(LocalDateTime.now());
             field1.setUpdatedAt(LocalDateTime.now());
             field1 = fieldRepository.save(field1);
@@ -95,7 +94,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             field2.setName("Sân bóng Mỹ Đình 2");
             field2.setType(Enums.FieldType.SEVEN_A_SIDE);
             field2.setCoverImage("https://example.com/san2.jpg");
-            field2.setStatus(Enums.FieldStatus.AVAILABLE);
             field2.setCreatedAt(LocalDateTime.now());
             field2.setUpdatedAt(LocalDateTime.now());
             field2 = fieldRepository.save(field2);
@@ -104,7 +102,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             field3.setName("Sân bóng Bách Khoa");
             field3.setType(Enums.FieldType.FIVE_A_SIDE);
             field3.setCoverImage("https://example.com/san3.jpg");
-            field3.setStatus(Enums.FieldStatus.AVAILABLE);
             field3.setCreatedAt(LocalDateTime.now());
             field3.setUpdatedAt(LocalDateTime.now());
             field3 = fieldRepository.save(field3);
@@ -173,15 +170,34 @@ public class DatabaseSeeder implements CommandLineRunner {
     private List<TimeSlot> seedTimeSlotsForField(Field field, BigDecimal price) {
         List<TimeSlot> slots = new ArrayList<>();
         LocalDate today = LocalDate.now();
-        // Create sample slots from 16:00 to 20:00 (1 hour each) for 2 days
+        
+        // Define standard 1.5-hour time slots starting from 16:00 until 23:30
+        LocalTime[] startTimes = {
+            LocalTime.of(16, 0),
+            LocalTime.of(17, 30),
+            LocalTime.of(19, 0),
+            LocalTime.of(20, 30),
+            LocalTime.of(22, 0)
+        };
+        
+        LocalTime[] endTimes = {
+            LocalTime.of(17, 30),
+            LocalTime.of(19, 0),
+            LocalTime.of(20, 30),
+            LocalTime.of(22, 0),
+            LocalTime.of(23, 30)
+        };
+
+        // Create sample slots for 2 days
         for (int day = 0; day < 2; day++) {
             LocalDate date = today.plusDays(day);
-            for (int i = 16; i < 20; i++) {
+            for (int i = 0; i < startTimes.length; i++) {
                 TimeSlot slot = new TimeSlot();
                 slot.setFieldId(field.getId());
-                slot.setStartTime(LocalDateTime.of(date, LocalTime.of(i, 0)));
-                slot.setEndTime(LocalDateTime.of(date, LocalTime.of(i + 1, 0)));
+                slot.setStartTime(LocalDateTime.of(date, startTimes[i]));
+                slot.setEndTime(LocalDateTime.of(date, endTimes[i]));
                 slot.setPrice(price);
+                slot.setStatus(Enums.TimeSlotStatus.AVAILABLE);
                 slots.add(slot);
             }
         }

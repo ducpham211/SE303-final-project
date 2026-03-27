@@ -1,9 +1,11 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Data
 @Entity
 @Table(name = "fields")
 public class Field {
@@ -18,9 +20,6 @@ public class Field {
 
     @Column(name = "cover_image")
     private String coverImage;
-
-    @Enumerated(EnumType.STRING)
-    private Enums.FieldStatus status;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -48,9 +47,6 @@ public class Field {
 
     public String getCoverImage() { return coverImage; }
     public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
-
-    public Enums.FieldStatus getStatus() { return status; }
-    public void setStatus(Enums.FieldStatus status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

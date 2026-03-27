@@ -1,8 +1,11 @@
 package com.example.backend.dto.response;
 
+import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
+@Data
 public class TimeSlotAvailabilityResponse {
     private String id;
     private LocalDateTime startTime;
@@ -23,11 +26,21 @@ public class TimeSlotAvailabilityResponse {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     
-    public LocalDateTime getStartTime() { return startTime; }
-    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
     
-    public LocalDateTime getEndTime() { return endTime; }
-    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
     
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
