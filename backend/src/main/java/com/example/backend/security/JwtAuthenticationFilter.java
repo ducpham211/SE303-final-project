@@ -51,7 +51,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     // Dùng búa Jackson đập cục JSON ra để lấy chữ "sub" (chính là userId)
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    String userId = mapper.readTree(payload).get("sub").asText();
+                    com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(payload);
+
+// In ra để bắt tận tay xem ruột Token chứa chữ gì
+                    System.out.println("==== RUỘT TOKEN ==== : " + payload);
+
+                    String userId = null;
+                    if (jsonNode.has("sub")) {
+                        userId = jsonNode.get("sub").asText();
+                    } else if (jsonNode.has("id")) {
+                        userId = jsonNode.get("id").asText();
+                    } else if (jsonNode.has("userId")) {
+                        userId = jsonNode.get("userId").asText();
+                    } else if (jsonNode.has("username")) {
+                        userId = jsonNode.get("username").asText();
+                    }
+
+                    if (userId == null) {
+                        logger.error("Token không hợp lệ: Không tìm thấy trường chứa ID người dùng!");
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
 
                     // 👉 Code tìm User trong Database của bác giữ nguyên
                     Optional<User> userOptional = userRepository.findById(userId);

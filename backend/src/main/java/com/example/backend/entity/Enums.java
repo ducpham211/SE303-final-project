@@ -4,7 +4,7 @@ public class Enums {
     public enum UserRole { PLAYER, OWNER, ADMIN }
     public enum TeamLevel { BEGINNER, INTERMEDIATE, ADVANCED }
     public enum FieldType { FIVE_A_SIDE, SEVEN_A_SIDE, ELEVEN_A_SIDE }
-    public enum TimeSlotStatus { AVAILABLE, MAINTENANCE }
+    public enum TimeSlotStatus { AVAILABLE, PENDING, BOOKED }
     public enum BookingStatus { PENDING, DEPOSIT_PAID, CONFIRMED, CANCELLED, COMPLETED }
     public enum PaymentMethod { STRIPE, CASH }
     public enum PaymentStatus { PENDING, SUCCESS, FAILED, REFUNDED }
