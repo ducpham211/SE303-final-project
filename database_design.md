@@ -183,7 +183,7 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 - **`POST /api/payments/webhook/stripe`**: Cổng Callback để Stripe chọc gọi về xác nhận `payment_intent.succeeded` hoặc `payment_intent.payment_failed`. Sau đó cập nhật trạng thái hóa đơn.
 - **`POST /api/bookings`**: (Player) Gửi request khởi tạo đặt sân.
   - _Logic Check_: Hệ thống Request Redis Lock khóa `[field_id]_[time_slot_id]_[date]`. Nếu thành công, giữ pending trong 5-10 phút để đợi user thanh toán cọc. Nếu khóa đã bị giữ, báo lỗi "Sân đã có người đặt".
-
+  - _Áp dụng kiến trúc Two-Phase Booking kết hợp Distributed Lock (Redis) để giải quyết bài toán Race Condition khi đặt sân đồng thời; đồng thời thiết lập cơ chế Polling dọn dẹp các giao dịch quá hạn (Timeout) nhằm tối ưu hóa tỷ lệ lấp đầy sân (Occupancy Rate)".
 ### 5. APIs Bảng Tin & Ghép Trận (Matchmaking)
 
 - **`GET /api/match-posts`**: Lấy danh sách bảng tin tìm kèo (Có phân trang, bộ lọc: trung tâm, level, thời gian).
