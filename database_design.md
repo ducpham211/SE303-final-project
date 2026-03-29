@@ -176,11 +176,11 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 ### 4. APIs Đặt Sân & Thanh Toán (Bookings & Payments)
 
 - **`GET /api/bookings`**: Lấy lịch sử đặt sân của user (hoặc Owner xem lịch của sân mình).
-- **`PUT /api/bookings/:id/cancel`**: Hủy sân (Kiểm tra chính sách thời gian để quyết định refund/không refund tiền cọc).
 - **`PUT /api/bookings/:id/check-in`**: (Owner) Xác nhận khách đã đến (check-in).
+- **`PUT /api/bookings/:id/no-show`**: ( Owner ) Xác nhận khách không đến.
 - **`PUT /api/bookings/:id/check-out`**: (Owner) Xác nhận khách đã trả tiền và rời sân.
-- **`POST /api/payments/create-intent`**: Khởi tạo Stripe Payment Intent dựa trên Booking ID. Trả về `clientSideToken` để Frontend gọi Stripe Elements thanh toán.
-- **`POST /api/payments/webhook/stripe`**: Cổng Callback để Stripe chọc gọi về xác nhận `payment_intent.succeeded` hoặc `payment_intent.payment_failed`. Sau đó cập nhật trạng thái hóa đơn.
+- **`POST /api/payments/create-session/:booking_id`**: Khởi tạo Stripe Payment Intent dựa trên Booking ID. Trả về `clientSideToken` để Frontend gọi Stripe Elements thanh toán.
+- **`POST /api/payments/webhook`**: Cổng Callback để Stripe chọc gọi về xác nhận `payment_intent.succeeded` hoặc `payment_intent.payment_failed`. Sau đó cập nhật trạng thái hóa đơn.
 - **`POST /api/bookings`**: (Player) Gửi request khởi tạo đặt sân.
   - _Logic Check_: Hệ thống Request Redis Lock khóa `[field_id]_[time_slot_id]_[date]`. Nếu thành công, giữ pending trong 5-10 phút để đợi user thanh toán cọc. Nếu khóa đã bị giữ, báo lỗi "Sân đã có người đặt".
   - _Áp dụng kiến trúc Two-Phase Booking kết hợp Distributed Lock (Redis) để giải quyết bài toán Race Condition khi đặt sân đồng thời; đồng thời thiết lập cơ chế Polling dọn dẹp các giao dịch quá hạn (Timeout) nhằm tối ưu hóa tỷ lệ lấp đầy sân (Occupancy Rate)".

@@ -6,6 +6,7 @@ import com.example.backend.entity.Enums;
 import com.example.backend.entity.TimeSlot;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.TimeSlotRepository;
+import com.example.backend.repository.UserRepository;
 import com.example.backend.service.PaymentService;
 import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
@@ -15,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Slf4j
 @Service
@@ -46,7 +50,8 @@ public class StripePaymentServiceImpl implements PaymentService {
             Booking booking = bookingRepository.findById(bookingId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
-            long amount = booking.getTotalAmount().longValue();
+            long totalAmount = booking.getTotalAmount().longValue();
+            long depositAmount = (long) (totalAmount * 0.3);
 
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
@@ -59,17 +64,18 @@ public class StripePaymentServiceImpl implements PaymentService {
                                     .setPriceData(
                                             SessionCreateParams.LineItem.PriceData.builder()
                                                     .setCurrency("vnd")
-                                                    .setUnitAmount(amount)
+                                                    .setUnitAmount(depositAmount)
                                                     .setProductData(
                                                             SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                    .setName("Thanh toán tiền sân Futsal")
+                                                                    .setName("Thanh toán tiền sân")
                                                                     .build())
                                                     .build())
                                     .build())
                     .build();
 
             Session session = Session.create(params);
-
+            booking.setDepositAmount(BigDecimal.valueOf(depositAmount));
+            bookingRepository.save(booking);
             // 👉 Trả về hẳn 1 cái DTO xịn xò
             return new PaymentResponse(session.getUrl(), "Tạo link thanh toán Stripe thành công");
 
@@ -113,7 +119,7 @@ public class StripePaymentServiceImpl implements PaymentService {
                 // 3. ĐỔI TRẠNG THÁI DB
                 Booking booking = bookingRepository.findById(bookingId).orElse(null);
                 if (booking != null) {
-                    booking.setStatus(Enums.BookingStatus.CONFIRMED);
+                    booking.setStatus(Enums.BookingStatus.DEPOSIT_PAID);
                     bookingRepository.save(booking);
 
                     TimeSlot slot = timeSlotRepository.findById(booking.getTimeSlotId()).orElse(null);
@@ -127,11 +133,11 @@ public class StripePaymentServiceImpl implements PaymentService {
                 }
             }
 
-            // ĐUÔI CATCH ĐỂ HỨNG LỖI (BẮT BUỘC PHẢI CÓ)
         } catch (com.stripe.exception.SignatureVerificationException e) {
             log.error("==== WEBHOOK ==== Cảnh báo: Chữ ký giả mạo hoặc sai Secret Key!", e);
         } catch (Exception e) {
             log.error("==== WEBHOOK ==== Lỗi trong quá trình xử lý Webhook: ", e);
         }
     }
+
     }
