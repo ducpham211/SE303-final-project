@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.request.BookingCreateRequest;
 import com.example.backend.dto.response.BookingResponse;
+import com.example.backend.entity.Enums;
 import com.example.backend.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,11 +46,11 @@ public class BookingController {
     }
 
     // API CHECK-OUT VÀ THU TIỀN MẶT CÒN LẠI
-    @PutMapping("/{id}/check-out")
+    @PostMapping("/{id}/check-out")
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<String> checkOutCustomer(@PathVariable("id") String bookingId) {
+    public ResponseEntity<String> checkOutCustomer(@RequestParam Enums.PaymentMethod method , @PathVariable("id") String bookingId) {
         try {
-            String message = bookingService.checkOutBooking(bookingId);
+            String message = bookingService.checkOutBooking(bookingId,method);
             return ResponseEntity.ok(message);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

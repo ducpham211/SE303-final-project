@@ -1,15 +1,15 @@
-package com.example.backend.dto;
+package com.example.backend.dto.response;
 
-public class UserDTO {
+public class UserResponse {
     private String id;
     private String email;
     private String fullName;
     private String phone;
 
     // Constructors, getters, setters
-    public UserDTO() {}
+    public UserResponse() {}
 
-    public UserDTO(String id, String email, String fullName, String phone) {
+    public UserResponse(String id, String email, String fullName, String phone) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;

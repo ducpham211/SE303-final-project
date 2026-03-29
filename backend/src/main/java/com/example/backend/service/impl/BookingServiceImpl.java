@@ -3,13 +3,12 @@ package com.example.backend.service.impl;
 
 import com.example.backend.dto.request.BookingCreateRequest;
 import com.example.backend.dto.response.BookingResponse;
-import com.example.backend.entity.Booking;
-import com.example.backend.entity.Enums;
-import com.example.backend.entity.TimeSlot;
-import com.example.backend.entity.User;
+import com.example.backend.entity.*;
 import com.example.backend.exception.AppException; // Xài lại cục Exception xịn của bác
 import com.example.backend.mapper.BookingMapper;
+import com.example.backend.mapper.PaymentMapper;
 import com.example.backend.repository.BookingRepository;
+import com.example.backend.repository.PaymentRepository;
 import com.example.backend.repository.TimeSlotRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.BookingService;
@@ -19,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +35,9 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
     private final UserRepository userRepository;
+    private final PaymentMapper paymentMapper;
+    private final PaymentRepository paymentRepository;
+
     @Override
     @Transactional
     public BookingResponse createBooking(String userId, BookingCreateRequest request) {
@@ -102,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Transactional
-    public String checkOutBooking(String bookingId) {
+    public String checkOutBooking(String bookingId, Enums.PaymentMethod method) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt sân"));
 
@@ -119,7 +122,17 @@ public class BookingServiceImpl implements BookingService {
         // Cập nhật trạng thái hoàn tất
         booking.setStatus(Enums.BookingStatus.COMPLETED);
         bookingRepository.save(booking);
-
+        if(remainingAmount > 0){
+            Payment restOfAmount = paymentMapper.createPaymentEntity(
+                    booking,
+                    BigDecimal.valueOf(remainingAmount),
+                    method,
+                    null
+            );
+            paymentRepository.save(restOfAmount);
+            log.info("==== KẾ TOÁN ==== Đã thu thêm {} VND qua hình thức {} cho đơn {}",
+                    remainingAmount, method, bookingId);
+        }
         // (Tùy chọn) Bác có thể cập nhật trạng thái của TimeSlot về lại AVAILABLE hoặc để nguyên tùy logic lưu lịch sử của bác.
 
         log.info("==== CHỦ SÂN ==== Đã Check-out đơn: {}. Thu thêm: {} VND", bookingId, remainingAmount);
