@@ -1,4 +1,4 @@
-package com.example.backend.service;
+package com.example.backend.service.impl;
 
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.entity.User;

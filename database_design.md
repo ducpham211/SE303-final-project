@@ -188,7 +188,7 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 
 - **`GET /api/match-posts`**: Lấy danh sách bảng tin tìm kèo (Có phân trang, bộ lọc: trung tâm, level, thời gian).
 - **`POST /api/match-posts`**: Tạo bài tìm người / tìm đội.
-- **`POST /api/match-posts/:id/requests`**: Gửi yêu cầu nhận kèo.
+- **`POST /api/match-posts/:id/requests`**: Gửi yêu cầu nhận kèo ( có chống spam ).
 - **`PUT /api/match-requests/:req_id/status`**: (Đội trưởng người đăng) Chấp nhận / Từ chối yêu cầu ghép trận.
   - _Side Effect_: Nếu Chấp nhận (ACCEPT), tự động tạo 1 Conversation dành cho 2 user để chat thông qua API Chat.
 - **`PUT /api/match-posts/:id`**: (Đội trưởng người đăng) sửa thông tin bài đăng.

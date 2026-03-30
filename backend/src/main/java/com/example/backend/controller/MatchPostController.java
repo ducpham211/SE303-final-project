@@ -5,18 +5,17 @@ import com.example.backend.dto.response.MatchPostResponse;
 import com.example.backend.entity.Enums;
 import com.example.backend.service.MatchPostService;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/match-posts")
+@RequiredArgsConstructor
 public class MatchPostController {
 
     private final MatchPostService matchPostService;
 
-    public MatchPostController(MatchPostService matchPostService) {
-        this.matchPostService = matchPostService;
-    }
     @GetMapping
     public ResponseEntity<Object> getMatchPosts(@RequestParam(required = false) Enums.TeamLevel skillLevel,
                                                 @RequestParam(required = false) Enums.PostType postType) {
