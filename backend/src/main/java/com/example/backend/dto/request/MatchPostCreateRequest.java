@@ -14,7 +14,6 @@ public class MatchPostCreateRequest {
 
     private String bookingId; // Có thể Null (chưa đặt cọc sân như anh em mình vừa bàn)
 
-
     private LocalDate date;
 
     private LocalDateTime timeStart;

@@ -7,6 +7,7 @@ import com.example.backend.service.MatchPostService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,5 +26,20 @@ public class MatchPostController {
     public ResponseEntity<MatchPostResponse> createMatchPost(@RequestBody MatchPostCreateRequest request) {
         MatchPostResponse response = matchPostService.createMatchPost(request);
         return ResponseEntity.ok(response);
+    }
+    @PatchMapping("/{id}")
+    public ResponseEntity<MatchPostResponse> updateMatchPost(
+            @PathVariable("id") String postId,
+            @RequestBody MatchPostCreateRequest request
+    ) {
+        String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        MatchPostResponse response = matchPostService.updateMatchPost(postId, currentUserId, request);
+        return ResponseEntity.ok(response);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMatchPost(@PathVariable("id") String postId) {
+        String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        matchPostService.deleteMatchPost(postId, currentUserId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,11 +1,14 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "conversations")
+@Data
 public class Conversation {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,15 +26,4 @@ public class Conversation {
     @OneToMany(mappedBy = "conversation")
     private List<Message> messages;
 
-    // getters/setters
-    public Conversation() {}
-
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public Enums.ConversationType getType() { return type; }
-    public void setType(Enums.ConversationType type) { this.type = type; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

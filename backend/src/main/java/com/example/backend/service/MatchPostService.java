@@ -9,4 +9,6 @@ import java.util.List;
 public interface MatchPostService {
     MatchPostResponse createMatchPost(MatchPostCreateRequest request);
     List<MatchPostResponse> getMatchPosts(Enums.TeamLevel skillLevel, Enums.PostType postType);
+    MatchPostResponse updateMatchPost(String postId, String currentUserId, MatchPostCreateRequest request);
+    void deleteMatchPost(String postId, String currentUserId);
 }
