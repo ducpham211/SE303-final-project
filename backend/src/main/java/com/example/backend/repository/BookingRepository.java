@@ -1,5 +1,6 @@
 package com.example.backend.repository;
 
+import com.example.backend.dto.response.BookingResponse;
 import com.example.backend.entity.Booking;
 import com.example.backend.entity.Enums;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,5 +14,6 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, String> {
     List<Booking> findByFieldIdAndBookingDate(String fieldId, LocalDate bookingDate);
     List<Booking> findByStatusAndCreatedAtBefore(Enums.BookingStatus status, LocalDateTime deadline);
+    List<Booking> findByUserId(String userId);
 }
 

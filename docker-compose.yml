@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: futsal-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    # volumes:
+    #   - redis-data:/data  # Mở comment 2 dòng này nếu muốn lưu data Redis vĩnh viễn không bị mất khi tắt container
+
+# volumes:
+#   redis-data:
