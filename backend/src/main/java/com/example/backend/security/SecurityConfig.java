@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/match-posts").permitAll()
                         .requestMatchers("/api/payments/webhook").permitAll()
                         .requestMatchers("/api/payments/**").authenticated()
+                        .requestMatchers("/ws/**").permitAll()
                         // Bất kỳ API nào khác đều yêu cầu phải có Token hợp lệ
                         .anyRequest().authenticated()
                 );
@@ -50,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000")); // Thêm port của Frontend
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "x-auth-token"));
         configuration.setAllowCredentials(true);
