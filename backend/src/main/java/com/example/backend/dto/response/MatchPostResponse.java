@@ -1,8 +1,9 @@
 package com.example.backend.dto.response;
 
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class MatchPostResponse {
     private String id;
@@ -19,6 +20,8 @@ public class MatchPostResponse {
     private String message;
     private Enums.PostStatus status;
     private LocalDateTime createdAt;
+    
+    private List<MatchRequestResponse> requests;
 
     public MatchPostResponse() {}
 
@@ -63,4 +66,7 @@ public class MatchPostResponse {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public List<MatchRequestResponse> getRequests() { return requests; }
+    public void setRequests(List<MatchRequestResponse> requests) { this.requests = requests; }
 }

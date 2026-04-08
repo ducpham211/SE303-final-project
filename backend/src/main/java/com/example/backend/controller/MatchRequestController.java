@@ -5,9 +5,10 @@ import com.example.backend.dto.request.MatchRequestStatusCreateRequest;
 import com.example.backend.dto.response.MatchRequestResponse;
 import com.example.backend.dto.response.MatchRequestStatusResponse;
 import com.example.backend.service.MatchRequestService;
+import com.example.backend.utils.TokenUtils;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,17 +17,19 @@ import org.springframework.web.bind.annotation.*;
 
 public class MatchRequestController {
     private final MatchRequestService matchRequestService;
+
     @PostMapping
-    public ResponseEntity<MatchRequestResponse> createMatchRequest(@RequestBody MatchRequestCreateRequest request){
+    public ResponseEntity<MatchRequestResponse> createMatchRequest(@RequestBody MatchRequestCreateRequest request) {
         MatchRequestResponse response = matchRequestService.createMatchRequest(request);
         return ResponseEntity.ok(response);
     }
+
     @PutMapping("/{req_id}/status")
     public ResponseEntity<MatchRequestStatusResponse> updateRequestStatus(
             @PathVariable("req_id") String requestId,
-            @RequestBody MatchRequestStatusCreateRequest status
-    ) {
-        String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+            @RequestBody MatchRequestStatusCreateRequest status) {
+        String currentUserId = TokenUtils.getCurrentUserId();
+        ;
 
         MatchRequestStatusResponse response = matchRequestService.updateRequestStatus(requestId, currentUserId, status);
         return ResponseEntity.ok(response);

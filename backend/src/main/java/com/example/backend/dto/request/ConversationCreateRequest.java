@@ -1,6 +1,6 @@
 package com.example.backend.dto.request;
 
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import lombok.Data;
 
 import java.time.LocalDateTime;

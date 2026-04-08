@@ -1,7 +1,7 @@
 package com.example.backend.scheduler;
 
 import com.example.backend.entity.Booking;
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import com.example.backend.entity.TimeSlot;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.TimeSlotRepository;
