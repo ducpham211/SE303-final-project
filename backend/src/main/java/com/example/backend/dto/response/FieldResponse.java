@@ -1,6 +1,6 @@
 package com.example.backend.dto.response;
 
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 
 public class FieldResponse {
     private String id;

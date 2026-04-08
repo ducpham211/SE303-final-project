@@ -1,5 +1,6 @@
 package com.example.backend.entity;
 
+import com.example.backend.utils.Enums;
 import jakarta.persistence.*;
 import lombok.Data;
 
