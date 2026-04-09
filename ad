@@ -1,9 +1,0 @@
-[33mcommit 705c53825c907be1640ab77d9e033bbe8697383f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/home-page[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m
-Merge: 66a24e5 0e0843b
-Author: Pham Viet Duc <148747948+ducpham211@users.noreply.github.com>
-Date:   Thu Apr 2 13:53:29 2026 +0700
-
-    Merge pull request #14 from ducpham211/docs
-    
-    Add system use case specifications, master user flow and overall use …
-
