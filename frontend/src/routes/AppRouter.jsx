@@ -4,6 +4,8 @@ import Footer from '../components/layout/Footer'
 import HomePage from '../pages/home/HomePage'
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
+import FieldListPage from '../pages/player/FieldListPage'
+import FieldDetailPage from '../pages/player/FieldDetailPage'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 
 /**
@@ -22,9 +24,9 @@ export default function AppRouter() {
         <Route path="/dang-nhap" element={<LoginPage />} />
         <Route path="/dang-ky" element={<RegisterPage />} />
 
-        {/* Player pages — stubs */}
-        <Route path="/dat-san" element={<PlaceholderPage title="Đặt sân" />} />
-        <Route path="/dat-san/:id" element={<PlaceholderPage title="Chi tiết sân" />} />
+        {/* Player pages — stubs & real */}
+        <Route path="/dat-san" element={<FieldListPage />} />
+        <Route path="/dat-san/:id" element={<FieldDetailPage />} />
         <Route path="/lich-dat" element={<PlaceholderPage title="Lịch đặt" />} />
         <Route path="/tim-doi-thu" element={<PlaceholderPage title="Tìm đối thủ" />} />
         <Route path="/tim-doi-thu/tao-keo" element={<PlaceholderPage title="Tạo kèo đấu" />} />
