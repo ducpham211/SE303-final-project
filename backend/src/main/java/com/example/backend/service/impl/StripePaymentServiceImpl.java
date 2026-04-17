@@ -1,14 +1,19 @@
 package com.example.backend.service.impl;
 
+import com.example.backend.dto.request.NotificationCreateRequest;
+import com.example.backend.dto.request.PaymentCreateRequest;
 import com.example.backend.dto.response.PaymentResponse;
 import com.example.backend.entity.Booking;
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import com.example.backend.entity.Payment;
 import com.example.backend.entity.TimeSlot;
+import com.example.backend.entity.User;
 import com.example.backend.mapper.PaymentMapper;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.PaymentRepository;
 import com.example.backend.repository.TimeSlotRepository;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.service.NotificationService;
 import com.example.backend.service.PaymentService;
 import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
@@ -21,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import com.example.backend.exception.AppException;
 
 @Slf4j
 @Service
@@ -32,10 +39,10 @@ public class StripePaymentServiceImpl implements PaymentService {
 
     private final TimeSlotRepository timeSlotRepository;
     private final BookingRepository bookingRepository;
-
-    // 👉 Đã tiêm thêm 2 anh lính mới để xử lý Payment
+    private final NotificationService notificationService;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final UserRepository userRepository; 
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
@@ -50,12 +57,18 @@ public class StripePaymentServiceImpl implements PaymentService {
     public void init() {
         Stripe.apiKey = stripeApiKey;
     }
+
+    private String truncateId(String id) {
+        if (id == null || id.isEmpty()) return "Chưa xác định";
+        return id.length() >= 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
+    }
+
     @Transactional
     @Override
     public PaymentResponse createCheckoutSession(String bookingId) {
         try {
             Booking booking = bookingRepository.findById(bookingId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+                    .orElseThrow(() -> new AppException(404, "Không tìm thấy hóa đơn"));
 
             long totalAmount = booking.getTotalAmount().longValue();
             long depositAmount = (long) (totalAmount * 0.3);
@@ -84,8 +97,6 @@ public class StripePaymentServiceImpl implements PaymentService {
             booking.setDepositAmount(BigDecimal.valueOf(depositAmount));
             bookingRepository.save(booking);
 
-            // 👉 Đã dùng Builder để tránh lỗi Constructor.
-            // Bác nhớ thêm private String url; và private String message; vào file PaymentResponse.java nhé!
             return PaymentResponse.builder()
                     .url(session.getUrl())
                     .message("Tạo link thanh toán Stripe thành công")
@@ -93,18 +104,18 @@ public class StripePaymentServiceImpl implements PaymentService {
 
         } catch (Exception e) {
             log.error("Lỗi khi tạo phiên thanh toán Stripe: ", e);
-            throw new RuntimeException("Không thể tạo phiên thanh toán");
+            throw new AppException(400, "Không thể tạo phiên thanh toán");
         }
     }
+
     @Transactional
+    @Override
     public void handleStripeWebhook(String payload, String sigHeader) {
         try {
-            // 1. Xác thực chữ ký
             com.stripe.model.Event event = com.stripe.net.Webhook.constructEvent(
                     payload, sigHeader, endpointSecret
             );
 
-            // 2. Chỉ quan tâm đến sự kiện thanh toán thành công
             if ("checkout.session.completed".equals(event.getType())) {
 
                 com.stripe.model.checkout.Session session;
@@ -129,25 +140,48 @@ public class StripePaymentServiceImpl implements PaymentService {
                 Booking booking = bookingRepository.findById(bookingId).orElse(null);
                 if (booking != null) {
 
-                    // 3.1 Đổi trạng thái Hóa đơn
+                    // Cập nhật trạng thái Hóa đơn
                     booking.setStatus(Enums.BookingStatus.DEPOSIT_PAID);
                     bookingRepository.save(booking);
 
-                    // 3.2 Khóa sân lại
+                    // Khóa ca sân
                     TimeSlot slot = timeSlotRepository.findById(booking.getTimeSlotId()).orElse(null);
                     if (slot != null) {
                         slot.setStatus(Enums.TimeSlotStatus.BOOKED);
                         timeSlotRepository.save(slot);
                     }
 
-                    // 3.3  GHI NHẬN LỊCH SỬ DÒNG TIỀN VÀO BẢNG PAYMENT (DÙNG MAPPER)
-                    Payment depositPayment = paymentMapper.createPaymentEntity(
-                            booking,
-                            booking.getDepositAmount(),
-                            Enums.PaymentMethod.STRIPE, // Chuyển khoản qua Stripe
-                            session.getPaymentIntent()
-                    );
+                    // Ghi nhận dòng tiền
+                    PaymentCreateRequest paymentRequest = new PaymentCreateRequest();
+                    paymentRequest.setAmount(booking.getDepositAmount());
+                    paymentRequest.setPaymentMethod(Enums.PaymentMethod.STRIPE);
+                    paymentRequest.setStripePaymentIntentId(session.getPaymentIntent());
+                    paymentRequest.setBookingId(bookingId);
+                    paymentRequest.setUserId(booking.getUserId());
+                    paymentRequest.setStatus(Enums.PaymentStatus.SUCCESS);
+                    
+                    Payment depositPayment = paymentMapper.createPaymentEntity(paymentRequest);
+                    depositPayment.setBooking(booking); 
+                    depositPayment.setCreatedAt(LocalDateTime.now());
                     paymentRepository.save(depositPayment);
+
+                    // Bắn thông báo về hệ thống
+                    User player = userRepository.findById(booking.getUserId()).orElse(null);
+                    String playerName = player != null ? player.getFullName() : "Bạn";
+                    String fieldCode = truncateId(booking.getFieldId());
+                    String bookingCode = truncateId(bookingId);
+
+                    NotificationCreateRequest notifRequest = new NotificationCreateRequest();
+                    notifRequest.setTitle("🎉 Thanh toán thành công!");
+                    
+                    // Sử dụng .doubleValue() để tránh văng lỗi khi format BigDecimal
+                    String content = "Hệ thống xác nhận " + playerName + " đã thanh toán thành công số tiền " 
+                                    + String.format("%,.0f", booking.getDepositAmount().doubleValue()) 
+                                    + " VND tiền cọc cho sân " + fieldCode 
+                                    + " (Mã đơn: " + bookingCode + "). Chúc bạn có trận đấu vui vẻ!";
+                    notifRequest.setContent(content);
+                    notifRequest.setType(Enums.NotificationType.PAYMENT_UPDATE);
+                    notificationService.createAndSendNotification(booking.getUserId(), notifRequest);
 
                     log.info("==== KẾ TOÁN ==== Đã lưu DB khoản cọc {} VND qua STRIPE cho Booking {}", booking.getDepositAmount(), bookingId);
                     log.info("==== WEBHOOK ==== Đã chốt sân thành công!");
@@ -156,7 +190,6 @@ public class StripePaymentServiceImpl implements PaymentService {
                     log.error("==== WEBHOOK ==== Không tìm thấy hóa đơn {} trong Database", bookingId);
                 }
             }
-
         } catch (com.stripe.exception.SignatureVerificationException e) {
             log.error("==== WEBHOOK ==== Cảnh báo: Chữ ký giả mạo hoặc sai Secret Key!", e);
         } catch (Exception e) {

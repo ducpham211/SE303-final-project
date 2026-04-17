@@ -4,13 +4,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.example.backend.entity.Enums.UserRole;
+import com.example.backend.utils.Enums.UserRole;
 
 @Entity
 @Table(name = "users")
 public class User {
+    
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(unique = true)
@@ -61,10 +61,10 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<ConversationMember> conversationMembers;
 
-    // Constructors, getters, setters
     public User() {}
 
-    public User(String email, String password, UserRole role, String fullName, String phone) {
+    public User(String id, String email, String password, UserRole role, String fullName, String phone) {
+        this.id = id;
         this.email = email;
         this.password = password;
         this.role = role;
@@ -74,7 +74,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -102,5 +101,27 @@ public class User {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    // ...other getters/setters for relations omitted for brevity
+    public List<Team> getTeams() { return teams; }
+    public void setTeams(List<Team> teams) { this.teams = teams; }
+
+    public List<Booking> getBookings() { return bookings; }
+    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
+
+    public List<Payment> getPayments() { return payments; }
+    public void setPayments(List<Payment> payments) { this.payments = payments; }
+
+    public List<MatchPost> getMatchPosts() { return matchPosts; }
+    public void setMatchPosts(List<MatchPost> matchPosts) { this.matchPosts = matchPosts; }
+
+    public List<MatchRequest> getRequests() { return requests; }
+    public void setRequests(List<MatchRequest> requests) { this.requests = requests; }
+
+    public List<Message> getMessages() { return messages; }
+    public void setMessages(List<Message> messages) { this.messages = messages; }
+
+    public List<Notification> getNotifications() { return notifications; }
+    public void setNotifications(List<Notification> notifications) { this.notifications = notifications; }
+
+    public List<ConversationMember> getConversationMembers() { return conversationMembers; }
+    public void setConversationMembers(List<ConversationMember> conversationMembers) { this.conversationMembers = conversationMembers; }
 }

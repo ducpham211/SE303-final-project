@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null) {
-                // 👉 THỦ THUẬT NINJA: Bóc token bằng Base64 để né lỗi ES256 của JJWT
+                // THỦ THUẬT NINJA: Bóc token bằng Base64 để né lỗi ES256 của JJWT
                 String[] chunks = jwt.split("\\.");
                 if (chunks.length == 3) { // Token chuẩn luôn có 3 phần
                     // Giải mã phần Payload (phần ở giữa)
@@ -52,9 +52,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Dùng búa Jackson đập cục JSON ra để lấy chữ "sub" (chính là userId)
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                     com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(payload);
-
-                    // In ra để bắt tận tay xem ruột Token chứa chữ gì
-                    System.out.println("==== RUỘT TOKEN ==== : " + payload);
 
                     String userId = null;
                     if (jsonNode.has("sub")) {
@@ -73,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         return;
                     }
 
-                    // 👉 Code tìm User trong Database của bác giữ nguyên
+                    // Code tìm User trong Database của bác giữ nguyên
                     Optional<User> userOptional = userRepository.findById(userId);
 
                     if (userOptional.isPresent()) {

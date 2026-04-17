@@ -1,7 +1,9 @@
 package com.example.backend.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -27,5 +29,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // 3. Đường dẫn cho Client gửi tin lên Server qua Socket
         registry.setApplicationDestinationPrefixes("/app");
+    }
+
+    // 👉 BỔ SUNG: Cấu hình Graceful Shutdown để không văng lỗi đỏ khi tắt Server lúc đang mở tab web
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setWaitForTasksToCompleteOnShutdown(true); // Bắt Server đợi xử lý nốt tín hiệu ngắt kết nối
+        executor.setAwaitTerminationSeconds(5); // Chờ tối đa 5 giây rồi mới sập hẳn
+        executor.initialize();
+        
+        registration.taskExecutor(executor);
     }
 }
