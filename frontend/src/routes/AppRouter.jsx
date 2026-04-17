@@ -3,6 +3,8 @@ import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import HomePage from '../pages/home/HomePage'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
+import ContactPage from '../pages/community/ContactPage'
+import CommunityPage from '../pages/community/CommunityPage'
 
 /**
  * Central router — all routes are defined here.
@@ -31,8 +33,8 @@ export default function AppRouter() {
         <Route path="/yeu-cau" element={<PlaceholderPage title="Yêu cầu của tôi" />} />
 
         {/* Community */}
-        <Route path="/cong-dong" element={<PlaceholderPage title="Cộng đồng" />} />
-        <Route path="/lien-he" element={<PlaceholderPage title="Liên hệ" />} />
+        <Route path="/cong-dong" element={<CommunityPage />} />
+        <Route path="/lien-he" element={<ContactPage />} />
 
         {/* Misc */}
         <Route path="/faq" element={<PlaceholderPage title="Câu hỏi thường gặp" />} />
