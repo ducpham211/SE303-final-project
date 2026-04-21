@@ -73,18 +73,19 @@ export default function HeroSection() {
           [Đoạn mô tả phụ phụ trợ cho tiêu đề chính. Nêu bật các lợi ích hoặc thông tin tóm tắt để thu hút người dùng.]
         </p>
 
-        {/* Quick Search Bar */}
+        {/* Quick Search Bar — Desktop: pill bar / Mobile: card with labeled fields */}
+
+        {/* ── Desktop pill (sm+) ── */}
         <form
           id="hero-search-form"
           onSubmit={handleSearch}
-          className="w-full max-w-2xl bg-white rounded-full shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center overflow-hidden p-1.5 gap-1.5 sm:gap-0"
+          className="hidden sm:flex w-full max-w-2xl bg-white rounded-full shadow-lg items-center overflow-hidden p-1.5"
         >
-          {/* Divider helper for desktop */}
           <select
             id="hero-district-select"
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
-            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none rounded-full sm:rounded-none cursor-pointer appearance-none"
+            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer appearance-none"
             aria-label="Chọn khu vực"
           >
             <option value="">Khu vực</option>
@@ -93,13 +94,13 @@ export default function HeroSection() {
             ))}
           </select>
 
-          <div className="hidden sm:block w-px bg-gray-200 self-stretch my-2" />
+          <div className="w-px bg-gray-200 self-stretch my-2" />
 
           <select
             id="hero-type-select"
             value={fieldType}
             onChange={(e) => setFieldType(e.target.value)}
-            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none rounded-full sm:rounded-none cursor-pointer appearance-none"
+            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer appearance-none"
             aria-label="Chọn loại sân"
           >
             <option value="">Loại sân</option>
@@ -109,9 +110,69 @@ export default function HeroSection() {
           </select>
 
           <button
-            id="hero-search-btn"
+            id="hero-search-btn-desktop"
             type="submit"
             className="px-7 py-3 rounded-full bg-[#60D86E] hover:bg-[#45c45a] text-white font-semibold text-sm transition-all duration-200 flex-shrink-0 active:scale-95"
+          >
+            Tìm kiếm
+          </button>
+        </form>
+
+        {/* ── Mobile card (< sm) ── */}
+        <form
+          id="hero-search-form-mobile"
+          onSubmit={handleSearch}
+          className="sm:hidden w-full max-w-sm flex flex-col gap-3"
+        >
+          {/* Filter card */}
+          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+            {/* Khu vực row */}
+            <div className="px-5 pt-4 pb-3">
+              <label htmlFor="hero-district-mobile" className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">
+                Khu vực
+              </label>
+              <select
+                id="hero-district-mobile"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
+                aria-label="Chọn khu vực"
+              >
+                <option value="">Tất cả khu vực</option>
+                {DISTRICTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Divider */}
+            <div className="mx-5 border-t border-gray-100" />
+
+            {/* Loại sân row */}
+            <div className="px-5 pt-3 pb-4">
+              <label htmlFor="hero-type-mobile" className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">
+                Loại sân
+              </label>
+              <select
+                id="hero-type-mobile"
+                value={fieldType}
+                onChange={(e) => setFieldType(e.target.value)}
+                className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
+                aria-label="Chọn loại sân"
+              >
+                <option value="">Tất cả loại sân</option>
+                {FIELD_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Separate submit button — standalone pill below the card */}
+          <button
+            id="hero-search-btn-mobile"
+            type="submit"
+            className="w-full py-4 rounded-full bg-[#60D86E] hover:bg-[#45c45a] text-white font-bold text-sm tracking-wide shadow-lg transition-all duration-200 active:scale-[0.98]"
           >
             Tìm kiếm
           </button>

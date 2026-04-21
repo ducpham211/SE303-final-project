@@ -105,8 +105,3 @@ out/
 ehthumbs.db
 Thumbs.db
 $RECYCLE.BIN/
-
-# ==============================
-# AI / Agent Configuration
-# ==============================
-AGENTS.md

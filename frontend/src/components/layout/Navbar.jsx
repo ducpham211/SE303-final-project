@@ -30,13 +30,39 @@ export default function Navbar() {
     navigate('/')
   }
 
-  const navLinks = [
-    { label: 'Trang chủ', to: '/' },
-    { label: 'Đặt sân', to: '/dat-san' },
-    { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
-    { label: 'Cộng đồng', to: '/cong-dong' },
-    { label: 'Liên hệ', to: '/lien-he' },
-  ]
+  const getNavLinks = () => {
+    const role = user?.role || 'GUEST'
+
+    if (role === 'ADMIN' || role === 'ROLE_ADMIN') {
+      return [
+        { label: 'Trang chủ', to: '/' },
+        { label: 'Duyệt chủ sân', to: '/admin/fields' },
+        { label: 'Quản lý người dùng', to: '/admin/users' },
+        { label: 'Báo cáo hệ thống', to: '/admin/dashboard' },
+      ]
+    }
+
+    if (role === 'OWNER' || role === 'ROLE_OWNER') {
+      return [
+        { label: 'Trang chủ', to: '/' },
+        { label: 'Sân của tôi', to: '/owner/fields' },
+        { label: 'Lịch đặt sân', to: '/owner/bookings' },
+        { label: 'Doanh thu', to: '/owner/revenue' },
+        { label: 'Liên hệ', to: '/lien-he' },
+      ]
+    }
+
+    // Default PLAYER or GUEST
+    return [
+      { label: 'Trang chủ', to: '/' },
+      { label: 'Đặt sân', to: '/dat-san' },
+      { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
+      { label: 'Cộng đồng', to: '/cong-dong' },
+      { label: 'Liên hệ', to: '/lien-he' },
+    ]
+  }
+
+  const navLinks = getNavLinks()
 
   return (
     <>
@@ -68,7 +94,7 @@ export default function Navbar() {
 
               {/* Desktop Nav Links */}
               <div 
-                className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center justify-start gap-1 whitespace-nowrap overflow-hidden max-w-[calc(100%-380px)] transition-all"
+                className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center justify-center gap-1 transition-all"
               >
                 {navLinks.map((link) => {
                   const isActive = location.pathname === link.to
@@ -89,46 +115,52 @@ export default function Navbar() {
               </div>
 
               {/* Right side: Auth */}
-              <div className="hidden md:flex items-center gap-2 z-10">
+              <div className="hidden lg:flex items-center gap-1 z-10 flex-shrink-0">
                 {isLoggedIn ? (
-                  <div className="relative" ref={dropdownRef}>
+                  <>
                     {/* Notification Bell */}
                     <button
                       id="navbar-notification-bell"
-                      className="relative p-2 rounded-full text-gray-500 hover:bg-[#e8f9eb] hover:text-[#60D86E] transition-all duration-200 mr-1"
+                      className="relative p-2 rounded-full text-gray-500 hover:bg-[#e8f9eb] hover:text-[#60D86E] transition-all duration-200 group"
                       aria-label="Thông báo"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                       </svg>
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-[#60D86E] rounded-full"></span>
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-[#60D86E] rounded-full border-2 border-white"></span>
                     </button>
 
-                    {/* Avatar dropdown trigger */}
-                    <button
-                      id="navbar-user-avatar"
-                      onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#e8f9eb] hover:bg-[#60D86E] hover:text-white transition-all duration-200 group"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-[#60D86E] group-hover:bg-white flex items-center justify-center text-white group-hover:text-[#60D86E] font-semibold text-xs flex-shrink-0 transition-all">
-                        {user?.name?.[0]?.toUpperCase() || 'U'}
-                      </div>
-                      <span className="text-sm font-medium text-[#1a202c] group-hover:text-white transition-all">
-                        {user?.name || 'Tài khoản'}
-                      </span>
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className={`text-gray-400 group-hover:text-white transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                    <div className="relative" ref={dropdownRef}>
+                      {/* Avatar dropdown trigger */}
+                      <button
+                        id="navbar-user-avatar"
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#e8f9eb] hover:bg-[#60D86E] hover:text-white transition-all duration-200 group ml-1"
                       >
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </button>
+                        <div className="w-6 h-6 rounded-full bg-[#60D86E] group-hover:bg-white flex items-center justify-center text-white group-hover:text-[#60D86E] font-semibold text-xs flex-shrink-0 transition-all">
+                          {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex flex-col items-start leading-tight">
+                          <span className="text-sm font-semibold text-[#1a202c] group-hover:text-white transition-all">
+                            {user?.name || 'Tài khoản'}
+                          </span>
+                          <span className="text-[10px] opacity-70 group-hover:text-white">
+                            {user?.role?.replace('ROLE_', '') || 'PLAYER'}
+                          </span>
+                        </div>
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className={`text-gray-400 group-hover:text-white transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
 
                     {/* Dropdown */}
                     {dropdownOpen && (
@@ -157,7 +189,8 @@ export default function Navbar() {
                         </button>
                       </div>
                     )}
-                  </div>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <Link
@@ -180,7 +213,7 @@ export default function Navbar() {
 
               {/* Mobile hamburger */}
               <button
-                className="md:hidden p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-all"
+                className="lg:hidden p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-all"
                 onClick={() => setMobileOpen(!mobileOpen)}
                 aria-label="Toggle menu"
                 id="navbar-mobile-menu-btn"
@@ -200,7 +233,7 @@ export default function Navbar() {
 
           {/* Mobile menu — attached below pill, same border radius continues */}
           {mobileOpen && (
-            <div className="md:hidden border-t border-gray-100 px-4 py-3 space-y-1 rounded-b-2xl">
+            <div className="lg:hidden border-t border-gray-100 px-4 py-3 space-y-1 rounded-b-2xl">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -225,10 +258,10 @@ export default function Navbar() {
                   </button>
                 ) : (
                   <>
-                    <Link to="/dang-nhap" className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
+                    <Link to="/dang-nhap" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
                       Đăng nhập
                     </Link>
-                    <Link to="/dang-ky" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
+                    <Link to="/dang-ky" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
                       Đăng ký
                     </Link>
                   </>
