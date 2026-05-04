@@ -6,6 +6,9 @@ import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
 import FieldListPage from '../pages/player/FieldListPage'
 import FieldDetailPage from '../pages/player/FieldDetailPage'
+import MessagesPage from '../pages/player/MessagesPage'
+import PaymentSuccessPage from '../pages/payment/PaymentSuccessPage'
+import PaymentCancelPage from '../pages/payment/PaymentCancelPage'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 
 /**
@@ -27,11 +30,15 @@ export default function AppRouter() {
         {/* Player pages — stubs & real */}
         <Route path="/dat-san" element={<FieldListPage />} />
         <Route path="/dat-san/:id" element={<FieldDetailPage />} />
+
+        {/* Payment callbacks — Stripe redirects here */}
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
         <Route path="/lich-dat" element={<PlaceholderPage title="Lịch đặt" />} />
         <Route path="/tim-doi-thu" element={<PlaceholderPage title="Tìm đối thủ" />} />
         <Route path="/tim-doi-thu/tao-keo" element={<PlaceholderPage title="Tạo kèo đấu" />} />
         <Route path="/tim-doi-thu/lich" element={<PlaceholderPage title="Lịch kèo đấu" />} />
-        <Route path="/tin-nhan" element={<PlaceholderPage title="Tin nhắn" />} />
+        <Route path="/tin-nhan" element={<MessagesPage />} />
         <Route path="/yeu-cau" element={<PlaceholderPage title="Yêu cầu của tôi" />} />
 
         {/* Community */}
