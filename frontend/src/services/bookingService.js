@@ -15,9 +15,7 @@ const bookingService = {
   },
 
   /**
-   * Create a new booking for a single time slot
-   * @param {string} timeSlotId - ID of the time slot to book
-   * @param {string} note - Optional note
+   * Create a new booking
    */
   createBooking: async (timeSlotId, note = '') => {
     const { data } = await api.post('/bookings', { timeSlotId, note })
@@ -46,3 +44,4 @@ const bookingService = {
 }
 
 export default bookingService
+

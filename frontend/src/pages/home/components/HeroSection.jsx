@@ -15,10 +15,11 @@ const FIELD_TYPE_LABELS = {
   'ELEVEN_A_SIDE': 'Sân 11 người'
 }
 
-const TIME_OPTIONS = Array.from({ length: 33 }, (_, i) => {
-  const h = Math.floor(i / 2) + 6;
-  const m = i % 2 === 0 ? '00' : '30';
-  return `${h.toString().padStart(2, '0')}:${m}`;
+const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const totalMinutes = 6 * 60 + i * 90;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
 });
 
 /**
@@ -35,6 +36,7 @@ export default function HeroSection() {
 
   useEffect(() => {
     const handleScroll = () => {
+      // Fade out indicator when scrolled past 50px
       setIsScrolled(window.scrollY > 50)
     }
     window.addEventListener('scroll', handleScroll)
@@ -62,7 +64,7 @@ export default function HeroSection() {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Dark overlay */}
+      {/* Dark overlay — flat solid, no gradient */}
       <div
         className="absolute inset-0"
         style={{ backgroundColor: 'rgba(10, 30, 15, 0.60)' }}
@@ -87,11 +89,13 @@ export default function HeroSection() {
           Đặt sân nhanh chóng, tìm kèo dễ dàng. Cơ sở vật chất hiện đại, mặt cỏ tiêu chuẩn FIFA ngay tại trung tâm.
         </p>
 
+        {/* Quick Search Bar — Desktop: pill bar / Mobile: card with labeled fields */}
+
         {/* ── Desktop pill (sm+) ── */}
         <form
           id="hero-search-form"
           onSubmit={handleSearch}
-          className="hidden sm:flex w-full max-w-3xl bg-white rounded-full shadow-lg items-center p-1.5 relative z-20"
+          className="hidden sm:flex w-full max-w-4xl bg-white rounded-full shadow-lg items-center p-1.5 relative z-20"
         >
           <input
             type="date"
@@ -131,8 +135,8 @@ export default function HeroSection() {
                       type="button"
                       onClick={() => { setStartTime(time); setIsTimeOpen(false); }}
                       className={`w-full px-4 py-1.5 text-left text-sm transition-none ${
-                        startTime === time
-                          ? 'bg-[#60D86E] text-white'
+                        startTime === time 
+                          ? 'bg-[#60D86E] text-white' 
                           : 'text-gray-800 hover:bg-[#60D86E] hover:text-white'
                       }`}
                     >
@@ -144,7 +148,7 @@ export default function HeroSection() {
             )}
           </div>
 
-          <div className="w-px bg-gray-200 self-stretch my-2" />
+
 
           <div className="relative flex-1">
             <button
@@ -174,8 +178,8 @@ export default function HeroSection() {
                       type="button"
                       onClick={() => { setFieldType(t); setIsTypeOpen(false); }}
                       className={`w-full px-4 py-1.5 text-left text-sm transition-none ${
-                        fieldType === t
-                          ? 'bg-[#60D86E] text-white'
+                        fieldType === t 
+                          ? 'bg-[#60D86E] text-white' 
                           : 'text-gray-800 hover:bg-[#60D86E] hover:text-white'
                       }`}
                     >
@@ -202,6 +206,7 @@ export default function HeroSection() {
           onSubmit={handleSearch}
           className="sm:hidden w-full max-w-sm flex flex-col gap-3"
         >
+          {/* Filter card */}
           <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
             {/* Ngày & Giờ row */}
             <div className="flex border-b border-gray-100">
@@ -230,21 +235,24 @@ export default function HeroSection() {
             </div>
 
             {/* Loại sân row */}
-            <div className="px-5 pt-4 pb-4">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">Loại sân</label>
-              <select
-                value={fieldType}
-                onChange={(e) => setFieldType(e.target.value)}
-                className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
-              >
-                <option value="">Tất cả</option>
-                {FIELD_TYPES.map((t) => (
-                  <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
-                ))}
-              </select>
+            <div className="flex">
+              <div className="px-5 pt-4 pb-4 flex-1">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">Loại sân</label>
+                <select
+                  value={fieldType}
+                  onChange={(e) => setFieldType(e.target.value)}
+                  className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
+                >
+                  <option value="">Tất cả</option>
+                  {FIELD_TYPES.map((t) => (
+                    <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
+          {/* Separate submit button — standalone pill below the card */}
           <button
             id="hero-search-btn-mobile"
             type="submit"
@@ -255,9 +263,9 @@ export default function HeroSection() {
         </form>
 
         {/* Address Info */}
-        <a
-          href="https://maps.google.com/?q=Khu+phố+34,+Phường+Linh+Xuân,+Thành+phố+Hồ+Chí+Minh"
-          target="_blank"
+        <a 
+          href="https://maps.google.com/?q=Khu+phố+34,+Phường+Linh+Xuân,+Thành+phố+Hồ+Chí+Minh" 
+          target="_blank" 
           rel="noopener noreferrer"
           className="flex items-center gap-2 mt-4 text-white/90 hover:text-white transition-colors group"
         >
@@ -271,8 +279,8 @@ export default function HeroSection() {
         </a>
       </div>
 
-      {/* Scroll Down Indicator */}
-      <div
+      {/* Scroll Down Indicator with Transparent Gradient */}
+      <div 
         className={`fixed bottom-0 w-full h-32 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center pb-6 z-20 pointer-events-none transition-opacity duration-500 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
       >
         <div className="flex flex-col items-center gap-1 animate-bounce text-white/80">
