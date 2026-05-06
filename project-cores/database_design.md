@@ -18,7 +18,7 @@ Hệ thống sử dụng hệ quản trị CSDL quan hệ (PostgreSQL/MySQL).
 - `role` (Enum): Vai trò (`PLAYER`, `OWNER`, `ADMIN`).
 - `full_name` (String): Họ và tên.
 - `phone` (String, Unique): Số điện thoại liên hệ.
-- `trust_score` (Int, Default 100): Điểm uy tín (dành cho gamification/rating xếp hạng).
+- `trust_score` (Int, Default 100): Điểm uy tín đại diện cho đội (dành cho gamification/rating xếp hạng).
 - `created_at` (Timestamp): Ngày tạo.
 - `updated_at` (Timestamp): Ngày cập nhật.
 
