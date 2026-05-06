@@ -1,16 +1,18 @@
 package com.example.backend.entity;
 
+import com.example.backend.utils.Enums;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+
 @Data
 @Entity
 @Table(name = "fields")
 public class Field {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     private String name;
@@ -33,8 +35,11 @@ public class Field {
     @OneToMany(mappedBy = "field")
     private List<Booking> bookings;
 
-    // getters/setters
-    public Field() {}
+    public Field() {
+        this.id = UUID.randomUUID().toString();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

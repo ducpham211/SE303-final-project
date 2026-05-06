@@ -7,9 +7,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import com.example.backend.exception.AppException;
+import lombok.AllArgsConstructor;
+
 @RestController
 @RequestMapping("/api/payments")
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -24,11 +27,8 @@ public class PaymentController {
     @PostMapping("/webhook")
     public ResponseEntity<String> stripeWebhook(@RequestBody String payload, HttpServletRequest request) {
         // Lấy chữ ký điện tử mà Stripe nhét trong Header
-        String sigHeader = request.getHeader("Stripe-Signature");
-
-        // Ném sang Service xử lý
+        String sigHeader = request.getHeader("Stripe-Signature");// Ném sang Service xử lý
         paymentService.handleStripeWebhook(payload, sigHeader);
-
         // Trả về 200 OK để báo cho Stripe
         return ResponseEntity.ok("Received");
     }

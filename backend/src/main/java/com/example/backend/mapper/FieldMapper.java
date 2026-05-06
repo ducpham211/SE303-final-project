@@ -4,13 +4,14 @@ import com.example.backend.dto.request.FieldCreateRequest;
 import com.example.backend.dto.request.FieldUpdateRequest;
 import com.example.backend.dto.response.FieldResponse;
 import com.example.backend.entity.Field;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.*;
 
 // componentModel = "spring" giúp bác có thể @Autowired cái mapper này vào Service
-@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
-public interface FieldMapper {
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)public interface FieldMapper {
 
     // 1. Map từ DTO (Request) sang Entity để lưu DB
     @Mapping(target = "id", ignore = true) // Bỏ qua ID vì lúc tạo mới chưa có ID

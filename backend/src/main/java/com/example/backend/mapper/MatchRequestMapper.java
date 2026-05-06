@@ -5,12 +5,13 @@ import com.example.backend.dto.request.MatchRequestStatusCreateRequest;
 import com.example.backend.dto.response.MatchRequestResponse;
 import com.example.backend.dto.response.MatchRequestStatusResponse;
 import com.example.backend.entity.MatchRequest;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.*;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
-
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
 public interface MatchRequestMapper {
     @Mapping(target = "id", ignore = true)
     MatchRequest toEntity(MatchRequestCreateRequest matchRequestCreateRequest);

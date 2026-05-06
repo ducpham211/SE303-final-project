@@ -1,36 +1,29 @@
 package com.example.backend.controller;
+
 import com.example.backend.dto.request.FieldCreateRequest;
 import com.example.backend.dto.request.FieldUpdateRequest;
-import com.example.backend.dto.response.FieldDetailResponse;
 import com.example.backend.dto.response.FieldResponse;
-import com.example.backend.dto.response.TimeSlotAvailabilityResponse;
 import com.example.backend.dto.response.TimeSlotResponse;
 import com.example.backend.dto.request.TimeSlotCreateRequest;
 import com.example.backend.dto.request.TimeSlotUpdateRequest;
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import com.example.backend.service.FieldService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
 @RestController
 @RequestMapping("/api/fields")
+@RequiredArgsConstructor
 public class FieldController {
 
     private final FieldService fieldService;
-
-    @Autowired
-    public FieldController(FieldService fieldService) {
-        this.fieldService = fieldService;
-    }
 
     @GetMapping
     public ResponseEntity<List<FieldResponse>> getFields(
@@ -62,7 +55,7 @@ public class FieldController {
 
     @PostMapping
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<FieldResponse> createField(@RequestBody FieldCreateRequest request){
+    public ResponseEntity<FieldResponse> createField(@RequestBody FieldCreateRequest request) {
         FieldResponse fieldCreated = fieldService.createField(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(fieldCreated);
     }

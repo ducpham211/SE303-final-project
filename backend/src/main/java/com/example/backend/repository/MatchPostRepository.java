@@ -1,7 +1,9 @@
 package com.example.backend.repository;
 
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 import com.example.backend.entity.MatchPost;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,9 +17,12 @@ public interface MatchPostRepository extends JpaRepository<MatchPost, String> {
             "(:#{#skillLevel == null} = true OR m.skillLevel = :skillLevel) AND " +
             "(:#{#postType == null} = true OR m.postType = :postType) " +
             "ORDER BY m.createdAt DESC")
-    List<MatchPost> filterMatchPosts(
+    Page<MatchPost> filterMatchPosts(
             @Param("skillLevel") Enums.TeamLevel skillLevel,
-            @Param("postType") Enums.PostType postType
+            @Param("postType") Enums.PostType postType,
+            Pageable pageable
     );
+    @Query("SELECT m FROM MatchPost m WHERE m.status = 'OPEN' AND m.userId != :currentUserId ORDER BY m.createdAt DESC")
+    Page<MatchPost> findPotentialMatches(@Param("currentUserId") String currentUserId, Pageable pageable);
 }
 

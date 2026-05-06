@@ -24,10 +24,16 @@ public class ExceptionGlobalHandler {
         return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
     }
 
-    // 3. Bắt toàn bộ các lỗi lặt vặt khác (NullPointer, v.v.) chưa lường trước được
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
-        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi hệ thống: " + ex.getMessage());
+        // Log lỗi thật ra console để dev debug (Enterprise standard)
+        ex.printStackTrace(); 
+        
+        // Trả về UI cục lỗi an toàn
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+            "Hệ thống đang bảo trì hoặc có trục trặc nhỏ. Vui lòng thử lại sau!"
+        );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }

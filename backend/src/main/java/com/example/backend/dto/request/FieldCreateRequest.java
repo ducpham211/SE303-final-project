@@ -1,6 +1,6 @@
 package com.example.backend.dto.request;
 
-import com.example.backend.entity.Enums; // Nhớ import đúng đường dẫn chứa file Enums của bác
+import com.example.backend.utils.Enums; // Nhớ import đúng đường dẫn chứa file Enums của bác
 import lombok.Data;
 
 @Data

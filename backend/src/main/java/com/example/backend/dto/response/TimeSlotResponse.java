@@ -2,7 +2,7 @@ package com.example.backend.dto.response;
 
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
-import com.example.backend.entity.Enums;
+import com.example.backend.utils.Enums;
 
 public class TimeSlotResponse {
     private String id;
