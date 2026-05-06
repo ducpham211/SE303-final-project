@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 
 export default function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false)
+  const { pathname } = useLocation()
+
+  // Tự động cuộn lên đầu trang khi chuyển hướng (đổi route)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   // Show button when page is scrolled down
   useEffect(() => {

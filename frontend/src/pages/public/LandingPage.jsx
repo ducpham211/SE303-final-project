@@ -2,7 +2,7 @@ import HeroSection from '../home/components/HeroSection'
 import FeaturedFields from '../home/components/FeaturedFields'
 import DashboardTeaser from '../home/components/DashboardTeaser'
 import QuickFeatures from '../home/components/QuickFeatures'
-import CtaBanner from '../home/components/CtaBanner'
+import OpponentFinder from '../home/components/OpponentFinder'
 import useAuthStore from '../../store/useAuthStore'
 
 /**
@@ -18,8 +18,8 @@ export default function LandingPage() {
       <HeroSection />
       {role === 'PLAYER' && <DashboardTeaser />}
       <FeaturedFields />
+      <OpponentFinder />
       <QuickFeatures />
-      <CtaBanner />
     </main>
   )
 }
