@@ -8,11 +8,10 @@ const DISTRICTS = [
   'Thủ Đức', 'Bình Dương', 'Đồng Nai',
 ]
 
-const FIELD_TYPES = ['FIVE_A_SIDE', 'SEVEN_A_SIDE', 'ELEVEN_A_SIDE']
+const FIELD_TYPES = ['FIVE_A_SIDE', 'SEVEN_A_SIDE']
 const FIELD_TYPE_LABELS = {
   'FIVE_A_SIDE': 'Sân 5 người',
-  'SEVEN_A_SIDE': 'Sân 7 người',
-  'ELEVEN_A_SIDE': 'Sân 11 người'
+  'SEVEN_A_SIDE': 'Sân 7 người'
 }
 
 const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {

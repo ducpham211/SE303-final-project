@@ -1,94 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import fieldService from '../../../services/fieldService'
 
-// Ảnh fallback theo loại sân khi API không trả về ảnh
-const FALLBACK_IMAGES = {
-  FIVE_A_SIDE: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
-  SEVEN_A_SIDE: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80',
-  ELEVEN_A_SIDE: 'https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&w=800&q=80',
-}
-
-const TYPE_META = {
-  FIVE_A_SIDE:   { name: 'Sân 5 người',   details: 'Dành cho các đội nhóm nhỏ, cỏ nhân tạo đạt chuẩn.' },
-  SEVEN_A_SIDE:  { name: 'Sân 7 người',   details: 'Thích hợp cho giải đấu phong trào, mặt sân rộng rãi.' },
-  ELEVEN_A_SIDE: { name: 'Sân 11 người',  details: 'Tiêu chuẩn thi đấu chuyên nghiệp, mặt cỏ cao cấp.' },
-}
-
-/** Group fields by type, lấy giá min của time slots trong mỗi nhóm */
-function groupFieldsByType(fields) {
-  const grouped = {}
-  fields.forEach(field => {
-    const type = field.fieldType || field.type
-    if (!grouped[type]) {
-      grouped[type] = { type, fields: [], minPrice: Infinity }
-    }
-    grouped[type].fields.push(field)
-    // Lấy giá thấp nhất từ timeSlots nếu có
-    if (field.timeSlots?.length) {
-      field.timeSlots.forEach(slot => {
-        const price = parseFloat(slot.price)
-        if (price < grouped[type].minPrice) grouped[type].minPrice = price
-      })
-    }
-  })
-  // Chuyển sang mảng, format lại để dùng trong carousel
-  return Object.entries(grouped).map(([type, data]) => ({
-    id: type,
-    name: TYPE_META[type]?.name || type,
-    details: TYPE_META[type]?.details || '',
-    price: data.minPrice === Infinity ? null : data.minPrice.toLocaleString('vi-VN'),
-    image: FALLBACK_IMAGES[type] || FALLBACK_IMAGES.FIVE_A_SIDE,
-    count: data.fields.length,
-  }))
-}
-
-function SkeletonCard() {
-  return (
-    <div className="bg-white rounded-[2rem] overflow-hidden border-2 border-[#60D86E] shadow-2xl animate-pulse">
-      <div className="w-full h-60 bg-gray-200" />
-      <div className="p-8 flex flex-col gap-4 items-center">
-        <div className="h-7 w-40 bg-gray-200 rounded-full" />
-        <div className="h-4 w-56 bg-gray-100 rounded-full" />
-        <div className="h-4 w-48 bg-gray-100 rounded-full mt-1" />
-        <div className="h-9 w-32 bg-gray-200 rounded-full mt-4" />
-      </div>
-    </div>
-  )
-}
+const STATIC_FIELD_TYPES = [
+  {
+    id: 'FIVE_A_SIDE',
+    name: 'Sân 5 người',
+    details: 'Dành cho các đội nhóm nhỏ, cỏ nhân tạo đạt chuẩn.',
+    price: '150.000',
+    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'SEVEN_A_SIDE',
+    name: 'Sân 7 người',
+    details: 'Thích hợp cho giải đấu phong trào, mặt sân rộng rãi.',
+    price: '300.000',
+    image: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80',
+  }
+]
 
 export default function FeaturedFields() {
-  const [fieldTypes, setFieldTypes] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [activeIndex, setActiveIndex] = useState(1000000 * 3 + 1)
+  const [activeIndex, setActiveIndex] = useState(1000000 * 2 + 1)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true)
-        const data = await fieldService.getFields()
-        const grouped = groupFieldsByType(data)
-        setFieldTypes(grouped.length ? grouped : [])
-        // Đặt initial index sao cho ở giữa nhóm đầu tiên
-        setActiveIndex(1000000 * (grouped.length || 3) + 1)
-      } catch (err) {
-        console.error('FeaturedFields: failed to load', err)
-        setError('Không thể tải dữ liệu sân. Vui lòng thử lại sau.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
 
   const handlePrev = () => setActiveIndex(prev => prev - 1)
   const handleNext = () => setActiveIndex(prev => prev + 1)
   const handleBook = (typeId) => navigate(`/dat-san?type=${typeId}`)
 
   const virtualOffsets = [-2, -1, 0, 1, 2]
-  const len = fieldTypes.length || 1
 
   return (
     <section id="featured-fields" className="min-h-screen w-full flex flex-col justify-center py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
@@ -101,24 +39,12 @@ export default function FeaturedFields() {
         </p>
       </div>
 
-      {error && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-base">{error}</p>
-        </div>
-      )}
-
-      {!error && (
-        <div className="relative h-[480px] w-full flex items-center justify-center">
-          {loading ? (
-            // Skeleton chỉ hiện card trung tâm khi đang load
-            <div className="w-full max-w-sm sm:max-w-md">
-              <SkeletonCard />
-            </div>
-          ) : (
-            virtualOffsets.map((offset) => {
+      <div className="relative h-[480px] w-full flex items-center justify-center">
+            {virtualOffsets.map((offset) => {
               const index = activeIndex + offset
+              const len = STATIC_FIELD_TYPES.length
               const actualIndex = ((index % len) + len) % len
-              const field = fieldTypes[actualIndex]
+              const field = STATIC_FIELD_TYPES[actualIndex]
               if (!field) return null
 
               const isActive = offset === 0
@@ -169,9 +95,6 @@ export default function FeaturedFields() {
                     <div className="p-8 flex flex-col gap-4">
                       <div className="text-center">
                         <h3 className="font-bold text-[#1a202c] text-2xl">{field.name}</h3>
-                        {field.count > 0 && (
-                          <span className="text-xs text-[#60D86E] font-bold">{field.count} sân đang hoạt động</span>
-                        )}
                       </div>
                       <p className="text-gray-500 text-base text-center min-h-[48px]">{field.details}</p>
                       <div className="text-center mt-2 pt-5 border-t border-gray-100">
@@ -185,21 +108,15 @@ export default function FeaturedFields() {
                   </div>
                 </div>
               )
-            })
-          )}
+            })}
 
-          {!loading && (
-            <>
               <button onClick={handlePrev} className="absolute left-0 sm:left-4 lg:left-10 z-30 p-4 rounded-full bg-white shadow-xl border border-gray-100 transition-all duration-300 hover:bg-gray-50 hover:scale-110 active:scale-95">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1a202c]"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
               <button onClick={handleNext} className="absolute right-0 sm:right-4 lg:right-10 z-30 p-4 rounded-full bg-white shadow-xl border border-gray-100 transition-all duration-300 hover:bg-gray-50 hover:scale-110 active:scale-95">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#1a202c]"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
-            </>
-          )}
         </div>
-      )}
     </section>
   )
 }

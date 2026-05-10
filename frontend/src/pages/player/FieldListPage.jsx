@@ -65,9 +65,13 @@ export default function FieldListPage() {
 
   const fieldTypes = [
     { value: 'FIVE_A_SIDE', label: 'Sân 5', icon: '5v5' },
-    { value: 'SEVEN_A_SIDE', label: 'Sân 7', icon: '7v7' },
-    { value: 'ELEVEN_A_SIDE', label: 'Sân 11', icon: '11v11' }
+    { value: 'SEVEN_A_SIDE', label: 'Sân 7', icon: '7v7' }
   ]
+
+  const FALLBACK_IMAGES = {
+    FIVE_A_SIDE: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
+    SEVEN_A_SIDE: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80'
+  }
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -169,7 +173,18 @@ export default function FieldListPage() {
 
       // 1. Lấy danh sách sân
       const fieldsData = await fieldService.getFields({ type: filterType })
-      setFields(fieldsData)
+
+      // Gộp các sân trùng tên lại với nhau
+      const groupedFieldsMap = {}
+      fieldsData.forEach(f => {
+        if (!groupedFieldsMap[f.name]) {
+          groupedFieldsMap[f.name] = { ...f, subFieldIds: [f.id] }
+        } else {
+          groupedFieldsMap[f.name].subFieldIds.push(f.id)
+        }
+      })
+      const groupedFields = Object.values(groupedFieldsMap)
+      setFields(groupedFields)
 
       const now = new Date()
       const isToday = selectedDate === now.toISOString().split('T')[0]
@@ -177,27 +192,34 @@ export default function FieldListPage() {
 
       // 2. Progressive: fetch từng sân và hiện ngay khi có dữ liệu
       const slotsMap = {}
-      const pending = new Set(fieldsData.map(f => f.id))
+      const pending = new Set(groupedFields.map(f => f.name))
       setLoadingFields(new Set(pending))
 
       await Promise.all(
-        fieldsData.map(async (field) => {
+        groupedFields.map(async (fieldGroup) => {
           try {
-            const slots = await fieldService.getFieldAvailability(field.id, selectedDate)
-            const groups = buildGroups(Array.isArray(slots) ? slots : [], isToday, cutoffMs)
-            slotsMap[field.id] = groups
+            // Fetch availability cho tất cả các sub-fields có cùng tên
+            const allSlotsNested = await Promise.all(
+              fieldGroup.subFieldIds.map(id => 
+                fieldService.getFieldAvailability(id, selectedDate).catch(() => [])
+              )
+            )
+            const allSlots = allSlotsNested.flat()
+            
+            const groups = buildGroups(allSlots, isToday, cutoffMs)
+            slotsMap[fieldGroup.name] = groups
             // Cập nhật state ngay — sân nào xong trước hiện trước
-            setSlotsByField(prev => ({ ...prev, [field.id]: groups }))
+            setSlotsByField(prev => ({ ...prev, [fieldGroup.name]: groups }))
           } catch {
-            slotsMap[field.id] = []
+            slotsMap[fieldGroup.name] = []
           } finally {
-            setLoadingFields(prev => { const s = new Set(prev); s.delete(field.id); return s })
+            setLoadingFields(prev => { const s = new Set(prev); s.delete(fieldGroup.name); return s })
           }
         })
       )
 
       // Lưu cache
-      cache.current[cacheKey] = { fields: fieldsData, slotsMap }
+      cache.current[cacheKey] = { fields: groupedFields, slotsMap }
     } catch (err) {
       setError('Không thể tải danh sách sân. Vui lòng thử lại sau.')
       console.error(err)
@@ -210,7 +232,8 @@ export default function FieldListPage() {
   const handleGroupClick = (group, field) => {
     if (group.availableSlots.length === 0) return
     const slot = group.availableSlots[0]
-    setSelectedSlot({ ...slot, fieldName: field.name, fieldId: field.id })
+    // Lấy fieldId từ slot thực tế (vì đã gộp nhiều subFieldId)
+    setSelectedSlot({ ...slot, fieldName: field.name, fieldId: slot.fieldId || field.id })
   }
 
   const handleBookClick = () => {
@@ -367,80 +390,99 @@ export default function FieldListPage() {
               </span>
             </div>
 
-            {/* Mỗi sân là một block, trong đó slot được gộp theo khung giờ */}
-            {fields.map(field => {
-              let groups = slotsByField[field.id] || []
+            {/* Danh sách các sân */}
+            <div className={filterStartTime ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" : "flex flex-col gap-6"}>
+              {fields.map(field => {
+                let groups = slotsByField[field.name] || []
 
-              // Áp filter giờ bắt đầu
-              if (filterStartTime) {
-                groups = groups.filter(g => formatTime(g.startTime) === filterStartTime)
-              }
+                // Áp filter giờ bắt đầu
+                if (filterStartTime) {
+                  groups = groups.filter(g => formatTime(g.startTime) === filterStartTime)
+                }
 
-              if (groups.length === 0) return null
+                if (groups.length === 0) return null
 
-              const availableCount = groups.filter(g => g.availableSlots.length > 0).length
+                const availableCount = groups.filter(g => g.availableSlots.length > 0).length
 
-              return (
-                <div key={field.id} className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100">
-                  {/* Header sân */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#e8f9eb] flex items-center justify-center flex-shrink-0">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60D86E" strokeWidth="2">
-                        <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="12" cy="12" r="3"/>
-                      </svg>
+                const fieldImage = (!field.coverImage || field.coverImage.includes('example.com')) 
+                  ? (FALLBACK_IMAGES[filterType] || FALLBACK_IMAGES.FIVE_A_SIDE) 
+                  : field.coverImage;
+
+                return (
+                  <div key={field.name} className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 transition-all ${filterStartTime ? 'flex flex-col h-full hover:shadow-md' : 'flex flex-col md:flex-row p-4 sm:p-5 gap-5 sm:gap-6'}`}>
+                    {/* Ảnh cover của sân */}
+                    <div className={`relative flex-shrink-0 bg-gray-200 overflow-hidden ${filterStartTime ? 'w-full h-40 sm:h-48' : 'w-full h-48 md:w-64 md:h-auto rounded-2xl min-h-[200px]'}`}>
+                      <img 
+                        src={fieldImage} 
+                        alt={field.name}
+                        className={`w-full h-full object-cover ${filterStartTime ? '' : 'absolute inset-0'}`}
+                      />
+                      {/* Badge Loại Sân */}
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-extrabold text-[#1a202c] shadow-sm uppercase tracking-wide">
+                        {fieldTypes.find(t => t.value === filterType)?.label || 'Sân bóng'}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-[#1a202c] text-base">{field.name}</h3>
-                      <span className="text-xs text-gray-400 font-medium">
-                        {availableCount} / {groups.length} khung giờ trống
-                        <span className="ml-1 text-gray-300">· badge = số sân con còn trống</span>
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Grid khung giờ đã gộp */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
-                    {groups.map(group => {
-                      const available = group.availableSlots.length
-                      const total     = group.totalSlots
-                      const full      = available === 0
-                      const isSelected = selectedSlot && group.availableSlots.some(s => s.id === selectedSlot.id)
-                      return (
-                        <button
-                          key={group.key}
-                          disabled={full}
-                          onClick={() => handleGroupClick(group, field)}
-                          className={`relative flex flex-col items-center justify-center p-3 rounded-2xl w-full text-center transition-all duration-200 border-2 ${
-                            full
-                              ? 'bg-gray-50 border-transparent text-gray-400 cursor-not-allowed'
-                              : isSelected
-                                ? 'bg-[#60D86E] border-[#60D86E] text-white shadow-md -translate-y-1'
-                                : 'bg-white border-gray-100 text-[#1a202c] hover:border-[#60D86E] hover:text-[#60D86E] hover:-translate-y-0.5 hover:shadow-sm'
-                          }`}
-                        >
-                          <span className={`font-bold text-base mb-0.5 ${full ? 'opacity-50' : ''}`}>
-                            {formatTime(group.startTime)}
-                          </span>
-                          <span className={`text-[11px] font-semibold ${
-                            full ? 'opacity-50' : isSelected ? 'text-white/80' : 'text-gray-500'
-                          }`}>
-                            {full ? 'Hết sân' : formatCurrency(group.price)}
-                          </span>
-                          {/* Badge số sân con còn trống */}
-                          {!full && (
-                            <span className={`absolute -top-1.5 -right-1.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                              isSelected ? 'bg-white text-[#60D86E]' : 'bg-[#60D86E] text-white'
-                            }`}>
-                              {available}/{total}
+                    <div className={`flex flex-col flex-1 ${filterStartTime ? 'p-5 sm:p-6 pt-5' : 'py-2 pr-2'}`}>
+                      {/* Header sân */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="font-extrabold text-[#1a202c] text-lg sm:text-xl">{field.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#60D86E]"></div>
+                            <span className="text-xs text-gray-500 font-medium">
+                              {availableCount} / {groups.length} khung giờ trống
+                              <span className="ml-1 hidden sm:inline text-gray-300">· badge = số sân con còn trống</span>
                             </span>
-                          )}
-                        </button>
-                      )
-                    })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grid khung giờ đã gộp */}
+                      <div className={filterStartTime ? "mt-auto" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3"}>
+                      {groups.map(group => {
+                        const available = group.availableSlots.length
+                        const total     = group.totalSlots
+                        const full      = available === 0
+                        const isSelected = selectedSlot && group.availableSlots.some(s => s.id === selectedSlot.id)
+                        return (
+                          <button
+                            key={group.key}
+                            disabled={full}
+                            onClick={() => handleGroupClick(group, field)}
+                            className={`relative flex flex-col items-center justify-center p-3 rounded-2xl w-full text-center transition-all duration-200 border-2 ${
+                              full
+                                ? 'bg-gray-50 border-transparent text-gray-400 cursor-not-allowed'
+                                : isSelected
+                                  ? 'bg-[#60D86E] border-[#60D86E] text-white shadow-md -translate-y-1'
+                                  : 'bg-white border-gray-100 text-[#1a202c] hover:border-[#60D86E] hover:text-[#60D86E] hover:-translate-y-0.5 hover:shadow-sm'
+                            }`}
+                          >
+                            <span className={`font-bold text-base mb-0.5 ${full ? 'opacity-50' : ''}`}>
+                              {formatTime(group.startTime)}
+                            </span>
+                            <span className={`text-[11px] font-semibold ${
+                              full ? 'opacity-50' : isSelected ? 'text-white/80' : 'text-gray-500'
+                            }`}>
+                              {full ? 'Hết sân' : formatCurrency(group.price)}
+                            </span>
+                            {/* Badge số sân con còn trống */}
+                            {!full && (
+                              <span className={`absolute -top-1.5 -right-1.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                                isSelected ? 'bg-white text-[#60D86E]' : 'bg-[#60D86E] text-white'
+                              }`}>
+                                {available}/{total}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )
             })}
+            </div>
           </div>
         )}
 
