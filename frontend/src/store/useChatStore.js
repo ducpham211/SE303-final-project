@@ -3,10 +3,6 @@ import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import chatService from '../services/chatService'
 
-const WS_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api')
-  .replace('/api', '')
-  .replace('http', 'ws')
-
 const HTTP_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'
 
 /**
@@ -35,14 +31,11 @@ const useChatStore = create((set, get) => ({
       const conversations = await chatService.getInbox()
       set({ conversations, loading: false })
     } catch (err) {
-      console.warn('Failed to fetch inbox, using mock data for testing.', err)
-      // Mock data fallback for testing UI
-      const mockConversations = [
-        { id: '1', partnerId: 'player-alpha', lastMessage: 'Chào bạn, sân số 5 còn trống không?', updatedAt: new Date().toISOString() },
-        { id: '2', partnerId: 'owner-beta', lastMessage: 'Ok, đã xác nhận đặt sân thành công!', updatedAt: new Date(Date.now() - 3600000).toISOString() },
-        { id: '3', partnerId: 'player-gamma', lastMessage: 'Hẹn gặp bạn lúc 18h nhé.', updatedAt: new Date(Date.now() - 86400000).toISOString() },
-      ]
-      set({ conversations: mockConversations, loading: false })
+      const status = err?.response?.status
+      const msg = status === 401
+        ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+        : err?.response?.data?.message || 'Không thể tải hộp thư. Vui lòng thử lại.'
+      set({ loading: false, error: msg })
     }
   },
 
@@ -62,26 +55,16 @@ const useChatStore = create((set, get) => ({
           loading: false,
         }))
       } catch (err) {
-        console.warn('Failed to fetch messages, using mock data.', err)
-        const mockMessages = {
-          '1': [
-            { id: 'm1', senderId: 'player-alpha', content: 'Chào bạn, sân số 5 còn trống không?', createdAt: new Date(Date.now() - 7200000).toISOString() },
-            { id: 'm2', senderId: 'test@example.com', content: 'Chào bạn, hiện tại vẫn còn trống nhé!', createdAt: new Date(Date.now() - 3600000).toISOString() },
-            { id: 'm3', senderId: 'player-alpha', content: 'Ok, mình đặt sân luôn nhé.', createdAt: new Date(Date.now() - 1800000).toISOString() },
-          ],
-          '2': [
-            { id: 'm4', senderId: 'owner-beta', content: 'Ok, đã xác nhận đặt sân thành công!', createdAt: new Date(Date.now() - 3600000).toISOString() },
-          ],
-          '3': [
-            { id: 'm5', senderId: 'player-gamma', content: 'Hẹn gặp bạn lúc 18h nhé.', createdAt: new Date(Date.now() - 86400000).toISOString() },
-          ],
-        }
-        set(state => ({
-          messages: { ...state.messages, [conversationId]: mockMessages[conversationId] || [] },
-          loading: false,
-        }))
+        const status = err?.response?.status
+        const msg = status === 403
+          ? 'Bạn không có quyền truy cập cuộc trò chuyện này.'
+          : err?.response?.data?.message || 'Không thể tải tin nhắn.'
+        set({ loading: false, error: msg })
       }
     }
+
+    // Mark as read (fire-and-forget, don't block UI)
+    chatService.markRead(conversationId).catch(() => {})
 
     // Subscribe to WebSocket topic for this conversation
     if (stompClient?.connected) {
@@ -93,12 +76,11 @@ const useChatStore = create((set, get) => ({
   sendMessage: async (conversationId, content) => {
     if (!content.trim()) return
     try {
-      // REST POST — backend will also broadcast via WebSocket
+      // REST POST — backend also broadcasts via WebSocket
       const msg = await chatService.sendMessage(conversationId, content)
-      // Optimistically append our own message (WebSocket echo will dedup)
+      // Optimistically append (WebSocket echo will dedup)
       set(state => {
         const existing = state.messages[conversationId] || []
-        // Avoid duplicate if WS already arrived
         const alreadyThere = existing.some(m => m.id === msg.id)
         return {
           messages: {
@@ -111,7 +93,14 @@ const useChatStore = create((set, get) => ({
         }
       })
     } catch (err) {
-      set({ error: err.message || 'Gửi tin nhắn thất bại' })
+      const status = err?.response?.status
+      if (status === 403) {
+        set({ error: 'Không thể gửi tin nhắn. Bạn không phải thành viên của cuộc trò chuyện này.' })
+      } else if (status === 404) {
+        set({ error: 'Cuộc trò chuyện không tồn tại.' })
+      } else {
+        set({ error: err?.response?.data?.message || err.message || 'Gửi tin nhắn thất bại.' })
+      }
     }
   },
 
@@ -121,12 +110,14 @@ const useChatStore = create((set, get) => ({
     if (existing?.connected) return // Already connected
 
     const client = new Client({
+      // SockJS needs http://, NOT ws://
       webSocketFactory: () => new SockJS(`${HTTP_BASE}/ws`),
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
         console.log('[WS] Connected')
         set({ stompClient: client })
+        // Re-subscribe to the active conversation if there is one
         const { activeId, subscribeToConversation } = get()
         if (activeId) subscribeToConversation(activeId)
       },
@@ -139,6 +130,7 @@ const useChatStore = create((set, get) => ({
     })
 
     client.activate()
+    // Note: set stompClient here too so connectWebSocket is idempotent
     set({ stompClient: client })
   },
 

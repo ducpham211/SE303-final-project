@@ -38,7 +38,8 @@ const useAuthStore = create(
           user: decoded ? {
             email: decoded.sub,
             role: decoded.role || decoded.roles?.[0] || 'PLAYER', // Fallback
-            name: decoded.name || decoded.sub?.split('@')[0]
+            name: decoded.name || decoded.sub?.split('@')[0],
+            // id (UUID) is populated separately by enrichUser() after /api/users/me
           } : null
         })
       },
@@ -46,6 +47,19 @@ const useAuthStore = create(
       logout: () => {
         localStorage.removeItem('access_token')
         set({ user: null, token: null, isLoggedIn: false })
+      },
+
+      /**
+       * Enrich user object with UUID + profile from GET /api/users/me.
+       * JWT only contains email (sub), not the UUID — this fills the gap.
+       * Called once on app mount when isLoggedIn is true.
+       */
+      enrichUser: (profile) => {
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, id: profile.id, fullName: profile.fullName, phone: profile.phone }
+            : state.user,
+        }))
       },
     }),
     {

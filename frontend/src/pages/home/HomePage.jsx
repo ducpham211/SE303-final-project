@@ -1,5 +1,5 @@
 import useAuthStore from '../../store/useAuthStore'
-import AdminDashboardTeaser from '../admin/AdminDashboardTeaser'
+import { Navigate } from 'react-router-dom'
 import OwnerDashboardTeaser from '../owner/OwnerDashboardTeaser'
 import LandingPage from '../public/LandingPage'
 
@@ -26,11 +26,7 @@ export default function HomePage() {
 
   const renderContent = () => {
     if (role === 'ADMIN') {
-      return (
-        <main id="home-page-admin" className="pt-24 min-h-[calc(100vh-64px)] bg-[#f8faf8] flex flex-col">
-          <AdminDashboardTeaser />
-        </main>
-      )
+      return <Navigate to="/admin/dashboard" replace />
     }
 
     if (role === 'OWNER') {

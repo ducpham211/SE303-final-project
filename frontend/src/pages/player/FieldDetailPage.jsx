@@ -28,6 +28,22 @@ export default function FieldDetailPage() {
   const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
   const [bookingError, setBookingError] = useState(null)
+  
+  // Add-ons & Split Bill State
+  const [addons, setAddons] = useState({
+    water: false,
+    bibs: false,
+    referee: false,
+    goalkeeper: false
+  })
+  const [teamSize, setTeamSize] = useState(10)
+
+  const ADDON_PRICES = {
+    water: 50000,
+    bibs: 30000,
+    referee: 150000,
+    goalkeeper: 100000
+  }
 
   useEffect(() => {
     fetchFieldAndSlots()
@@ -82,8 +98,20 @@ export default function FieldDetailPage() {
       setIsBooking(true)
       setBookingError(null)
       
+      // Build the final note including add-ons
+      const selectedAddonLabels = []
+      if (addons.water) selectedAddonLabels.push('Nước uống (+50k)')
+      if (addons.bibs) selectedAddonLabels.push('Áo bíp (+30k)')
+      if (addons.referee) selectedAddonLabels.push('Trọng tài (+150k)')
+      if (addons.goalkeeper) selectedAddonLabels.push('Thủ môn (+100k)')
+      
+      let finalNote = bookingNote
+      if (selectedAddonLabels.length > 0) {
+        finalNote = `Dịch vụ thêm: ${selectedAddonLabels.join(', ')}. ` + bookingNote
+      }
+
       // 1. Create booking (returns { bookingId: "uuid", status: "...", ... })
-      const bookingRes = await bookingService.createBooking(selectedSlot.id, bookingNote)
+      const bookingRes = await bookingService.createBooking(selectedSlot.id, finalNote.trim())
       if (!bookingRes || !bookingRes.bookingId) throw new Error('Không nhận được mã đơn đặt')
 
       // 2. Create Payment Session
@@ -121,6 +149,18 @@ export default function FieldDetailPage() {
   }
 
   const today = new Date().toISOString().split('T')[0]
+  
+  const calculateTotalWithAddons = () => {
+    let total = selectedSlot?.price || 0
+    if (addons.water) total += ADDON_PRICES.water
+    if (addons.bibs) total += ADDON_PRICES.bibs
+    if (addons.referee) total += ADDON_PRICES.referee
+    if (addons.goalkeeper) total += ADDON_PRICES.goalkeeper
+    return total
+  }
+  
+  const totalExpectedAmount = calculateTotalWithAddons()
+  const splitAmount = Math.ceil(totalExpectedAmount / Math.max(1, teamSize))
 
   return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">
@@ -242,10 +282,10 @@ export default function FieldDetailPage() {
 
       {/* Booking Confirmation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isBooking && setIsModalOpen(false)}></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto pt-24 pb-12">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isBooking && setIsModalOpen(false)}></div>
           
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-auto">
             <button 
               onClick={() => setIsModalOpen(false)} 
               disabled={isBooking}
@@ -276,6 +316,54 @@ export default function FieldDetailPage() {
               </div>
             </div>
 
+            {/* Add-on Services */}
+            <div className="mb-5">
+              <h4 className="text-sm font-semibold text-[#1a202c] mb-3">Dịch vụ đi kèm (Thanh toán tại sân)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.water} onChange={(e) => setAddons({...addons, water: e.target.checked})} />
+                  <span className="text-sm text-gray-700">Nước (+50k)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.bibs} onChange={(e) => setAddons({...addons, bibs: e.target.checked})} />
+                  <span className="text-sm text-gray-700">Áo bíp (+30k)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.referee} onChange={(e) => setAddons({...addons, referee: e.target.checked})} />
+                  <span className="text-sm text-gray-700">Trọng tài (+150k)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.goalkeeper} onChange={(e) => setAddons({...addons, goalkeeper: e.target.checked})} />
+                  <span className="text-sm text-gray-700">Thủ môn (+100k)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Split Bill Calculator */}
+            <div className="mb-5 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm font-semibold text-blue-900">Máy tính chia tiền (Dự kiến)</span>
+                <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-md">Tổng: {formatCurrency(totalExpectedAmount)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-1/2">
+                  <label className="block text-xs text-gray-500 mb-1">Số người đá</label>
+                  <input 
+                    type="number" min="1" max="50" 
+                    value={teamSize} 
+                    onChange={(e) => setTeamSize(parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-xs text-gray-500 mb-1">Mỗi người đóng</label>
+                  <div className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-blue-700">
+                    {formatCurrency(splitAmount)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="mb-6">
               <label className="block text-sm font-semibold text-[#1a202c] mb-2" htmlFor="note">Ghi chú (Tùy chọn)</label>
               <textarea 
@@ -283,7 +371,7 @@ export default function FieldDetailPage() {
                 rows="2"
                 value={bookingNote}
                 onChange={(e) => setBookingNote(e.target.value)}
-                placeholder="Yêu cầu thêm về bóng, nước uống..."
+                placeholder="Yêu cầu thêm về bóng, vị trí sân..."
                 className="w-full px-4 py-3 rounded-2xl bg-[#f8faf8] border border-gray-200 text-sm outline-none focus:border-[#60D86E] focus:ring-2 focus:ring-[#60D86E]/20 transition-all resize-none"
               ></textarea>
             </div>
