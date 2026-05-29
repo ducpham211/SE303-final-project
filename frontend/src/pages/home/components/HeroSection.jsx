@@ -8,15 +8,29 @@ const DISTRICTS = [
   'Thủ Đức', 'Bình Dương', 'Đồng Nai',
 ]
 
-const FIELD_TYPES = ['Sân 5 người', 'Sân 7 người', 'Sân 11 người', 'Sân futsal']
+const FIELD_TYPES = ['FIVE_A_SIDE', 'SEVEN_A_SIDE']
+const FIELD_TYPE_LABELS = {
+  'FIVE_A_SIDE': 'Sân 5 người',
+  'SEVEN_A_SIDE': 'Sân 7 người'
+}
+
+const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const totalMinutes = 6 * 60 + i * 90;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
+});
 
 /**
  * Full-width hero section with background photo and quick-search bar.
  */
 export default function HeroSection() {
-  const [district, setDistrict] = useState('')
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [startTime, setStartTime] = useState('')
   const [fieldType, setFieldType] = useState('')
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isTimeOpen, setIsTimeOpen] = useState(false)
+  const [isTypeOpen, setIsTypeOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -31,7 +45,8 @@ export default function HeroSection() {
   const handleSearch = (e) => {
     e.preventDefault()
     const params = new URLSearchParams()
-    if (district) params.set('district', district)
+    if (date) params.set('date', date)
+    if (startTime) params.set('startTime', startTime)
     if (fieldType) params.set('type', fieldType)
     navigate(`/dat-san?${params.toString()}`)
   }
@@ -61,16 +76,16 @@ export default function HeroSection() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" fill="none"/>
           </svg>
-          [Badge Text Here]
+          TRUNG TÂM THỂ THAO SUPER KICK
         </span>
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight max-w-3xl">
-          [Tiêu đề chính] <span className="text-[#60D86E]">nổi bật</span>,<br />
-          [Phần tiếp theo của tiêu đề]
+          Sân bóng <span className="text-[#60D86E]">đẳng cấp</span>,<br />
+          Trải nghiệm đỉnh cao
         </h1>
         <p className="text-white/80 text-base sm:text-lg max-w-xl">
-          [Đoạn mô tả phụ phụ trợ cho tiêu đề chính. Nêu bật các lợi ích hoặc thông tin tóm tắt để thu hút người dùng.]
+          Đặt sân nhanh chóng, tìm kèo dễ dàng. Cơ sở vật chất hiện đại, mặt cỏ tiêu chuẩn FIFA ngay tại trung tâm.
         </p>
 
         {/* Quick Search Bar — Desktop: pill bar / Mobile: card with labeled fields */}
@@ -79,35 +94,101 @@ export default function HeroSection() {
         <form
           id="hero-search-form"
           onSubmit={handleSearch}
-          className="hidden sm:flex w-full max-w-2xl bg-white rounded-full shadow-lg items-center overflow-hidden p-1.5"
+          className="hidden sm:flex w-full max-w-4xl bg-white rounded-full shadow-lg items-center p-1.5 relative z-20"
         >
-          <select
-            id="hero-district-select"
-            value={district}
-            onChange={(e) => setDistrict(e.target.value)}
-            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer appearance-none"
-            aria-label="Chọn khu vực"
-          >
-            <option value="">Khu vực</option>
-            {DISTRICTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer"
+            aria-label="Chọn ngày"
+          />
 
           <div className="w-px bg-gray-200 self-stretch my-2" />
 
-          <select
-            id="hero-type-select"
-            value={fieldType}
-            onChange={(e) => setFieldType(e.target.value)}
-            className="flex-1 px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer appearance-none"
-            aria-label="Chọn loại sân"
-          >
-            <option value="">Loại sân</option>
-            {FIELD_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          <div className="relative flex-1">
+            <button
+              type="button"
+              onClick={() => setIsTimeOpen(!isTimeOpen)}
+              className="w-full h-full px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer text-left flex items-center justify-between"
+            >
+              {startTime || 'Giờ đặt sân'}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 text-gray-400">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isTimeOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsTimeOpen(false)}></div>
+                <div className="absolute top-full left-0 mt-0 w-full min-w-[140px] bg-white shadow-lg border border-gray-300 z-50 max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => { setStartTime(''); setIsTimeOpen(false); }}
+                    className="w-full px-4 py-1.5 text-left hover:bg-[#60D86E] hover:text-white text-sm text-gray-800 transition-none"
+                  >
+                    Giờ đặt sân
+                  </button>
+                  {TIME_OPTIONS.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => { setStartTime(time); setIsTimeOpen(false); }}
+                      className={`w-full px-4 py-1.5 text-left text-sm transition-none ${
+                        startTime === time 
+                          ? 'bg-[#60D86E] text-white' 
+                          : 'text-gray-800 hover:bg-[#60D86E] hover:text-white'
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+
+
+          <div className="relative flex-1">
+            <button
+              type="button"
+              onClick={() => { setIsTimeOpen(false); setIsTypeOpen(!isTypeOpen); }}
+              className="w-full h-full px-5 py-3 bg-transparent text-gray-700 text-sm font-medium outline-none cursor-pointer text-left flex items-center justify-between"
+            >
+              {fieldType ? FIELD_TYPE_LABELS[fieldType] : 'Loại sân'}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 text-gray-400">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isTypeOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsTypeOpen(false)}></div>
+                <div className="absolute top-full left-0 mt-0 w-full min-w-[140px] bg-white shadow-lg border border-gray-300 z-50 max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => { setFieldType(''); setIsTypeOpen(false); }}
+                    className="w-full px-4 py-1.5 text-left hover:bg-[#60D86E] hover:text-white text-sm text-gray-800 transition-none"
+                  >
+                    Tất cả loại sân
+                  </button>
+                  {FIELD_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => { setFieldType(t); setIsTypeOpen(false); }}
+                      className={`w-full px-4 py-1.5 text-left text-sm transition-none ${
+                        fieldType === t 
+                          ? 'bg-[#60D86E] text-white' 
+                          : 'text-gray-800 hover:bg-[#60D86E] hover:text-white'
+                      }`}
+                    >
+                      {FIELD_TYPE_LABELS[t]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             id="hero-search-btn-desktop"
@@ -126,45 +207,47 @@ export default function HeroSection() {
         >
           {/* Filter card */}
           <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-            {/* Khu vực row */}
-            <div className="px-5 pt-4 pb-3">
-              <label htmlFor="hero-district-mobile" className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">
-                Khu vực
-              </label>
-              <select
-                id="hero-district-mobile"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
-                aria-label="Chọn khu vực"
-              >
-                <option value="">Tất cả khu vực</option>
-                {DISTRICTS.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+            {/* Ngày & Giờ row */}
+            <div className="flex border-b border-gray-100">
+              <div className="px-5 pt-4 pb-3 flex-1 border-r border-gray-100">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">Ngày đặt</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer"
+                />
+              </div>
+              <div className="px-5 pt-4 pb-3 flex-1">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">Giờ bắt đầu</label>
+                <select
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
+                >
+                  <option value="">Chọn giờ</option>
+                  {TIME_OPTIONS.map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="mx-5 border-t border-gray-100" />
-
             {/* Loại sân row */}
-            <div className="px-5 pt-3 pb-4">
-              <label htmlFor="hero-type-mobile" className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">
-                Loại sân
-              </label>
-              <select
-                id="hero-type-mobile"
-                value={fieldType}
-                onChange={(e) => setFieldType(e.target.value)}
-                className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
-                aria-label="Chọn loại sân"
-              >
-                <option value="">Tất cả loại sân</option>
-                {FIELD_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+            <div className="flex">
+              <div className="px-5 pt-4 pb-4 flex-1">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 text-left">Loại sân</label>
+                <select
+                  value={fieldType}
+                  onChange={(e) => setFieldType(e.target.value)}
+                  className="w-full bg-transparent text-gray-800 text-sm font-medium outline-none cursor-pointer appearance-none"
+                >
+                  <option value="">Tất cả</option>
+                  {FIELD_TYPES.map((t) => (
+                    <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -178,19 +261,21 @@ export default function HeroSection() {
           </button>
         </form>
 
-        {/* Stats strip */}
-        <div className="flex items-center gap-6 sm:gap-10 mt-2">
-          {[
-            { value: '500+', label: 'Sân bóng' },
-            { value: '10K+', label: 'Người dùng' },
-            { value: '50K+', label: 'Lượt đặt sân' },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-[#60D86E] font-extrabold text-xl sm:text-2xl">{stat.value}</div>
-              <div className="text-white/70 text-xs sm:text-sm">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        {/* Address Info */}
+        <a 
+          href="https://maps.google.com/?q=Khu+phố+34,+Phường+Linh+Xuân,+Thành+phố+Hồ+Chí+Minh" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 mt-4 text-white/90 hover:text-white transition-colors group"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60D86E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span className="text-sm sm:text-base font-medium tracking-wide underline underline-offset-4 decoration-white/30 group-hover:decoration-white/80">
+            Khu phố 34, Phường Linh Xuân, Thành phố Hồ Chí Minh
+          </span>
+        </a>
       </div>
 
       {/* Scroll Down Indicator with Transparent Gradient */}

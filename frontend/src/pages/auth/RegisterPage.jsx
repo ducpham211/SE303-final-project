@@ -48,8 +48,12 @@ export default function RegisterPage() {
         navigate('/')
       } else {
         setSuccess(
-          data.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.'
+          data.message || 'Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...'
         )
+        // Redirect to login page after a brief delay so user sees the success message
+        setTimeout(() => {
+          navigate('/dang-nhap')
+        }, 1500)
       }
     } catch (err) {
       const msg =

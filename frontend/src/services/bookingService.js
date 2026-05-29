@@ -5,10 +5,17 @@ import api from './api'
  */
 const bookingService = {
   /**
+   * Get all bookings for the currently logged-in user (PLAYER)
+   * Owner/Admin also use this — backend filters by role automatically
+   * @returns {Promise<Array>} List of bookings
+   */
+  getMyBookings: async () => {
+    const { data } = await api.get('/bookings')
+    return data
+  },
+
+  /**
    * Create a new booking
-   * @param {string} timeSlotId 
-   * @param {string} note 
-   * @returns {Promise<Object>} Booking response containing bookingId
    */
   createBooking: async (timeSlotId, note = '') => {
     const { data } = await api.post('/bookings', { timeSlotId, note })
@@ -17,13 +24,24 @@ const bookingService = {
 
   /**
    * Create a Stripe payment session for a booking
-   * @param {string} bookingId 
-   * @returns {Promise<Object>} Payment response containing checkout session 'url'
    */
   createPaymentSession: async (bookingId) => {
     const { data } = await api.post(`/payments/create-session/${bookingId}`)
     return data
-  }
+  },
+
+  /** Owner: Check-in a customer */
+  checkIn: async (bookingId) => {
+    const { data } = await api.put(`/bookings/${bookingId}/check-in`)
+    return data
+  },
+
+  /** Owner: Mark no-show */
+  markNoShow: async (bookingId) => {
+    const { data } = await api.put(`/bookings/${bookingId}/no-show`)
+    return data
+  },
 }
 
 export default bookingService
+
