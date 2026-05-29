@@ -7,8 +7,34 @@ services:
     ports:
       - "6379:6379"
     restart: unless-stopped
-    # volumes:
-    #   - redis-data:/data  # Mở comment 2 dòng này nếu muốn lưu data Redis vĩnh viễn không bị mất khi tắt container
 
-# volumes:
-#   redis-data:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: futsal-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    env_file:
+      - ./backend/.env
+    environment:
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    restart: unless-stopped
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#       args:
+#         - VITE_API_BASE_URL=http://localhost:8080/api
+#         - VITE_WS_URL=http://localhost:8080/ws
+#     container_name: futsal-frontend
+#     ports:
+#       - "3000:80"
+#     depends_on:
+#       - backend
+#     restart: unless-stopped
+
