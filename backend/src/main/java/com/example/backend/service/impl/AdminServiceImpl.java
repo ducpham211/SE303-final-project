@@ -28,7 +28,6 @@ public class AdminServiceImpl implements AdminService {
     private final BookingRepository bookingRepository;
     private final MatchRequestRepository matchRequestRepository;
     private final FieldMapper fieldMapper;
-
     public String adjudicateReview(String reviewId, AdminCreateRequest request) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new AppException(404, "Không tìm thấy đánh giá này"));
@@ -47,8 +46,7 @@ public class AdminServiceImpl implements AdminService {
             int currentScore = reviewee.getTrustScore() != null ? reviewee.getTrustScore() : 100;
 
             // Lấy mức phạt (Nếu Admin không truyền lên thì lấy số của AI)
-            int penalty = (request.getFinalPenalty() != null) ? request.getFinalPenalty()
-                    : review.getAiSuggestedPenalty();
+            int penalty = (request.getFinalPenalty() != null) ? request.getFinalPenalty() : review.getAiSuggestedPenalty();
 
             // Trừ điểm và lưu User
             reviewee.setTrustScore(currentScore - penalty);
@@ -69,8 +67,7 @@ public class AdminServiceImpl implements AdminService {
             return "Đã bác bỏ đánh giá. Không có điểm uy tín nào bị trừ.";
         }
     }
-    // Nhớ Inject thêm FieldRepository, BookingRepository, MatchRequestRepository,
-    // FieldMapper vào đây
+    // Nhớ Inject thêm FieldRepository, BookingRepository, MatchRequestRepository, FieldMapper vào đây
 
     @Override
     public List<FieldResponse> getAllFields() {

@@ -156,11 +156,28 @@ export default function Navbar() {
                     {/* Dropdown */}
                     {dropdownOpen && (
                       <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 py-2 overflow-hidden">
-                        {[
-                          { label: 'Hồ sơ', to: '/ho-so' },
-                          { label: 'Lịch đặt', to: '/lich-dat' },
-                          { label: 'Tin nhắn', to: '/tin-nhan' },
-                        ].map((item) => (
+                        {(() => {
+                          const role = user?.role?.replace('ROLE_', '') || 'PLAYER'
+                          if (role === 'ADMIN') {
+                            return [
+                              { label: 'Dashboard', to: '/admin/dashboard' },
+                              { label: 'Quản lý Users', to: '/admin/users' },
+                              { label: 'Lịch hệ thống', to: '/admin/bookings' },
+                            ]
+                          }
+                          if (role === 'OWNER') {
+                            return [
+                              { label: 'Sân của tôi', to: '/owner/fields' },
+                              { label: 'Lịch đặt sân', to: '/owner/bookings' },
+                              { label: 'Doanh thu', to: '/owner/revenue' },
+                            ]
+                          }
+                          return [
+                            { label: 'Hồ sơ', to: '/ho-so' },
+                            { label: 'Lịch đặt', to: '/lich-dat' },
+                            { label: 'Tin nhắn', to: '/tin-nhan' },
+                          ]
+                        })().map((item) => (
                           <Link
                             key={item.to}
                             to={item.to}

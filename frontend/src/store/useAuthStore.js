@@ -57,7 +57,7 @@ const useAuthStore = create(
       enrichUser: (profile) => {
         set((state) => ({
           user: state.user
-            ? { ...state.user, id: profile.id, fullName: profile.fullName, phone: profile.phone }
+            ? { ...state.user, id: profile.id, fullName: profile.fullName, phone: profile.phone, role: profile.role || state.user.role }
             : state.user,
         }))
       },

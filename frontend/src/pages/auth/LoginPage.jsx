@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import authService from '../../services/authService'
+import userService from '../../services/userService'
 import useAuthStore from '../../store/useAuthStore'
 
 /**
@@ -32,6 +33,11 @@ export default function LoginPage() {
       const data = await authService.login(email, password)
       if (data.accessToken) {
         login(data.accessToken)
+        // Fetch the actual user profile (including backend-assigned role)
+        try {
+          const profile = await userService.getMe()
+          useAuthStore.getState().enrichUser(profile)
+        } catch (_) { /* enrichment is best-effort */ }
         navigate('/')
       } else {
         setError(data.message || 'Đăng nhập thất bại.')
