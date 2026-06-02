@@ -13,17 +13,7 @@ const COMMUNITY_FEATURES = [
     ),
     buttonText: 'Tìm ngay',
   },
-  {
-    id: 'leaderboard',
-    title: 'Bảng xếp hạng',
-    description: 'Theo dõi điểm số và vị trí của các đội bóng',
-    icon: (
-      <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    ),
-    buttonText: 'Xem bảng',
-  },
+  
   {
     id: 'news',
     title: 'Tin tức',
@@ -85,10 +75,12 @@ export default function CommunityFeatures() {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {COMMUNITY_FEATURES.map((f) => (
-            <CommunityCard key={f.id} feature={f} />
-          ))}
+        <div className="flex justify-center">
+          <div className="grid gap-8 md:grid-cols-2 w-fit">
+            {COMMUNITY_FEATURES.map((f) => (
+              <CommunityCard key={f.id} feature={f} />
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -3,6 +3,7 @@ import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 import ProtectedRoute from '../components/common/ProtectedRoute'
+import ChatBot from '../components/common/Chatbot'
 
 // ── Public / Auth ──────────────────────────────────────────────────────
 import HomePage        from '../pages/home/HomePage'
@@ -19,6 +20,9 @@ import ProfilePage          from '../pages/player/ProfilePage'
 // ── Payment (Stripe callbacks) ────────────────────────────────────────
 import PaymentSuccessPage from '../pages/payment/PaymentSuccessPage'
 import PaymentCancelPage  from '../pages/payment/PaymentCancelPage'
+
+// ── Matchmaking ─────────────────────────
+import FindOpponentPage from '../pages/find_opponent/FindOpponentPage'
 
 // ── Community ─────────────────────────────────────────────────────────
 import CommunityPage from '../pages/community/CommunityPage'
@@ -69,7 +73,7 @@ export default function AppRouter() {
         } />
 
         {/* ── Matchmaking (built by another team member) ───────────── */}
-        <Route path="/tim-doi-thu"        element={<PlaceholderPage title="Tìm đối thủ" />} />
+        <Route path="/tim-doi-thu"        element={<FindOpponentPage />} />
         <Route path="/tim-doi-thu/tao-keo" element={<PlaceholderPage title="Tạo kèo đấu" />} />
         <Route path="/tim-doi-thu/lich"    element={<PlaceholderPage title="Lịch kèo đấu" />} />
 
@@ -102,6 +106,7 @@ export default function AppRouter() {
       </Routes>
       <ScrollToTopButton />
       <Footer />
+      <ChatBot />
     </BrowserRouter>
   )
 }
