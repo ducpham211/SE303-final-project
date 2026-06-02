@@ -30,6 +30,9 @@ const bookingService = {
     return data
   },
 
+  // TODO: cancelBooking — requires backend endpoint PUT /api/bookings/:id/cancel (PLAYER role)
+  // When available, add: cancelBooking: async (bookingId) => { const { data } = await api.put(`/bookings/${bookingId}/cancel`); return data },
+
   /** Owner: Check-in a customer */
   checkIn: async (bookingId) => {
     const { data } = await api.put(`/bookings/${bookingId}/check-in`)

@@ -60,6 +60,8 @@ export default function HeroSection() {
       <img
         src={heroImg}
         alt="Sân bóng đá"
+        loading="eager"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover"
       />
 

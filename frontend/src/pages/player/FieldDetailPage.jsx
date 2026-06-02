@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 import useAuthStore from '../../store/useAuthStore'
+import BookingModal from '../../components/common/BookingModal'
 
 export default function FieldDetailPage() {
   const { id } = useParams()
@@ -74,10 +75,14 @@ export default function FieldDetailPage() {
     setSelectedSlot(slot)
   }
 
-  const formatTime = (isoString) => {
-    if (!isoString) return ''
-    const date = new Date(isoString)
-    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  const formatTime = (value) => {
+    if (!value) return ''
+    // Already in "HH:mm" format — return as-is
+    if (!value.includes('T') && !value.includes('-') && value.includes(':')) {
+      return value.slice(0, 5)
+    }
+    // ISO datetime string
+    return new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   }
 
   const formatCurrency = (amount) => {
@@ -93,25 +98,13 @@ export default function FieldDetailPage() {
     setIsModalOpen(true)
   }
 
-  const confirmBooking = async () => {
+  const confirmBooking = async (note) => {
     try {
       setIsBooking(true)
       setBookingError(null)
-      
-      // Build the final note including add-ons
-      const selectedAddonLabels = []
-      if (addons.water) selectedAddonLabels.push('Nước uống (+50k)')
-      if (addons.bibs) selectedAddonLabels.push('Áo bíp (+30k)')
-      if (addons.referee) selectedAddonLabels.push('Trọng tài (+150k)')
-      if (addons.goalkeeper) selectedAddonLabels.push('Thủ môn (+100k)')
-      
-      let finalNote = bookingNote
-      if (selectedAddonLabels.length > 0) {
-        finalNote = `Dịch vụ thêm: ${selectedAddonLabels.join(', ')}. ` + bookingNote
-      }
 
-      // 1. Create booking (returns { bookingId: "uuid", status: "...", ... })
-      const bookingRes = await bookingService.createBooking(selectedSlot.id, finalNote.trim())
+      // 1. Create booking (note already includes add-on labels, built by BookingModal)
+      const bookingRes = await bookingService.createBooking(selectedSlot.id, note)
       if (!bookingRes || !bookingRes.bookingId) throw new Error('Không nhận được mã đơn đặt')
 
       // 2. Create Payment Session
@@ -177,10 +170,19 @@ export default function FieldDetailPage() {
           {/* Left Column: Field Info */}
           <div className="lg:w-1/3 flex flex-col gap-6">
             <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-              <div 
-                className="w-full aspect-video bg-gray-100"
-                style={{ backgroundColor: field?.coverImage || '#e8f9eb' }}
-              />
+              <div className="w-full aspect-video bg-gray-100 overflow-hidden relative">
+                <img
+                  src={
+                    field?.coverImage && !field.coverImage.includes('example.com')
+                      ? field.coverImage
+                      : field?.type === 'SEVEN_A_SIDE'
+                        ? 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80'
+                        : 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80'
+                  }
+                  alt={field?.name || 'Sân bóng'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="p-6">
                 <span className="px-3 py-1 rounded-full bg-[#1a202c] text-white text-xs font-semibold uppercase tracking-wider mb-3 inline-block">
                   {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân 11 người'}
@@ -280,128 +282,24 @@ export default function FieldDetailPage() {
         </div>
       </section>
 
-      {/* Booking Confirmation Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto pt-24 pb-12">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isBooking && setIsModalOpen(false)}></div>
-          
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-auto">
-            <button 
-              onClick={() => setIsModalOpen(false)} 
-              disabled={isBooking}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            
-            <h3 className="text-xl font-extrabold text-[#1a202c] pr-8">Xác nhận đặt sân</h3>
-            <p className="text-gray-500 text-sm mt-1 mb-6">Xin vui lòng kiểm tra kỹ thông tin trước khi thanh toán cọc.</p>
-            
-            <div className="bg-[#f8faf8] rounded-2xl p-4 border border-[#e8f9eb] mb-5">
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Sân bóng</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">{field?.name}</span>
-              </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Thời gian</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">{formatTime(selectedSlot?.startTime)} - {formatTime(selectedSlot?.endTime)}<br/><span className="text-xs font-normal text-gray-500">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span></span>
-              </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Tổng tiền slot</span>
-                <span className="text-[#1a202c] font-bold">{formatCurrency(selectedSlot?.price)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-extrabold">Tiền cọc (30%)</span>
-                <span className="text-[#60D86E] font-extrabold text-xl">{formatCurrency((selectedSlot?.price || 0) * 0.3)}</span>
-              </div>
-            </div>
-
-            {/* Add-on Services */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-[#1a202c] mb-3">Dịch vụ đi kèm (Thanh toán tại sân)</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.water} onChange={(e) => setAddons({...addons, water: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Nước (+50k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.bibs} onChange={(e) => setAddons({...addons, bibs: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Áo bíp (+30k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.referee} onChange={(e) => setAddons({...addons, referee: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Trọng tài (+150k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.goalkeeper} onChange={(e) => setAddons({...addons, goalkeeper: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Thủ môn (+100k)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Split Bill Calculator */}
-            <div className="mb-5 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-semibold text-blue-900">Máy tính chia tiền (Dự kiến)</span>
-                <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-md">Tổng: {formatCurrency(totalExpectedAmount)}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-1/2">
-                  <label className="block text-xs text-gray-500 mb-1">Số người đá</label>
-                  <input 
-                    type="number" min="1" max="50" 
-                    value={teamSize} 
-                    onChange={(e) => setTeamSize(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                  />
-                </div>
-                <div className="w-1/2">
-                  <label className="block text-xs text-gray-500 mb-1">Mỗi người đóng</label>
-                  <div className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-blue-700">
-                    {formatCurrency(splitAmount)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-[#1a202c] mb-2" htmlFor="note">Ghi chú (Tùy chọn)</label>
-              <textarea 
-                id="note"
-                rows="2"
-                value={bookingNote}
-                onChange={(e) => setBookingNote(e.target.value)}
-                placeholder="Yêu cầu thêm về bóng, vị trí sân..."
-                className="w-full px-4 py-3 rounded-2xl bg-[#f8faf8] border border-gray-200 text-sm outline-none focus:border-[#60D86E] focus:ring-2 focus:ring-[#60D86E]/20 transition-all resize-none"
-              ></textarea>
-            </div>
-
-            {bookingError && (
-              <div className="mb-4 text-sm text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
-                {bookingError}
-              </div>
-            )}
-
-            <button
-              disabled={isBooking}
-              onClick={confirmBooking}
-              className="w-full py-3.5 rounded-full bg-[#1a202c] text-white font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
-            >
-               {isBooking ? (
-                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Đang chuyển hướng Stripe...
-                 </>
-               ) : 'Thanh toán & Đặt sân'}
-            </button>
-            <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
-              {/* Lock icon */}
-               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-               Thanh toán bảo mật an toàn
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Booking Confirmation Modal — shared component */}
+      <BookingModal
+        isOpen={isModalOpen}
+        onClose={() => { if (!isBooking) { setIsModalOpen(false); setBookingError(null) } }}
+        onConfirm={confirmBooking}
+        isBooking={isBooking}
+        bookingError={bookingError}
+        fieldName={field?.name || ''}
+        startTime={selectedSlot?.startTime || ''}
+        endTime={selectedSlot?.endTime || ''}
+        date={selectedDate}
+        price={selectedSlot?.price || 0}
+        showAddons
+        addons={addons}
+        onAddonsChange={setAddons}
+        teamSize={teamSize}
+        onTeamSizeChange={setTeamSize}
+      />
     </main>
   )
 }

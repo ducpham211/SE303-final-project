@@ -2,11 +2,13 @@ import { useState } from 'react'
 import reviewService from '../../../services/reviewService'
 
 /**
- * Modal for reviewing an opponent after a completed match.
- * Sends POST /api/reviews with { revieweeId, matchRequestId, reason }
+ * Modal for reviewing a field after a completed match.
+ * Sends POST /api/reviews with { fieldId, bookingId, rating, comment }
  */
-export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, matchRequestId }) {
-  const [reason, setReason] = useState('')
+export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
+  const [comment, setComment] = useState('')
+  const [rating, setRating] = useState(5)
+  const [hoverRating, setHoverRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -15,7 +17,7 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!reason.trim()) {
+    if (!comment.trim()) {
       setError('Vui lòng nhập nội dung đánh giá.')
       return
     }
@@ -23,14 +25,16 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
     setError('')
     try {
       await reviewService.createReview({
-        revieweeId,
-        matchRequestId,
-        reason: reason.trim(),
+        fieldId,
+        bookingId,
+        rating,
+        comment: comment.trim(),
       })
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
-        setReason('')
+        setComment('')
+        setRating(5)
         onClose(true) // true = review submitted
       }, 1500)
     } catch (err) {
@@ -54,8 +58,8 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-extrabold text-[#1a202c]">Đánh giá đối thủ</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Chia sẻ nhận xét của bạn về trận đấu</p>
+              <h3 className="text-lg font-extrabold text-[#1a202c]">Đánh giá sân bóng</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Chia sẻ trải nghiệm của bạn về sân này</p>
             </div>
             <button
               onClick={() => onClose(false)}
@@ -70,10 +74,37 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="px-6 pb-6">
+          {/* Star Rating UI */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className="focus:outline-none transition-transform hover:scale-110"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                disabled={submitting || success}
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill={(hoverRating || rating) >= star ? '#fbbf24' : 'none'}
+                  stroke={(hoverRating || rating) >= star ? '#fbbf24' : '#d1d5db'}
+                  strokeWidth="1.5"
+                  className="transition-colors"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </button>
+            ))}
+          </div>
+
           <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Nhập nhận xét của bạn về đối thủ (thái độ thi đấu, trình độ, đúng giờ...)..."
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Nhận xét của bạn về chất lượng sân, dịch vụ, nhân viên..."
             rows={4}
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all resize-none"
             disabled={submitting || success}

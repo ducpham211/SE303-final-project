@@ -1,23 +1,25 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import bookingService from '../../services/bookingService'
 import ReviewModal from './components/ReviewModal'
 
 const STATUS_META = {
   PENDING:      { label: 'Chờ thanh toán', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400',  border: 'border-amber-200' },
-  DEPOSIT_PAID: { label: 'Đã cọc',        bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
+  DEPOSIT_PAID: { label: 'Đã cọ',        bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
   CONFIRMED:    { label: 'Đã xác nhận',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500',   border: 'border-blue-200' },
   COMPLETED:    { label: 'Hoàn thành',    bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', border: 'border-emerald-200' },
   CANCELLED:    { label: 'Đã hủy',        bg: 'bg-red-100',    text: 'text-red-600',    dot: 'bg-red-400',    border: 'border-red-200' },
+  NO_SHOW:      { label: 'Không đến sân',  bg: 'bg-gray-100',   text: 'text-gray-500',   dot: 'bg-gray-400',   border: 'border-gray-200' },
 }
 
 const FILTER_TABS = [
   { key: 'ALL',          label: 'Tất cả' },
   { key: 'PENDING',      label: 'Chờ thanh toán' },
-  { key: 'DEPOSIT_PAID', label: 'Đã cọc' },
+  { key: 'DEPOSIT_PAID', label: 'Đã cọ' },
   { key: 'CONFIRMED',    label: 'Đã xác nhận' },
   { key: 'COMPLETED',    label: 'Hoàn thành' },
   { key: 'CANCELLED',    label: 'Đã hủy' },
+  { key: 'NO_SHOW',      label: 'Không đến sân' },
 ]
 
 function SkeletonCard() {
@@ -32,7 +34,7 @@ function SkeletonCard() {
   )
 }
 
-function BookingCard({ booking, onReview }) {
+function BookingCard({ booking, onReviewClick }) {
   const s = STATUS_META[booking.status] || STATUS_META.PENDING
   const fieldName = booking.field?.name || booking.fieldName || 'Sân bóng'
   const slotTime = booking.startTime && booking.endTime
@@ -63,14 +65,20 @@ function BookingCard({ booking, onReview }) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {slotTime}
         </span>
-        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">Cọc: {deposit}</span>
+        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">Đặt cọ: {deposit}</span>
         {total && <span className="text-gray-400">Tổng: {total}</span>}
       </div>
+
       {booking.status === 'COMPLETED' && (
-        <div className="mt-3 ml-4">
-          <button onClick={() => onReview(booking)} className="text-xs font-bold text-[#60D86E] hover:text-[#45c45a] transition-colors flex items-center gap-1">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Đánh giá đối thủ
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onReviewClick(booking)
+            }}
+            className="text-xs font-bold px-4 py-2 rounded-xl bg-[#fbbf24] text-[#1a202c] hover:bg-[#f59e0b] transition-colors"
+          >
+            Đánh giá sân
           </button>
         </div>
       )}
@@ -79,19 +87,20 @@ function BookingCard({ booking, onReview }) {
 }
 
 export default function BookingHistoryPage() {
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
-  const [reviewTarget, setReviewTarget] = useState(null)
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState(null)
 
   useEffect(() => {
     const load = async () => {
       try {
         const data = await bookingService.getMyBookings()
-        const priorityOrder = { PENDING: 0, DEPOSIT_PAID: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4 }
+        const priorityOrder = { PENDING: 0, DEPOSIT_PAID: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4, NO_SHOW: 5 }
         const sorted = [...data].sort((a, b) => {
-          const pa = priorityOrder[a.status] ?? 5
-          const pb = priorityOrder[b.status] ?? 5
+          const pa = priorityOrder[a.status] ?? 6
+          const pb = priorityOrder[b.status] ?? 6
           if (pa !== pb) return pa - pb
           return new Date(b.bookingDate || b.createdAt || 0) - new Date(a.bookingDate || a.createdAt || 0)
         })
@@ -155,17 +164,22 @@ export default function BookingHistoryPage() {
             </div>
           )}
           {!loading && filtered.map((b) => (
-            <BookingCard key={b.bookingId || b.id} booking={b} onReview={(booking) => setReviewTarget(booking)} />
+            <div
+              key={b.bookingId || b.id}
+              onClick={() => navigate(`/lich-dat/${b.bookingId || b.id}`, { state: { booking: b } })}
+              className="cursor-pointer"
+            >
+              <BookingCard booking={b} onReviewClick={setSelectedReviewBooking} />
+            </div>
           ))}
         </div>
       </div>
 
       <ReviewModal
-        isOpen={!!reviewTarget}
-        onClose={() => setReviewTarget(null)}
-        bookingId={reviewTarget?.bookingId || reviewTarget?.id}
-        revieweeId={reviewTarget?.userId}
-        matchRequestId={reviewTarget?.matchRequestId}
+        isOpen={!!selectedReviewBooking}
+        onClose={() => setSelectedReviewBooking(null)}
+        fieldId={selectedReviewBooking?.field?.id || selectedReviewBooking?.fieldId}
+        bookingId={selectedReviewBooking?.bookingId || selectedReviewBooking?.id}
       />
     </main>
   )

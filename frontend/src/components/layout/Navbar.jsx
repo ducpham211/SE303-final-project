@@ -173,6 +173,7 @@ export default function Navbar() {
                             ]
                           }
                           return [
+                            { label: 'Dashboard', to: '/dashboard' },
                             { label: 'Hồ sơ', to: '/ho-so' },
                             { label: 'Lịch đặt', to: '/lich-dat' },
                             { label: 'Tin nhắn', to: '/tin-nhan' },

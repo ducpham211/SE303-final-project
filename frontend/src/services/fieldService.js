@@ -20,6 +20,22 @@ const fieldService = {
   },
 
   /**
+   * Get paginated fields with optional filters and keyword search
+   * @param {Object} params { type, name, page, size }
+   * @returns {Promise<Object>} Spring Page object { content, totalPages, totalElements }
+   */
+  getFieldsPage: async (filters = {}) => {
+    const params = new URLSearchParams()
+    if (filters.type) params.append('type', filters.type)
+    if (filters.name) params.append('name', filters.name)
+    if (filters.page !== undefined) params.append('page', filters.page)
+    if (filters.size !== undefined) params.append('size', filters.size)
+
+    const { data } = await api.get(`/fields/page?${params.toString()}`)
+    return data
+  },
+
+  /**
    * Get field detail by ID
    * @param {string} id 
    * @returns {Promise<Object>} Field detail

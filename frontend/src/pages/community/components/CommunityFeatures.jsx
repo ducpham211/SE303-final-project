@@ -68,6 +68,8 @@ export default function CommunityFeatures() {
             <img
                 src={communityImg}
                 alt="Sân bóng đá"
+                loading="lazy"
+                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover"
             />   
         {/* Dark overlay — flat solid, no gradient */}

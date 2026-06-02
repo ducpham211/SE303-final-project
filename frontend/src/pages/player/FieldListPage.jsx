@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 import useAuthStore from '../../store/useAuthStore'
+import BookingModal from '../../components/common/BookingModal'
 
 const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {
   const totalMinutes = 6 * 60 + i * 90;
@@ -44,6 +45,12 @@ export default function FieldListPage() {
   })
   const [filterStartTime, setFilterStartTime] = useState(searchParams.get('startTime') || '')
   
+  // Search & Pagination state
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('name') || '')
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm)
+  const [page, setPage] = useState(parseInt(searchParams.get('page') || '0', 10))
+  const [totalPages, setTotalPages] = useState(0)
+  
   const [isTimeOpen, setIsTimeOpen] = useState(false)
 
   // Data state
@@ -53,15 +60,15 @@ export default function FieldListPage() {
   const [loadingFields, setLoadingFields] = useState(new Set()) // fieldIds đang load
   const [error, setError] = useState(null)
 
-  // Cache in-memory: tránh re-fetch khi quay lại cùng type/date
-  const cache = React.useRef({}) // { 'TYPE|date': { fields, slotsMap } }
+  // Cache in-memory: tránh re-fetch khi quay lại cùng type/date/search/page
+  const cache = React.useRef({}) // { 'TYPE|date|search|page': { fields, slotsMap, totalPages } }
 
   // Booking modal state
   const [selectedSlot, setSelectedSlot] = useState(null)  // { ...slot, fieldName, fieldId }
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
   const [bookingError, setBookingError] = useState(null)
+
 
   const fieldTypes = [
     { value: 'FIVE_A_SIDE', label: 'Sân 5', icon: '5v5' },
@@ -75,10 +82,21 @@ export default function FieldListPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Fetch fields when type changes
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0)
+  }, [filterType, debouncedSearch])
+
+  // Fetch fields when type/page/search/date changes
   useEffect(() => {
     fetchFieldsAndSlots()
-  }, [filterType, selectedDate])
+  }, [filterType, selectedDate, debouncedSearch, page])
 
   // Update URL when filters change
   useEffect(() => {
@@ -86,8 +104,10 @@ export default function FieldListPage() {
     if (filterType) params.set('type', filterType)
     if (selectedDate) params.set('date', selectedDate)
     if (filterStartTime) params.set('startTime', filterStartTime)
+    if (debouncedSearch) params.set('name', debouncedSearch)
+    if (page > 0) params.set('page', page.toString())
     setSearchParams(params, { replace: true })
-  }, [filterType, selectedDate, filterStartTime, setSearchParams])
+  }, [filterType, selectedDate, filterStartTime, debouncedSearch, page, setSearchParams])
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -154,13 +174,14 @@ export default function FieldListPage() {
   }
 
   const fetchFieldsAndSlots = async () => {
-    const cacheKey = `${filterType}|${selectedDate}`
+    const cacheKey = `${filterType}|${selectedDate}|${debouncedSearch}|${page}`
 
     // Dùng cache nếu có
     if (cache.current[cacheKey]) {
-      const { fields: cachedFields, slotsMap } = cache.current[cacheKey]
+      const { fields: cachedFields, slotsMap, totalPages: cachedTotalPages } = cache.current[cacheKey]
       setFields(cachedFields)
       setSlotsByField(slotsMap)
+      setTotalPages(cachedTotalPages)
       setLoading(false)
       return
     }
@@ -171,8 +192,15 @@ export default function FieldListPage() {
       setSelectedSlot(null)
       setSlotsByField({})
 
-      // 1. Lấy danh sách sân
-      const fieldsData = await fieldService.getFields({ type: filterType })
+      // 1. Lấy danh sách sân (paginated)
+      const pageData = await fieldService.getFieldsPage({
+        type: filterType,
+        name: debouncedSearch || undefined,
+        page,
+        size: 8
+      })
+      const fieldsData = pageData.content || []
+      setTotalPages(pageData.totalPages || 0)
 
       // Gộp các sân trùng tên lại với nhau
       const groupedFieldsMap = {}
@@ -219,7 +247,7 @@ export default function FieldListPage() {
       )
 
       // Lưu cache
-      cache.current[cacheKey] = { fields: groupedFields, slotsMap }
+      cache.current[cacheKey] = { fields: groupedFields, slotsMap, totalPages: pageData.totalPages || 0 }
     } catch (err) {
       setError('Không thể tải danh sách sân. Vui lòng thử lại sau.')
       console.error(err)
@@ -245,13 +273,13 @@ export default function FieldListPage() {
     setIsModalOpen(true)
   }
 
-  const confirmBooking = async () => {
+  const confirmBooking = async (note) => {
     try {
       setIsBooking(true)
       setBookingError(null)
 
       // 1. Create booking
-      const bookingRes = await bookingService.createBooking(selectedSlot.id, bookingNote)
+      const bookingRes = await bookingService.createBooking(selectedSlot.id, note)
       if (!bookingRes || !bookingRes.bookingId) throw new Error('Không nhận được mã đơn đặt')
 
       // 2. Create Stripe payment session
@@ -284,7 +312,7 @@ export default function FieldListPage() {
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
 
           {/* Field Type Tabs */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {fieldTypes.map(type => (
               <button
                 key={type.value}
@@ -301,6 +329,23 @@ export default function FieldListPage() {
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl
+                              px-4 py-2.5 h-full focus-within:border-[#60D86E] focus-within:ring-2
+                              focus-within:ring-[#60D86E]/20 transition-all">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Tìm sân theo tên..."
+                className="flex-1 text-sm outline-none bg-transparent text-[#1a202c] placeholder-gray-400 font-medium"
+              />
+            </label>
           </div>
 
           {/* Filters: Date, Time, Duration */}
@@ -429,13 +474,20 @@ export default function FieldListPage() {
                         <div>
                           <h3 className="font-extrabold text-[#1a202c] text-lg sm:text-xl">{field.name}</h3>
                           <div className="flex items-center gap-2 mt-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#60D86E]"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#60D86E]" />
                             <span className="text-xs text-gray-500 font-medium">
                               {availableCount} / {groups.length} khung giờ trống
-                              <span className="ml-1 hidden sm:inline text-gray-300">· badge = số sân con còn trống</span>
                             </span>
                           </div>
                         </div>
+                        {/* Task 2: Link to FieldDetailPage */}
+                        <Link
+                          to={`/dat-san/${field.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-shrink-0 text-xs font-bold text-[#60D86E] hover:text-[#45c45a] hover:underline transition-colors"
+                        >
+                          Xem chi tiết →
+                        </Link>
                       </div>
 
                       {/* Grid khung giờ đã gộp */}
@@ -483,6 +535,31 @@ export default function FieldListPage() {
               )
             })}
             </div>
+
+            {/* Pagination UI */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <button
+                  disabled={page === 0 || loading}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm font-bold
+                             disabled:opacity-40 hover:bg-gray-50 transition-colors text-gray-700"
+                >
+                  ← Trước
+                </button>
+                <span className="px-4 py-2 text-sm text-gray-500 font-medium">
+                  Trang {page + 1} / {totalPages}
+                </span>
+                <button
+                  disabled={page + 1 >= totalPages || loading}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm font-bold
+                             disabled:opacity-40 hover:bg-gray-50 transition-colors text-gray-700"
+                >
+                  Tiếp →
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -514,85 +591,20 @@ export default function FieldListPage() {
 
       </section>
 
-      {/* ── Booking Confirmation Modal ── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isBooking && setIsModalOpen(false)}></div>
+      {/* Booking Modal — shared component */}
+      <BookingModal
+        isOpen={isModalOpen}
+        onClose={() => { if (!isBooking) { setIsModalOpen(false); setBookingError(null) } }}
+        onConfirm={confirmBooking}
+        isBooking={isBooking}
+        bookingError={bookingError}
+        fieldName={selectedSlot?.fieldName || ''}
+        startTime={selectedSlot?.startTime || ''}
+        endTime={selectedSlot?.endTime || ''}
+        date={selectedDate}
+        price={selectedSlot?.price || 0}
+      />
 
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl" style={{ animation: 'paymentCardIn 0.3s ease-out' }}>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              disabled={isBooking}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-
-            <h3 className="text-xl font-extrabold text-[#1a202c] pr-8">Xác nhận đặt sân</h3>
-            <p className="text-gray-500 text-sm mt-1 mb-6">Vui lòng kiểm tra kỹ thông tin trước khi thanh toán cọc.</p>
-
-            <div className="bg-[#f8faf8] rounded-2xl p-4 border border-[#e8f9eb] mb-5">
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Sân bóng</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">{selectedSlot?.fieldName}</span>
-              </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Thời gian</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">
-                  {formatTime(selectedSlot?.startTime)} - {formatTime(selectedSlot?.endTime)}
-                  <br/>
-                  <span className="text-xs font-normal text-gray-500">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span>
-                </span>
-              </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Tổng tiền slot</span>
-                <span className="text-[#1a202c] font-bold">{formatCurrency(selectedSlot?.price)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-extrabold">Tiền cọc (30%)</span>
-                <span className="text-[#60D86E] font-extrabold text-xl">{formatCurrency((selectedSlot?.price || 0) * 0.3)}</span>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-[#1a202c] mb-2" htmlFor="note">Ghi chú (Tùy chọn)</label>
-              <textarea
-                id="note"
-                rows="2"
-                value={bookingNote}
-                onChange={(e) => setBookingNote(e.target.value)}
-                placeholder="Yêu cầu thêm về bóng, nước uống..."
-                className="w-full px-4 py-3 rounded-2xl bg-[#f8faf8] border border-gray-200 text-sm outline-none focus:border-[#60D86E] focus:ring-2 focus:ring-[#60D86E]/20 transition-all resize-none"
-              ></textarea>
-            </div>
-
-            {bookingError && (
-              <div className="mb-4 text-sm text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
-                {bookingError}
-              </div>
-            )}
-
-            <button
-              disabled={isBooking}
-              onClick={confirmBooking}
-              className="w-full py-3.5 rounded-full bg-[#1a202c] text-white font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
-            >
-              {isBooking ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Đang chuyển hướng Stripe...
-                </>
-              ) : 'Thanh toán & Đặt sân'}
-            </button>
-            <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Thanh toán bảo mật an toàn
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Inline keyframe for bottom bar slide-up animation */}
       <style>{`
         @keyframes slideUp {
           from { transform: translateY(100%); }

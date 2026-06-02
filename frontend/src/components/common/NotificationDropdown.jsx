@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 import notificationService from '../../services/notificationService'
 import useAuthStore from '../../store/useAuthStore'
+
+const HTTP_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080'
 
 const TYPE_ICONS = {
   BOOKING_UPDATE: { color: '#3b82f6', bg: '#EFF6FF' },
@@ -38,30 +42,67 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Fetch unread count periodically
+  // Fetch unread count & connect WebSocket
   useEffect(() => {
     if (!isLoggedIn) return
-    const fetchCount = async () => {
+    
+    // Initial fetch
+    const fetchInitialData = async () => {
       try {
-        const data = await notificationService.getUnreadCount()
-        setUnreadCount(data.unreadCount || 0)
-      } catch {}
+        const [countData, listData] = await Promise.all([
+          notificationService.getUnreadCount(),
+          notificationService.getNotifications()
+        ])
+        setUnreadCount(countData.unreadCount || 0)
+        setNotifications(listData || [])
+      } catch (err) {
+        console.error('Notification initial fetch error:', err)
+      }
     }
-    fetchCount()
-    const interval = setInterval(fetchCount, 30000) // every 30s
-    return () => clearInterval(interval)
+    fetchInitialData()
+
+    const token = localStorage.getItem('access_token')
+    let stompClient = null
+
+    try {
+      stompClient = new Client({
+        webSocketFactory: () => new SockJS(`${HTTP_BASE}/ws`),
+        connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+        reconnectDelay: 5000,
+        onConnect: () => {
+          // Subscribe to user notifications
+          stompClient.subscribe('/user/queue/notifications', (frame) => {
+            try {
+              const msg = JSON.parse(frame.body)
+              // Prepend to list, deduping by id
+              setNotifications((prev) => {
+                if (prev.some(n => n.id === msg.id)) return prev
+                return [msg, ...prev]
+              })
+              setUnreadCount((c) => c + 1)
+            } catch (e) {
+              console.error('[WS Notification] Failed to parse message', e)
+            }
+          })
+        },
+        onStompError: () => {
+          // Fallback silently, no crash
+        },
+      })
+      stompClient.activate()
+    } catch (err) {
+      // Ignore ws setup errors
+    }
+
+    return () => {
+      if (stompClient) {
+        stompClient.deactivate()
+      }
+    }
   }, [isLoggedIn])
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     setOpen(!open)
-    if (!open) {
-      setLoading(true)
-      try {
-        const data = await notificationService.getNotifications()
-        setNotifications(data)
-      } catch (err) { console.error('Notification load error:', err) }
-      finally { setLoading(false) }
-    }
   }
 
   const handleMarkRead = async (id) => {
