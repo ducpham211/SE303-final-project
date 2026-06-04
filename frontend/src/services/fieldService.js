@@ -4,35 +4,15 @@ import api from './api'
  * Service to handle field-related API calls
  */
 const fieldService = {
-  /**
-   * Get all fields with optional filters
-   * @param {Object} filters { type, minPrice, maxPrice }
-   * @returns {Promise<Array>} List of fields
-   */
   getFields: async (filters = {}) => {
     const params = new URLSearchParams()
     if (filters.type) params.append('type', filters.type)
+    if (filters.name) params.append('name', filters.name)
     if (filters.minPrice) params.append('minPrice', filters.minPrice)
     if (filters.maxPrice) params.append('maxPrice', filters.maxPrice)
     
     const { data } = await api.get(`/fields?${params.toString()}`)
-    return data
-  },
-
-  /**
-   * Get paginated fields with optional filters and keyword search
-   * @param {Object} params { type, name, page, size }
-   * @returns {Promise<Object>} Spring Page object { content, totalPages, totalElements }
-   */
-  getFieldsPage: async (filters = {}) => {
-    const params = new URLSearchParams()
-    if (filters.type) params.append('type', filters.type)
-    if (filters.name) params.append('name', filters.name)
-    if (filters.page !== undefined) params.append('page', filters.page)
-    if (filters.size !== undefined) params.append('size', filters.size)
-
-    const { data } = await api.get(`/fields/page?${params.toString()}`)
-    return data
+    return data // trả về array, không phải Page object
   },
 
   /**

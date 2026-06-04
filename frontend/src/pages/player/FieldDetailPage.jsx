@@ -29,26 +29,22 @@ export default function FieldDetailPage() {
   const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
   const [bookingError, setBookingError] = useState(null)
-  
-  // Add-ons & Split Bill State
-  const [addons, setAddons] = useState({
-    water: false,
-    bibs: false,
-    referee: false,
-    goalkeeper: false
-  })
-  const [teamSize, setTeamSize] = useState(10)
-
-  const ADDON_PRICES = {
-    water: 50000,
-    bibs: 30000,
-    referee: 150000,
-    goalkeeper: 100000
-  }
 
   useEffect(() => {
     fetchFieldAndSlots()
   }, [id, selectedDate])
+
+  const parseTimeMs = (value, dateStr) => {
+    if (!value) return 0
+    if (value.includes('T') || value.includes('-')) {
+      const ms = new Date(value).getTime()
+      return isNaN(ms) ? 0 : ms
+    }
+    const [h, m] = value.split(':').map(Number)
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const d = new Date(year, month - 1, day, h, m, 0, 0)
+    return d.getTime()
+  }
 
   const fetchFieldAndSlots = async () => {
     try {
@@ -60,8 +56,20 @@ export default function FieldDetailPage() {
       setField(fieldData)
       
       const availabilityData = await fieldService.getFieldAvailability(id, selectedDate)
-      // availabilityData might be just the slots array directly coming from the controller
-      setSlots(Array.isArray(availabilityData) ? availabilityData : [])
+      let finalSlots = Array.isArray(availabilityData) ? availabilityData : []
+      
+      const now = new Date()
+      const isToday = selectedDate === now.toISOString().split('T')[0]
+      const cutoffMs = isToday ? now.getTime() : 0
+      
+      if (isToday) {
+        finalSlots = finalSlots.filter(slot => {
+          const slotMs = parseTimeMs(slot.startTime, selectedDate)
+          return slotMs >= cutoffMs
+        })
+      }
+      
+      setSlots(finalSlots)
     } catch (err) {
       setError('Không thể tải thông tin sân hoặc lịch trống.')
       console.error(err)
@@ -116,7 +124,8 @@ export default function FieldDetailPage() {
 
     } catch (err) {
       console.error(err)
-      setBookingError(err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.')
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.'
+      setBookingError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg)
       setIsBooking(false)
     }
   }
@@ -142,18 +151,6 @@ export default function FieldDetailPage() {
   }
 
   const today = new Date().toISOString().split('T')[0]
-  
-  const calculateTotalWithAddons = () => {
-    let total = selectedSlot?.price || 0
-    if (addons.water) total += ADDON_PRICES.water
-    if (addons.bibs) total += ADDON_PRICES.bibs
-    if (addons.referee) total += ADDON_PRICES.referee
-    if (addons.goalkeeper) total += ADDON_PRICES.goalkeeper
-    return total
-  }
-  
-  const totalExpectedAmount = calculateTotalWithAddons()
-  const splitAmount = Math.ceil(totalExpectedAmount / Math.max(1, teamSize))
 
   return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">
@@ -206,26 +203,6 @@ export default function FieldDetailPage() {
               </div>
             </div>
             
-            {/* Sticky Order Summary Box (Appears when a slot is selected) */}
-            {selectedSlot && (
-              <div className="bg-[#1a202c] rounded-3xl p-6 shadow-md text-white sticky top-24">
-                <h3 className="font-bold text-lg mb-4 text-[#60D86E]">Bạn đã chọn slot</h3>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-400">Thời gian</span>
-                  <span className="font-semibold">{formatTime(selectedSlot.startTime)} - {formatTime(selectedSlot.endTime)}</span>
-                </div>
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-gray-400">Giá</span>
-                  <span className="font-semibold">{formatCurrency(selectedSlot.price)}</span>
-                </div>
-                <button
-                  onClick={handleBookClick}
-                  className="w-full py-3 rounded-full bg-[#60D86E] text-[#1a202c] font-extrabold text-sm hover:bg-[#45c45a] hover:text-white transition-all active:scale-95"
-                >
-                  {isLoggedIn ? 'Xác nhận & Cọc 30%' : 'Đăng nhập để đặt sân'}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Right Column: Time Slots */}
@@ -282,6 +259,32 @@ export default function FieldDetailPage() {
         </div>
       </section>
 
+      {/* ── Sticky Bottom Bar (when a slot is selected) ── */}
+      {selectedSlot && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[#1a202c] text-white py-4 px-4 sm:px-8 z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.15)]" style={{ animation: 'slideUp 0.3s ease-out' }}>
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="hidden sm:flex w-10 h-10 rounded-full bg-[#60D86E]/20 items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60D86E" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-400">{field?.name}</p>
+                <p className="font-bold">
+                  {formatTime(selectedSlot.startTime)} – {formatTime(selectedSlot.endTime)}
+                  <span className="ml-3 text-[#60D86E] font-extrabold">{formatCurrency(selectedSlot.price)}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleBookClick}
+              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#60D86E] text-[#1a202c] font-extrabold text-sm hover:bg-[#45c45a] hover:text-white transition-all active:scale-95 whitespace-nowrap"
+            >
+              {isLoggedIn ? 'Xác nhận & Cọc 30%' : 'Đăng nhập để đặt sân'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Booking Confirmation Modal — shared component */}
       <BookingModal
         isOpen={isModalOpen}
@@ -294,12 +297,14 @@ export default function FieldDetailPage() {
         endTime={selectedSlot?.endTime || ''}
         date={selectedDate}
         price={selectedSlot?.price || 0}
-        showAddons
-        addons={addons}
-        onAddonsChange={setAddons}
-        teamSize={teamSize}
-        onTeamSizeChange={setTeamSize}
       />
+
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
     </main>
   )
 }

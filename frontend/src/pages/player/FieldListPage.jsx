@@ -121,8 +121,8 @@ export default function FieldListPage() {
     }
     // Dạng "HH:mm" — ghép với ngày đang xem để so sánh đúng
     const [h, m] = value.split(':').map(Number)
-    const d = new Date(dateStr)
-    d.setHours(h, m, 0, 0)
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const d = new Date(year, month - 1, day, h, m, 0, 0)
     return d.getTime()
   }
 
@@ -192,15 +192,18 @@ export default function FieldListPage() {
       setSelectedSlot(null)
       setSlotsByField({})
 
-      // 1. Lấy danh sách sân (paginated)
-      const pageData = await fieldService.getFieldsPage({
-        type: filterType,
-        name: debouncedSearch || undefined,
-        page,
-        size: 8
-      })
-      const fieldsData = pageData.content || []
-      setTotalPages(pageData.totalPages || 0)
+      // 1. Lấy danh sách sân
+      const allFields = await fieldService.getFields({ type: filterType, name: debouncedSearch || undefined })
+      // Client-side search nếu backend không hỗ trợ name filter:
+      const filtered = debouncedSearch
+        ? allFields.filter(f => f.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+        : allFields
+      // Client-side pagination:
+      const PAGE_SIZE = 8
+      const start = page * PAGE_SIZE
+      const fieldsData = filtered.slice(start, start + PAGE_SIZE)
+      const calculatedTotalPages = Math.ceil(filtered.length / PAGE_SIZE)
+      setTotalPages(calculatedTotalPages)
 
       // Gộp các sân trùng tên lại với nhau
       const groupedFieldsMap = {}
@@ -247,7 +250,7 @@ export default function FieldListPage() {
       )
 
       // Lưu cache
-      cache.current[cacheKey] = { fields: groupedFields, slotsMap, totalPages: pageData.totalPages || 0 }
+      cache.current[cacheKey] = { fields: groupedFields, slotsMap, totalPages: calculatedTotalPages }
     } catch (err) {
       setError('Không thể tải danh sách sân. Vui lòng thử lại sau.')
       console.error(err)
@@ -290,7 +293,8 @@ export default function FieldListPage() {
       window.location.href = paymentRes.url
     } catch (err) {
       console.error(err)
-      setBookingError(err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.')
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.'
+      setBookingError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg)
       setIsBooking(false)
     }
   }
