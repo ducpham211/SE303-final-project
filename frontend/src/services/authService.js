@@ -14,11 +14,11 @@ const authService = {
   },
 
   /**
-   * Register a new account with email + password.
+   * Register a new account with email + password + fullName.
    * @returns {{ accessToken: string, message: string }}
    */
-  register: async (email, password) => {
-    const { data } = await api.post('/auth/register', { email, password })
+  register: async (email, password, fullName) => {
+    const { data } = await api.post('/auth/register', { email, password, fullName })
     return data
   },
 }

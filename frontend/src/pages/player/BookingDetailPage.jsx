@@ -64,6 +64,23 @@ export default function BookingDetailPage() {
   )
   const [loading, setLoading] = useState(!location.state?.booking)
   const [error, setError] = useState(null)
+  const [isPaying, setIsPaying] = useState(false)
+  const [payError, setPayError] = useState(null)
+
+  const handleContinuePayment = async () => {
+    try {
+      setIsPaying(true)
+      setPayError(null)
+      const bookingId = booking?.bookingId || booking?.id
+      const res = await bookingService.createPaymentSession(bookingId)
+      if (!res?.url) throw new Error('Không nhận được URL thanh toán')
+      window.location.href = res.url
+    } catch (err) {
+      console.error(err)
+      setPayError(err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
+      setIsPaying(false)
+    }
+  }
 
   useEffect(() => {
     // Skip fetch if booking was passed via location.state
@@ -195,18 +212,45 @@ export default function BookingDetailPage() {
           )}
         </div>
 
-        {/* Payment reminder for PENDING */}
+        {/* Continue Payment CTA — only for PENDING */}
         {booking.status === 'PENDING' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" className="flex-shrink-0 mt-0.5">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <div>
-              <p className="text-sm font-bold text-amber-800 mb-0.5">Chờ thanh toán cọc</p>
-              <p className="text-xs text-amber-700">
-                Vui lòng hoàn tất thanh toán để giữ chỗ. Muốn hủy, vui lòng liên hệ trực tiếp quản lý sân.
-              </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <div className="flex gap-3 mb-4">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div>
+                <p className="text-sm font-bold text-amber-800 mb-0.5">Chưa hoàn tất thanh toán cọc</p>
+                <p className="text-xs text-amber-700">
+                  Slot sẽ tự động được giải phóng sau <strong>5 phút</strong> nếu bạn không hoàn tất thanh toán.
+                  Hãy tiếp tục đặt cọc để giữ chỗ.
+                </p>
+              </div>
             </div>
+
+            {payError && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-3">{payError}</p>
+            )}
+
+            <button
+              onClick={handleContinuePayment}
+              disabled={isPaying}
+              className="w-full py-3 rounded-full bg-[#1a202c] text-white text-sm font-extrabold hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {isPaying ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Đang chuyển hướng Stripe...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                  Tiếp tục thanh toán cọc — {depositLabel}
+                </>
+              )}
+            </button>
           </div>
         )}
 

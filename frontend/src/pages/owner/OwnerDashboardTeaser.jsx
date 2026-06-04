@@ -5,10 +5,12 @@ import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 
 const STATUS_META = {
-  PENDING:   { label: 'Chờ cọc',    ring: 'border-amber-200  bg-amber-50',  badge: 'bg-amber-100 text-amber-700'  },
-  PAID:      { label: 'Đã cọc',     ring: 'border-green-200  bg-green-50',  badge: 'bg-green-100 text-green-700'  },
-  COMPLETED: { label: 'Hoàn thành', ring: 'border-blue-200   bg-blue-50',   badge: 'bg-blue-100  text-blue-700'   },
-  CANCELLED: { label: 'Đã hủy',     ring: 'border-gray-200   bg-gray-50',   badge: 'bg-gray-100  text-gray-500'   },
+  PENDING:      { label: 'Chờ cọc',      ring: 'border-amber-200  bg-amber-50',   badge: 'bg-amber-100 text-amber-700'  },
+  DEPOSIT_PAID: { label: 'Đã cọc',       ring: 'border-green-200  bg-green-50',   badge: 'bg-green-100 text-green-700'  },
+  CONFIRMED:    { label: 'Đã xác nhận',  ring: 'border-blue-200   bg-blue-50',    badge: 'bg-blue-100  text-blue-700'   },
+  COMPLETED:    { label: 'Hoàn thành',   ring: 'border-emerald-200 bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700' },
+  CANCELLED:    { label: 'Đã hủy',       ring: 'border-gray-200   bg-gray-50',    badge: 'bg-gray-100  text-gray-500'   },
+  NO_SHOW:      { label: 'Không đến sân', ring: 'border-gray-200   bg-gray-50',    badge: 'bg-gray-100  text-gray-400'   },
 }
 
 function KpiCard({ label, value, sub, color, loading }) {
@@ -72,11 +74,11 @@ export default function OwnerDashboardTeaser() {
   }, [])
 
   // Tính KPI từ data thật
-  const pendingCount   = bookings.filter(b => b.status === 'PENDING').length
-  const paidCount      = bookings.filter(b => b.status === 'PAID').length
-  const completedCount = bookings.filter(b => b.status === 'COMPLETED').length
-  const totalRevenue   = bookings
-    .filter(b => b.status === 'PAID' || b.status === 'COMPLETED')
+  const pendingCount      = bookings.filter(b => b.status === 'PENDING').length
+  const depositPaidCount  = bookings.filter(b => b.status === 'DEPOSIT_PAID').length
+  const completedCount    = bookings.filter(b => b.status === 'COMPLETED').length
+  const totalRevenue      = bookings
+    .filter(b => b.status === 'DEPOSIT_PAID' || b.status === 'COMPLETED')
     .reduce((sum, b) => sum + (Number(b.depositAmount) || 0), 0)
   const revenueDisplay = totalRevenue >= 1_000_000
     ? `${(totalRevenue / 1_000_000).toFixed(1)}M`
@@ -84,9 +86,9 @@ export default function OwnerDashboardTeaser() {
 
   // Chỉ lấy 5 booking gần nhất để hiển thị
   const recentBookings = bookings.slice(0, 5)
-  const pendingList    = bookings.filter(b => b.status === 'PENDING').slice(0, 3)
+  const pendingCheckInList = bookings.filter(b => b.status === 'DEPOSIT_PAID').slice(0, 3)
 
-  const handleCheckIn  = async (id) => { try { await bookingService.checkIn(id);   setBookings(prev => prev.map(b => b.id === id ? {...b, status:'PAID'} : b)) } catch {} }
+  const handleCheckIn  = async (id) => { try { await bookingService.checkIn(id);   setBookings(prev => prev.map(b => b.id === id ? {...b, status:'COMPLETED'} : b)) } catch {} }
   const handleNoShow   = async (id) => { try { await bookingService.markNoShow(id); setBookings(prev => prev.map(b => b.id === id ? {...b, status:'CANCELLED'} : b)) } catch {} }
 
   return (
@@ -104,7 +106,7 @@ export default function OwnerDashboardTeaser() {
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Tổng sân" value={fields.length} sub="sân đang quản lý" color="#1a202c" loading={loading} />
-        <KpiCard label="Đơn chờ cọc" value={pendingCount} sub="Cần xử lý" color="#f59e0b" loading={loading} />
+        <KpiCard label="Chờ nhận sân" value={depositPaidCount} sub="Cần check-in" color="#f59e0b" loading={loading} />
         <KpiCard label="Doanh thu (cọc)" value={revenueDisplay} sub="đã thu từ đặt cọc" color="#60D86E" loading={loading} />
         <KpiCard label="Hoàn thành" value={completedCount} sub="trận đấu" color="#3b82f6" loading={loading} />
       </div>
@@ -130,14 +132,14 @@ export default function OwnerDashboardTeaser() {
         {/* Pending bookings */}
         <div className="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="font-bold text-lg text-[#1a202c]">Đơn đặt chờ cọc ({pendingCount})</h2>
+            <h2 className="font-bold text-lg text-[#1a202c]">Đơn đặt chờ nhận sân ({depositPaidCount})</h2>
             <Link to="/owner/bookings" className="text-sm font-bold text-amber-600 hover:underline">Tất cả →</Link>
           </div>
           {loading
             ? [1,2].map(i => <div key={i} className="h-20 bg-amber-50 rounded-2xl animate-pulse mb-3" />)
-            : pendingList.length === 0
-              ? <p className="text-gray-400 text-sm text-center py-8">Không có đơn chờ xử lý 🎉</p>
-              : pendingList.map(b => {
+            : pendingCheckInList.length === 0
+              ? <p className="text-gray-400 text-sm text-center py-8">Không có đơn chờ nhận sân 🎉</p>
+              : pendingCheckInList.map(b => {
                   const fieldName = b.field?.name || b.fieldName || 'Sân bóng'
                   const slotTime  = b.timeSlot ? `${b.timeSlot.startTime}–${b.timeSlot.endTime}` : b.time || '—'
                   const deposit   = b.depositAmount ? `${Number(b.depositAmount).toLocaleString('vi-VN')}đ` : '—'

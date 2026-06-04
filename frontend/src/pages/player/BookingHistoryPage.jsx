@@ -5,21 +5,19 @@ import ReviewModal from './components/ReviewModal'
 
 const STATUS_META = {
   PENDING:      { label: 'Chờ thanh toán', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400',  border: 'border-amber-200' },
-  DEPOSIT_PAID: { label: 'Đã cọ',        bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
+  DEPOSIT_PAID: { label: 'Đã cọc',       bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
   CONFIRMED:    { label: 'Đã xác nhận',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500',   border: 'border-blue-200' },
   COMPLETED:    { label: 'Hoàn thành',    bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', border: 'border-emerald-200' },
   CANCELLED:    { label: 'Đã hủy',        bg: 'bg-red-100',    text: 'text-red-600',    dot: 'bg-red-400',    border: 'border-red-200' },
-  NO_SHOW:      { label: 'Không đến sân',  bg: 'bg-gray-100',   text: 'text-gray-500',   dot: 'bg-gray-400',   border: 'border-gray-200' },
 }
 
 const FILTER_TABS = [
   { key: 'ALL',          label: 'Tất cả' },
   { key: 'PENDING',      label: 'Chờ thanh toán' },
-  { key: 'DEPOSIT_PAID', label: 'Đã cọ' },
+  { key: 'DEPOSIT_PAID', label: 'Đã cọc' },
   { key: 'CONFIRMED',    label: 'Đã xác nhận' },
   { key: 'COMPLETED',    label: 'Hoàn thành' },
   { key: 'CANCELLED',    label: 'Đã hủy' },
-  { key: 'NO_SHOW',      label: 'Không đến sân' },
 ]
 
 function SkeletonCard() {
@@ -34,7 +32,7 @@ function SkeletonCard() {
   )
 }
 
-function BookingCard({ booking, onReviewClick }) {
+function BookingCard({ booking, onReviewClick, onPayClick }) {
   const s = STATUS_META[booking.status] || STATUS_META.PENDING
   const fieldName = booking.field?.name || booking.fieldName || 'Sân bóng'
   const slotTime = booking.startTime && booking.endTime
@@ -65,21 +63,43 @@ function BookingCard({ booking, onReviewClick }) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {slotTime}
         </span>
-        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">Đặt cọ: {deposit}</span>
-        {total && <span className="text-gray-400">Tổng: {total}</span>}
+        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">
+            {booking.status === 'COMPLETED' ? 'Đã thanh toán:' : 'Đã cọc:'}{' '}
+            {booking.status === 'COMPLETED' ? total : deposit}
+          </span>
+          {booking.status !== 'COMPLETED' && total && (
+            <span className="text-gray-400">Tổng: {total}</span>
+          )}
       </div>
 
-      {booking.status === 'COMPLETED' && (
+      {/* Action row */}
+      {(booking.status === 'PENDING' || booking.status === 'COMPLETED') && (
         <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onReviewClick(booking)
-            }}
-            className="text-xs font-bold px-4 py-2 rounded-xl bg-[#fbbf24] text-[#1a202c] hover:bg-[#f59e0b] transition-colors"
-          >
-            Đánh giá sân
-          </button>
+          {booking.status === 'PENDING' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onPayClick?.(booking)
+              }}
+              className="text-xs font-bold px-4 py-2 rounded-xl bg-[#1a202c] text-white hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              Tiếp tục thanh toán — {deposit}
+            </button>
+          )}
+          {booking.status === 'COMPLETED' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onReviewClick(booking)
+              }}
+              className="text-xs font-bold px-4 py-2 rounded-xl bg-[#fbbf24] text-[#1a202c] hover:bg-[#f59e0b] transition-colors"
+            >
+              Đánh giá sân
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -92,12 +112,27 @@ export default function BookingHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
   const [selectedReviewBooking, setSelectedReviewBooking] = useState(null)
+  const [payingId, setPayingId] = useState(null)
+
+  const handlePayBooking = async (booking) => {
+    const bookingId = booking.bookingId || booking.id
+    try {
+      setPayingId(bookingId)
+      const res = await bookingService.createPaymentSession(bookingId)
+      if (!res?.url) throw new Error('Không nhận được URL thanh toán')
+      window.location.href = res.url
+    } catch (err) {
+      console.error(err)
+      alert(err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
+      setPayingId(null)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
       try {
         const data = await bookingService.getMyBookings()
-        const priorityOrder = { PENDING: 0, DEPOSIT_PAID: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4, NO_SHOW: 5 }
+        const priorityOrder = { PENDING: 0, DEPOSIT_PAID: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4 }
         const sorted = [...data].sort((a, b) => {
           const pa = priorityOrder[a.status] ?? 6
           const pb = priorityOrder[b.status] ?? 6
@@ -163,15 +198,23 @@ export default function BookingHistoryPage() {
               {filter === 'ALL' && <Link to="/dat-san" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">Đặt sân ngay →</Link>}
             </div>
           )}
-          {!loading && filtered.map((b) => (
-            <div
-              key={b.bookingId || b.id}
-              onClick={() => navigate(`/lich-dat/${b.bookingId || b.id}`, { state: { booking: b } })}
-              className="cursor-pointer"
-            >
-              <BookingCard booking={b} onReviewClick={setSelectedReviewBooking} />
-            </div>
-          ))}
+          {!loading && filtered.map((b) => {
+            const bId = b.bookingId || b.id
+            const isPaying = payingId === bId
+            return (
+              <div
+                key={bId}
+                onClick={() => navigate(`/lich-dat/${bId}`, { state: { booking: b } })}
+                className="cursor-pointer"
+              >
+                <BookingCard
+                  booking={isPaying ? { ...b, _paying: true } : b}
+                  onReviewClick={setSelectedReviewBooking}
+                  onPayClick={handlePayBooking}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
 

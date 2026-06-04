@@ -8,7 +8,6 @@ const STATUS_META = {
   CONFIRMED:    { label: 'Đã xác nhận',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500',   border: 'border-blue-200' },
   COMPLETED:    { label: 'Hoàn thành',    bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', border: 'border-emerald-200' },
   CANCELLED:    { label: 'Đã hủy',        bg: 'bg-red-100',    text: 'text-red-600',    dot: 'bg-red-400',    border: 'border-red-200' },
-  NO_SHOW:      { label: 'Không đến sân',  bg: 'bg-gray-100',   text: 'text-gray-500',   dot: 'bg-gray-400',   border: 'border-gray-200' },
 }
 
 export default function PlayerDashboardPage() {

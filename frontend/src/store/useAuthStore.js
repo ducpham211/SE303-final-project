@@ -36,9 +36,9 @@ const useAuthStore = create(
           token, 
           isLoggedIn: true,
           user: decoded ? {
-            email: decoded.sub,
+            email: decoded.email || decoded.sub,
             role: decoded.role || decoded.roles?.[0] || 'PLAYER', // Fallback
-            name: decoded.name || decoded.sub?.split('@')[0],
+            name: decoded.user_metadata?.full_name || decoded.email?.split('@')[0] || decoded.sub,
             // id (UUID) is populated separately by enrichUser() after /api/users/me
           } : null
         })
@@ -57,7 +57,14 @@ const useAuthStore = create(
       enrichUser: (profile) => {
         set((state) => ({
           user: state.user
-            ? { ...state.user, id: profile.id, fullName: profile.fullName, phone: profile.phone, role: profile.role || state.user.role }
+            ? { 
+                ...state.user, 
+                id: profile.id, 
+                fullName: profile.fullName, 
+                name: profile.fullName || state.user.name,
+                phone: profile.phone, 
+                role: profile.role || state.user.role 
+              }
             : state.user,
         }))
       },

@@ -289,7 +289,7 @@ export default function FieldListPage() {
       const paymentRes = await bookingService.createPaymentSession(bookingRes.bookingId)
       if (!paymentRes || !paymentRes.url) throw new Error('Không nhận được URL thanh toán')
 
-      // 3. Redirect to Stripe
+      // 3. Redirect to Stripe Checkout
       window.location.href = paymentRes.url
     } catch (err) {
       console.error(err)

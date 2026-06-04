@@ -30,9 +30,9 @@ const ADDON_PRICES = {
 }
 
 const ADDON_LABELS = {
-  water:      'Nước (+50k)',
-  bibs:       'Áo bíp (+30k)',
-  referee:    'Trọng tài (+150k)',
+  water: 'Nước (+50k)',
+  bibs: 'Áo bíp (+30k)',
+  referee: 'Trọng tài (+150k)',
   goalkeeper: 'Thủ môn (+100k)',
 }
 
@@ -106,12 +106,14 @@ export default function BookingModal({
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
 
         <h3 className="text-xl font-extrabold text-[#1a202c] pr-8">Xác nhận đặt sân</h3>
-        <p className="text-gray-500 text-sm mt-1 mb-6">Vui lòng kiểm tra kỹ thông tin trước khi thanh toán cọc.</p>
+        <p className="text-gray-500 text-sm mt-1 mb-6">
+          Bạn sẽ thanh toán cọc 30% qua Stripe ngay bây giờ, phần còn lại thanh toán tại sân.
+        </p>
 
         {/* Booking summary */}
         <div className="bg-[#f8faf8] rounded-2xl p-4 border border-[#e8f9eb] mb-5">
@@ -133,7 +135,7 @@ export default function BookingModal({
             <Row label="Dịch vụ thêm" value={`+${formatCurrency(addonTotal)}`} />
           )}
           <div className="flex justify-between items-center pt-3 mt-1 border-t border-gray-200/50">
-            <span className="text-gray-700 font-extrabold">Tiền cọc (30%)</span>
+            <span className="text-gray-700 font-extrabold">Cọc ngay (30%)</span>
             <span className="text-[#60D86E] font-extrabold text-xl">{formatCurrency(deposit)}</span>
           </div>
         </div>
@@ -190,6 +192,18 @@ export default function BookingModal({
           </>
         )}
 
+        {/* Payment via Stripe — informational only */}
+        <div className="mb-5 flex items-center gap-3 p-3 rounded-2xl bg-[#f0fdf4] border border-[#bbf7d0]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" className="flex-shrink-0">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          <div>
+            <p className="text-sm font-bold text-green-800">Thanh toán cọc qua Stripe</p>
+            <p className="text-xs text-green-700 mt-0.5">Thẻ Visa / Mastercard · Apple Pay · Google Pay</p>
+          </div>
+        </div>
+
         {/* Note */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-[#1a202c] mb-2" htmlFor="booking-modal-note">
@@ -221,13 +235,15 @@ export default function BookingModal({
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Đang chuyển hướng Stripe...
             </>
-          ) : 'Thanh toán & Đặt sân'}
+          ) : (
+            `Đặt cọc ${formatCurrency(deposit)} & Đặt sân`
+          )}
         </button>
 
         <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
           Thanh toán bảo mật an toàn
         </p>
