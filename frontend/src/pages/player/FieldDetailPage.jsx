@@ -7,7 +7,7 @@ import useAuthStore from '../../store/useAuthStore'
 export default function FieldDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isLoggedIn, user } = useAuthStore()
+  const { isLoggedIn } = useAuthStore()
   
   const [field, setField] = useState(null)
   const [slots, setSlots] = useState([])
@@ -183,7 +183,7 @@ export default function FieldDetailPage() {
               />
               <div className="p-6">
                 <span className="px-3 py-1 rounded-full bg-[#1a202c] text-white text-xs font-semibold uppercase tracking-wider mb-3 inline-block">
-                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân 11 người'}
+                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân bóng'}
                 </span>
                 <h1 className="text-2xl font-extrabold text-[#1a202c] leading-tight mb-2">{field?.name}</h1>
                 <p className="text-gray-500 text-sm flex items-start gap-1.5 mb-6">
