@@ -8,7 +8,9 @@ import ProtectedRoute from '../components/common/ProtectedRoute'
 // ── Public / Auth ──────────────────────────────────────────────────────
 const HomePage        = lazy(() => import('../pages/home/HomePage'))
 const LoginPage       = lazy(() => import('../pages/auth/LoginPage'))
-const RegisterPage    = lazy(() => import('../pages/auth/RegisterPage'))
+const RegisterPage        = lazy(() => import('../pages/auth/RegisterPage'))
+const ForgotPasswordPage  = lazy(() => import('../pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage   = lazy(() => import('../pages/auth/ResetPasswordPage'))
 
 // ── Player ────────────────────────────────────────────────────────────
 const FieldListPage        = lazy(() => import('../pages/player/FieldListPage'))
@@ -17,6 +19,8 @@ const FieldDetailPage      = lazy(() => import('../pages/player/FieldDetailPage'
 const MessagesPage         = lazy(() => import('../pages/player/MessagesPage'))
 const BookingHistoryPage   = lazy(() => import('../pages/player/BookingHistoryPage'))
 const ProfilePage          = lazy(() => import('../pages/player/ProfilePage'))
+const TeamPage             = lazy(() => import('../pages/player/TeamPage'))
+const TeamDetailPage       = lazy(() => import('../pages/player/TeamDetailPage'))
 
 // ── Payment (Stripe callbacks) ────────────────────────────────────────
 const PaymentSuccessPage = lazy(() => import('../pages/payment/PaymentSuccessPage'))
@@ -55,6 +59,8 @@ export default function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/dang-ky"   element={<RegisterPage />} />
+          <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
+          <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
 
           {/* ── Sân bóng (public browse, auth required to book) ─────── */}
           <Route path="/dat-san"     element={<FieldListPage />} />
@@ -76,6 +82,12 @@ export default function AppRouter() {
           } />
           <Route path="/tin-nhan" element={
             <ProtectedRoute><MessagesPage /></ProtectedRoute>
+          } />
+          <Route path="/doi-bong" element={
+            <ProtectedRoute><TeamPage /></ProtectedRoute>
+          } />
+          <Route path="/doi-bong/:id" element={
+            <ProtectedRoute><TeamDetailPage /></ProtectedRoute>
           } />
 
           {/* ── Matchmaking (built by another team member) ───────────── */}

@@ -4,13 +4,13 @@ import api from './api'
  * Service to handle Review API calls
  * Maps to: ReviewController.java
  *
- * ReviewCreateRequest: { fieldId, bookingId, rating, comment, imageUrl }
- * ReviewResponse:      { id, userId, fieldId, bookingId, rating, comment, imageUrl, createdAt }
+ * ReviewCreateRequest: { revieweeId, matchRequestId, reason }
+ * ReviewResponse:      { id, reviewerId, revieweeId, matchRequestId, scoreChange, reason, aiSuggestedPenalty, status, createdAt }
  */
 const reviewService = {
   /**
    * POST /api/reviews
-   * @param {{ fieldId: string, bookingId: string, rating: number, comment: string, imageUrl?: string }} payload
+   * @param {{ revieweeId: string, matchRequestId: string, reason: string }} payload
    * @returns {Promise<ReviewResponse>}
    */
   createReview: async (payload) => {

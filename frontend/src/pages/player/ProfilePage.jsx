@@ -20,6 +20,10 @@ function ProfileTab() {
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState({ type: '', text: '' })
 
+  const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' })
+  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' })
+  const [savingPassword, setSavingPassword] = useState(false)
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -33,7 +37,7 @@ function ProfileTab() {
     load()
   }, [])
 
-  const handleSave = async (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault()
     if (!fullName.trim()) { setMessage({ type: 'error', text: 'Vui lòng nhập họ và tên.' }); return }
     setSaving(true)
@@ -49,6 +53,29 @@ function ProfileTab() {
     } finally { setSaving(false) }
   }
 
+  const handleSavePassword = async (e) => {
+    e.preventDefault()
+    setPasswordMessage({ type: '', text: '' })
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'Mật khẩu phải có ít nhất 6 ký tự.' })
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp.' })
+      return
+    }
+    setSavingPassword(true)
+    try {
+      await userService.updateUser(profile.id, { password: passwordForm.newPassword })
+      setPasswordMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' })
+      setPasswordForm({ newPassword: '', confirmPassword: '' })
+    } catch (err) {
+      setPasswordMessage({ type: 'error', text: err?.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.' })
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -58,49 +85,91 @@ function ProfileTab() {
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-5">
-      {/* Avatar */}
-      <div className="flex items-center gap-4 pb-2">
-        <div className="w-16 h-16 rounded-full bg-[#60D86E] flex items-center justify-center text-white text-2xl font-black flex-shrink-0">
-          {(profile?.fullName || user?.name || 'U')[0].toUpperCase()}
+    <div className="space-y-8">
+      {/* ── Thông tin cá nhân ── */}
+      <form onSubmit={handleSaveProfile} className="space-y-5">
+        <h3 className="text-lg font-bold text-[#1a202c] mb-4">Thông tin cá nhân</h3>
+        {/* Avatar */}
+        <div className="flex items-center gap-4 pb-2">
+          <div className="relative group cursor-not-allowed">
+            <div className="w-20 h-20 rounded-full bg-[#60D86E] flex items-center justify-center text-white text-3xl font-black flex-shrink-0">
+              {(profile?.fullName || user?.name || 'U')[0].toUpperCase()}
+            </div>
+            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+          <div>
+            <p className="font-bold text-[#1a202c] text-lg">{profile?.fullName || user?.name}</p>
+            <p className="text-xs text-gray-400 mb-1">{profile?.role || user?.role?.replace('ROLE_', '')}</p>
+            <p className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-md inline-block">Tải ảnh lên (sắp có)</p>
+          </div>
         </div>
+
+        {/* Email (read-only) */}
         <div>
-          <p className="font-bold text-[#1a202c]">{profile?.fullName || user?.name}</p>
-          <p className="text-xs text-gray-400">{profile?.role || user?.role?.replace('ROLE_', '')}</p>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Email</label>
+          <input type="email" value={profile?.email || ''} disabled
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-500 cursor-not-allowed" />
         </div>
-      </div>
 
-      {/* Email (read-only) */}
-      <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Email</label>
-        <input type="email" value={profile?.email || ''} disabled
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-500 cursor-not-allowed" />
-      </div>
+        {/* Full Name */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Họ và tên</label>
+          <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={saving}
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
+        </div>
 
-      {/* Full Name */}
-      <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Họ và tên</label>
-        <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={saving}
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
-      </div>
+        {/* Phone */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Số điện thoại</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0901 234 567" disabled={saving}
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
+        </div>
 
-      {/* Phone */}
-      <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Số điện thoại</label>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0901 234 567" disabled={saving}
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
-      </div>
+        {/* Message */}
+        {message.text && (
+          <p className={`text-xs font-medium ${message.type === 'success' ? 'text-[#60D86E]' : 'text-red-500'}`}>{message.text}</p>
+        )}
 
-      {/* Message */}
-      {message.text && (
-        <p className={`text-xs font-medium ${message.type === 'success' ? 'text-[#60D86E]' : 'text-red-500'}`}>{message.text}</p>
-      )}
+        <button type="submit" disabled={saving}
+          className="w-full py-3 rounded-xl text-sm font-bold text-white bg-[#60D86E] hover:bg-[#45c45a] disabled:opacity-50 transition-colors">
+          {saving ? 'Đang lưu...' : 'Cập nhật hồ sơ'}
+        </button>
+      </form>
 
-      <button type="submit" disabled={saving}
-        className="w-full py-3 rounded-xl text-sm font-bold text-white bg-[#60D86E] hover:bg-[#45c45a] disabled:opacity-50 transition-colors">
-        {saving ? 'Đang lưu...' : 'Cập nhật hồ sơ'}
-      </button>
-    </form>
+      {/* Divider */}
+      <hr className="border-gray-100" />
+
+      {/* ── Đổi mật khẩu ── */}
+      <form onSubmit={handleSavePassword} className="space-y-5">
+        <h3 className="text-lg font-bold text-[#1a202c] mb-4">Đổi mật khẩu</h3>
+
+        {/* New Password */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Mật khẩu mới</label>
+          <input type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} disabled={savingPassword} placeholder="Ít nhất 6 ký tự"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Xác nhận mật khẩu mới</label>
+          <input type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} disabled={savingPassword} placeholder="Nhập lại mật khẩu mới"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all" />
+        </div>
+
+        {/* Password Message */}
+        {passwordMessage.text && (
+          <p className={`text-xs font-medium ${passwordMessage.type === 'success' ? 'text-[#60D86E]' : 'text-red-500'}`}>{passwordMessage.text}</p>
+        )}
+
+        <button type="submit" disabled={savingPassword}
+          className="w-full py-3 rounded-xl text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors">
+          {savingPassword ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
+        </button>
+      </form>
+    </div>
   )
 }
 

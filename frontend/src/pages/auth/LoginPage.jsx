@@ -149,6 +149,13 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div className="flex justify-end">
+              <Link to="/quen-mat-khau" className="text-xs font-medium text-[#60D86E] hover:underline">
+                Quên mật khẩu?
+              </Link>
+            </div>
+
             {/* Error */}
             {error && (
               <div id="login-error" className="auth-error" role="alert">
