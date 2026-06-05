@@ -204,6 +204,10 @@ export default function AdminMatchesPage() {
         {/* ── TAB: MATCH POSTS ── */}
         {tab === 'posts' && (
           <>
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Xóa bài đang gọi API hiện có `DELETE /api/match-posts/:id`. Backend hiện vẫn kiểm tra chủ bài, nên admin chỉ xóa được khi API phía sau cho phép hoặc có endpoint admin riêng.
+            </div>
+
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1,2,3,4,5,6].map(i => (

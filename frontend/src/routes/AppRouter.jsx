@@ -29,6 +29,7 @@ import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminUsersPage     from '../pages/admin/AdminUsersPage'
 import AdminBookingsPage  from '../pages/admin/AdminBookingsPage'
 import AdminMatchesPage   from '../pages/admin/AdminMatchesPage'
+import AdminFieldsPage    from '../pages/admin/AdminFieldsPage'
 
 /**
  * Central router — all application routes are defined here.
@@ -86,6 +87,9 @@ export default function AppRouter() {
         } />
         <Route path="/admin/bookings" element={
           <ProtectedRoute roles={['ADMIN']}><AdminBookingsPage /></ProtectedRoute>
+        } />
+        <Route path="/admin/fields" element={
+          <ProtectedRoute roles={['ADMIN']}><AdminFieldsPage /></ProtectedRoute>
         } />
         <Route path="/admin/matches" element={
           <ProtectedRoute roles={['ADMIN']}><AdminMatchesPage /></ProtectedRoute>

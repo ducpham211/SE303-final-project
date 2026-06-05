@@ -19,6 +19,9 @@ import api from './api'
  *   GET  /api/admin/dashboard/transactions
  *        → { totalSystemRevenue, totalSuccessfulBookings }
  *
+ * ─── Fields ───────────────────────────────────────────────────────────
+ *   GET  /api/admin/fields → FieldResponse[]
+ *
  * ─── Match posts (public, admin can delete any) ───────────────────────
  *   GET    /api/match-posts?page=&size=  → Page<MatchPostResponse>
  *   DELETE /api/match-posts/:id          → 204 No Content
@@ -61,6 +64,12 @@ const adminService = {
   getTransactions: async () => {
     const { data } = await api.get('/admin/dashboard/transactions')
     return data // { totalSystemRevenue, totalSuccessfulBookings }
+  },
+
+  // ── FIELDS ───────────────────────────────────────────────────────────
+  getFields: async () => {
+    const { data } = await api.get('/admin/fields')
+    return data // FieldResponse[]
   },
 
   // ── MATCH POSTS ───────────────────────────────────────────────────────

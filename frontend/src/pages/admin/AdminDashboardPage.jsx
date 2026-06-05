@@ -10,6 +10,10 @@ function fmtCurrency(n) {
   return String(num)
 }
 
+function fmtFullCurrency(n) {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(n) || 0)
+}
+
 function StatCard({ label, value, sub, icon, color, bg, to }) {
   const inner = (
     <div
@@ -28,6 +32,46 @@ function StatCard({ label, value, sub, icon, color, bg, to }) {
     </div>
   )
   return to ? <Link to={to}>{inner}</Link> : inner
+}
+
+function MetricPanel({ title, kicker, value, sub, icon, color, bg, to, children }) {
+  const inner = (
+    <section className="h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{kicker}</p>
+            <h2 className="text-lg font-extrabold text-[#1a202c] mt-1">{title}</h2>
+          </div>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg, color }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{icon}</svg>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-3xl sm:text-4xl font-black tracking-normal leading-tight" style={{ color }}>
+            {value}
+          </p>
+          {sub && <p className="text-sm text-gray-500 mt-2">{sub}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          {children}
+        </div>
+      </div>
+    </section>
+  )
+
+  return to ? <Link to={to} className="block h-full">{inner}</Link> : inner
+}
+
+function MiniMetric({ label, value }) {
+  return (
+    <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest truncate">{label}</p>
+      <p className="text-xl font-black text-[#1a202c] mt-1">{value}</p>
+    </div>
+  )
 }
 
 function QuickAction({ to, label, icon, color, bg }) {
@@ -86,71 +130,54 @@ export default function AdminDashboardPage() {
           <p className="text-gray-500 mt-1 text-sm">Giám sát toàn bộ hoạt động đặt sân, ghép kèo và uy tín người dùng.</p>
         </div>
 
-        {/* KPI row — real data from /api/admin/dashboard/* */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard
-            label="Tổng người dùng"
-            value={loading ? <Skeleton /> : overview?.totalUsers ?? '—'}
-            sub="tài khoản đã đăng ký"
-            color="#e23670" bg="#FFF0F5"
-            to="/admin/users"
-            icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}
-          />
-          <StatCard
-            label="Tổng sân bóng"
-            value={loading ? <Skeleton /> : overview?.totalFields ?? '—'}
-            sub="đang vận hành"
-            color="#3b82f6" bg="#EFF6FF"
-            icon={<><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>}
-          />
-          <StatCard
-            label="Trận đã ghép"
-            value={loading ? <Skeleton /> : overview?.totalSuccessfulMatches ?? '—'}
-            sub="kèo thành công"
-            color="#8b5cf6" bg="#F5F3FF"
-            to="/admin/matches"
-            icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>}
-          />
-          <StatCard
-            label="Tổng doanh thu"
-            value={loading ? <Skeleton /> : fmtCurrency(transactions?.totalSystemRevenue) + 'đ'}
-            sub="tổng tiền cọc hệ thống"
-            color="#60D86E" bg="#F0FDF4"
-            icon={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
-          />
-          <StatCard
-            label="Đơn đặt thành công"
-            value={loading ? <Skeleton /> : transactions?.totalSuccessfulBookings ?? '—'}
-            sub="đã thanh toán cọc"
-            color="#f59e0b" bg="#FFFBEB"
+        {/* Revenue and overview cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1.85fr] gap-4 items-stretch">
+          <MetricPanel
+            title="Doanh thu giao dịch"
+            kicker="Transactions"
+            value={loading ? <Skeleton /> : fmtFullCurrency(transactions?.totalSystemRevenue)}
+            color="#16a34a" bg="#F0FDF4"
             to="/admin/bookings"
-            icon={<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>}
-          />
-          <StatCard
-            label="Kiểm duyệt vi phạm"
-            value="Xem ngay →"
-            sub="đánh giá chờ xử lý"
-            color="#ef4444" bg="#FEF2F2"
-            to="/admin/matches"
-            icon={<><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>}
-          />
-        </div>
+            icon={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
+          >
+            <MiniMetric label="Booking thành công" value={loading ? '—' : transactions?.totalSuccessfulBookings ?? '—'} />
+          </MetricPanel>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="font-bold text-lg text-[#1a202c] mb-4">Tác vụ quản trị</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <QuickAction to="/admin/users"    label="Quản lý người dùng"  color="#e23670" bg="#FFF0F5"
-              icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />
-            <QuickAction to="/admin/bookings" label="Tất cả lịch đặt sân" color="#3b82f6" bg="#EFF6FF"
-              icon={<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>} />
-            <QuickAction to="/admin/matches"  label="Kèo & Đánh giá"      color="#8b5cf6" bg="#F5F3FF"
-              icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>} />
-            <QuickAction to="/admin/dashboard" label="Thống kê tổng quan"  color="#f59e0b" bg="#FFFBEB"
-              icon={<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></>} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <StatCard
+              label="Tổng người dùng"
+              value={loading ? <Skeleton /> : overview?.totalUsers ?? '—'}
+              sub="tài khoản đã đăng ký"
+              color="#e23670" bg="#FFF0F5"
+              to="/admin/users"
+              icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}
+            />
+            <StatCard
+              label="Tổng sân bóng"
+              value={loading ? <Skeleton /> : overview?.totalFields ?? '—'}
+              sub="đang vận hành"
+              color="#3b82f6" bg="#EFF6FF"
+              to="/admin/fields"
+              icon={<><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>}
+            />
+            <StatCard
+              label="Trận đã ghép"
+              value={loading ? <Skeleton /> : overview?.totalSuccessfulMatches ?? '—'}
+              sub="kèo thành công"
+              color="#8b5cf6" bg="#F5F3FF"
+              to="/admin/matches"
+              icon={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>}
+            />
+            <StatCard
+              label="Kiểm duyệt vi phạm"
+              value="Xem ngay →"
+              sub="đánh giá chờ xử lý"
+              color="#ef4444" bg="#FEF2F2"
+              to="/admin/matches"
+              icon={<><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>}
+            />
           </div>
         </div>
-
       </section>
 
       {/* DEV ROLE SWITCHER - Temporary for UI testing */}

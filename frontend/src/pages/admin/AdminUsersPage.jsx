@@ -33,6 +33,7 @@ function TrustBar({ score }) {
 export default function AdminUsersPage() {
   const [page,    setPage]    = useState(0)
   const [role,    setRole]    = useState('')
+  const [minTrustScore, setMinTrustScore] = useState('')
   const [search,  setSearch]  = useState('')
   const [result,  setResult]  = useState({ content: [], totalElements: 0, totalPages: 0 })
   const [loading, setLoading] = useState(true)
@@ -40,15 +41,20 @@ export default function AdminUsersPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await adminService.getUsers({ role: role || undefined, page, size: 15 })
+      const data = await adminService.getUsers({
+        role: role || undefined,
+        minTrustScore: minTrustScore === '' ? undefined : Number(minTrustScore),
+        page,
+        size: 15,
+      })
       setResult(data)
     } catch {
       setResult({ content: [], totalElements: 0, totalPages: 0 })
     } finally { setLoading(false) }
-  }, [role, page])
+  }, [role, minTrustScore, page])
 
   // Reset page when filter changes
-  useEffect(() => { setPage(0) }, [role])
+  useEffect(() => { setPage(0) }, [role, minTrustScore])
   useEffect(() => { load() },    [load])
 
   // Client-side search within current page
@@ -74,7 +80,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_190px_170px_auto] gap-3 mb-5">
           {/* Search */}
           <label className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl
                             px-4 py-2.5 flex-1 focus-within:border-rose-400 focus-within:ring-2
@@ -98,10 +104,22 @@ export default function AdminUsersPage() {
           >
             {ROLE_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
+          <label className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100 transition-all">
+            <span className="text-xs font-bold text-gray-400">Uy tín ≥</span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={minTrustScore}
+              onChange={e => setMinTrustScore(e.target.value)}
+              placeholder="0"
+              className="w-16 text-sm outline-none bg-transparent text-[#1a202c] placeholder-gray-400"
+            />
+          </label>
           {/* Reset */}
-          {(search || role) && (
+          {(search || role || minTrustScore) && (
             <button
-              onClick={() => { setSearch(''); setRole(''); setPage(0) }}
+              onClick={() => { setSearch(''); setRole(''); setMinTrustScore(''); setPage(0) }}
               className="px-4 py-2.5 rounded-2xl bg-white border border-gray-200 text-sm font-semibold
                          text-gray-500 hover:bg-gray-50 transition-colors"
             >
