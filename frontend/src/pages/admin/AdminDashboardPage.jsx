@@ -1,15 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 import useAuthStore from '../../store/useAuthStore'
-
-function fmtCurrency(n) {
-  const num = Number(n) || 0
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
-  if (num >= 1_000)     return `${(num / 1_000).toFixed(0)}K`
-  return String(num)
-}
-
 function fmtFullCurrency(n) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(n) || 0)
 }
@@ -74,21 +66,6 @@ function MiniMetric({ label, value }) {
   )
 }
 
-function QuickAction({ to, label, icon, color, bg }) {
-  return (
-    <Link to={to}
-      className="flex flex-col items-center justify-center gap-3 p-5 bg-white border border-gray-100
-                 rounded-2xl hover:shadow-md transition-all group"
-    >
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110"
-           style={{ backgroundColor: bg, color }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{icon}</svg>
-      </div>
-      <span className="text-xs font-bold text-gray-600 text-center leading-tight">{label}</span>
-    </Link>
-  )
-}
-
 export default function AdminDashboardPage() {
   const [overview,      setOverview]      = useState(null)
   const [transactions,  setTransactions]  = useState(null)
@@ -117,9 +94,7 @@ export default function AdminDashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const Skeleton = () => <div className="h-8 w-24 bg-gray-100 rounded-lg animate-pulse" />
-
-  return (
+ return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">
       <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
@@ -135,7 +110,7 @@ export default function AdminDashboardPage() {
           <MetricPanel
             title="Doanh thu giao dịch"
             kicker="Transactions"
-            value={loading ? <Skeleton /> : fmtFullCurrency(transactions?.totalSystemRevenue)}
+            value={loading ? <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" /> : fmtFullCurrency(transactions?.totalSystemRevenue)}
             color="#16a34a" bg="#F0FDF4"
             to="/admin/bookings"
             icon={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
@@ -146,7 +121,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard
               label="Tổng người dùng"
-              value={loading ? <Skeleton /> : overview?.totalUsers ?? '—'}
+              value={loading ? <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" /> : overview?.totalUsers ?? '—'}
               sub="tài khoản đã đăng ký"
               color="#e23670" bg="#FFF0F5"
               to="/admin/users"
@@ -154,7 +129,7 @@ export default function AdminDashboardPage() {
             />
             <StatCard
               label="Tổng sân bóng"
-              value={loading ? <Skeleton /> : overview?.totalFields ?? '—'}
+              value={loading ? <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" /> : overview?.totalFields ?? '—'}
               sub="đang vận hành"
               color="#3b82f6" bg="#EFF6FF"
               to="/admin/fields"
@@ -162,7 +137,7 @@ export default function AdminDashboardPage() {
             />
             <StatCard
               label="Trận đã ghép"
-              value={loading ? <Skeleton /> : overview?.totalSuccessfulMatches ?? '—'}
+              value={loading ? <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" /> : overview?.totalSuccessfulMatches ?? '—'}
               sub="kèo thành công"
               color="#8b5cf6" bg="#F5F3FF"
               to="/admin/matches"
