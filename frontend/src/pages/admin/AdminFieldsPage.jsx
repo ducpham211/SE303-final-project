@@ -22,7 +22,6 @@ export default function AdminFieldsPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setLoading(true)
     adminService.getFields()
       .then(data => setFields(Array.isArray(data) ? data : []))
       .catch(e => {
