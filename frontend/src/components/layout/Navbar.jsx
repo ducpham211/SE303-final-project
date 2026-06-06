@@ -39,8 +39,8 @@ export default function Navbar() {
         { label: 'Trang chủ', to: '/admin/dashboard' },
         { label: 'Người dùng', to: '/admin/users' },
         { label: 'Sân bóng', to: '/admin/fields' },
-        { label: 'Lịch đặt sân', to: '/admin/bookings' },
-        { label: 'Kèo & Vi phạm', to: '/admin/matches' },
+        { label: 'Ghép kèo', to: '/admin/matches' },
+        { label: 'Vi phạm', to: '/admin/reviews' },
       ]
     }
 

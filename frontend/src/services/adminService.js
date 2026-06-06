@@ -22,9 +22,8 @@ import api from './api'
  * ─── Fields ───────────────────────────────────────────────────────────
  *   GET  /api/admin/fields → FieldResponse[]
  *
- * ─── Match posts (public, admin can delete any) ───────────────────────
+ * ─── Match posts (read-only shared feed) ──────────────────────────────
  *   GET    /api/match-posts?page=&size=  → Page<MatchPostResponse>
- *   DELETE /api/match-posts/:id          → 204 No Content
  */
 const adminService = {
   // ── USERS ─────────────────────────────────────────────────────────────
@@ -81,9 +80,6 @@ const adminService = {
     return data // Spring Page<MatchPostResponse>
   },
 
-  deleteMatchPost: async (postId) => {
-    await api.delete(`/match-posts/${postId}`)
-  },
 }
 
 export default adminService

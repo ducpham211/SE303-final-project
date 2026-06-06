@@ -27,8 +27,8 @@ import ContactPage   from '../pages/community/ContactPage'
 // ── Admin ─────────────────────────────────────────────────────────────
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminUsersPage     from '../pages/admin/AdminUsersPage'
-import AdminBookingsPage  from '../pages/admin/AdminBookingsPage'
 import AdminMatchesPage   from '../pages/admin/AdminMatchesPage'
+import AdminReviewsPage   from '../pages/admin/AdminReviewsPage'
 import AdminFieldsPage    from '../pages/admin/AdminFieldsPage'
 
 /**
@@ -85,14 +85,14 @@ export default function AppRouter() {
         <Route path="/admin/users" element={
           <ProtectedRoute roles={['ADMIN']}><AdminUsersPage /></ProtectedRoute>
         } />
-        <Route path="/admin/bookings" element={
-          <ProtectedRoute roles={['ADMIN']}><AdminBookingsPage /></ProtectedRoute>
-        } />
         <Route path="/admin/fields" element={
           <ProtectedRoute roles={['ADMIN']}><AdminFieldsPage /></ProtectedRoute>
         } />
         <Route path="/admin/matches" element={
           <ProtectedRoute roles={['ADMIN']}><AdminMatchesPage /></ProtectedRoute>
+        } />
+        <Route path="/admin/reviews" element={
+          <ProtectedRoute roles={['ADMIN']}><AdminReviewsPage /></ProtectedRoute>
         } />
 
         {/* ── Misc static pages ───────────────────────────────────── */}
