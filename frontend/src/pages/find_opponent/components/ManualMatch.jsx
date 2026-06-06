@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import axiosClient from '../../../api/axiosClient';
 
 const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
   const [newPost, setNewPost] = useState({
@@ -13,6 +14,7 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
     fieldId: ''
   });
 
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const standardSlots = [
@@ -47,16 +49,52 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
     return str.substring(0, 5);
   };
 
+  const isSlotAvailable = (s) => {
+    if (!s) return false;
+    if (s.available !== undefined) return s.available === true;
+    if (s.isAvailable !== undefined) return s.isAvailable === true;
+    return s.status === 'AVAILABLE';
+  };
+
   useEffect(() => {
-    // UI-only mode: no remote availability fetch.
-    if (!newPost.timeStartStr && standardSlots.length > 0) {
-      setNewPost(prev => ({
-        ...prev,
-        timeStartStr: '18:00',
-        timeEndStr: '19:30'
-      }));
+    if (newPost.fieldId && newPost.date) {
+      setIsLoadingSlots(true);
+      axiosClient.get(`/fields/${newPost.fieldId}/availability?date=${newPost.date}`)
+        .then(res => {
+          const data = res.data;
+          const slotsArray = Array.isArray(data) ? data : (data.availableTimeSlots || data.timeSlots || []);
+          setAvailableSlots(slotsArray);
+          
+          const availableOnly = slotsArray.filter(isSlotAvailable);
+          
+          if (availableOnly.length > 0) {
+            const firstAvail = availableOnly[0];
+            setNewPost(prev => ({
+              ...prev,
+              timeStartStr: extractTime(firstAvail.startTime),
+              timeEndStr: extractTime(firstAvail.endTime)
+            }));
+          } else {
+            setNewPost(prev => ({ ...prev, timeStartStr: '', timeEndStr: '' }));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          setAvailableSlots([]);
+          setNewPost(prev => ({ ...prev, timeStartStr: '', timeEndStr: '' }));
+        })
+        .finally(() => setIsLoadingSlots(false));
+    } else {
+      setAvailableSlots([]);
+      if (!newPost.timeStartStr && standardSlots.length > 0) {
+        setNewPost(prev => ({
+          ...prev,
+          timeStartStr: '18:00',
+          timeEndStr: '19:30'
+        }));
+      }
     }
-  }, [newPost.timeStartStr]);
+  }, [newPost.fieldId, newPost.date]);
 
   if (!isOpen) return null;
 
@@ -96,10 +134,37 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
   };
 
   const renderTimeOptions = () => {
-    if (newPost.fieldId && !newPost.date) return <option value="">Vui lòng chọn ngày trước</option>;
-    return standardSlots.map(s => (
-      <option key={`${s.start}|${s.end}`} value={`${s.start}|${s.end}`}>{s.start} - {s.end}</option>
-    ));
+    if (newPost.fieldId) {
+      if (!newPost.date) return <option value="">Vui lòng chọn ngày trước</option>;
+      if (isLoadingSlots) return <option value="">Đang tải ca trống...</option>;
+      
+      const availableOnly = availableSlots.filter(isSlotAvailable);
+      const uniqueSlots = [];
+      const seen = new Set();
+      
+      availableOnly.forEach((slot) => {
+          const startStr = extractTime(slot.startTime);
+          const endStr = extractTime(slot.endTime);
+          const timeKey = `${startStr}|${endStr}`;
+          
+          if (!seen.has(timeKey)) {
+              seen.add(timeKey);
+              uniqueSlots.push({ ...slot, startStr, endStr, timeKey });
+          }
+      });
+
+      if (uniqueSlots.length === 0) return <option value="">Không có ca trống nào</option>;
+      
+      return uniqueSlots.map((slot) => (
+        <option key={slot.id || slot.timeKey} value={slot.timeKey}>
+          {slot.startStr} - {slot.endStr}
+        </option>
+      ));
+    } else {
+      return standardSlots.map(s => (
+        <option key={`${s.start}|${s.end}`} value={`${s.start}|${s.end}`}>{s.start} - {s.end}</option>
+      ));
+    }
   };
 
   return (
@@ -178,13 +243,13 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
                 <option value="50-50">50-50</option>
                 <option value="60-40">60-40</option>
                 <option value="70-30">70-30</option>
-                <option value="Share đều">Chia đều / Campuchia</option>
+                <option value="Share đều">Chia đều</option>
               </select>
             </div>
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={onClose} className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-gray-100 text-gray-700">Hủy</button>
-            <button type="submit" className="w-full rounded-lg bg-green-600 text-white px-4 py-2 hover:bg-green-700 disabled:opacity-50" disabled={!newPost.timeStartStr || !newPost.timeEndStr}>Đăng Tin Ngay</button>
+            <button type="submit" className="w-full rounded-lg bg-green-600 text-white px-4 py-2 hover:bg-green-700 disabled:opacity-50" disabled={isLoadingSlots || (!!newPost.fieldId && availableSlots.filter(isSlotAvailable).length === 0)}>Đăng Tin Ngay</button>
           </div>
         </form>
       </div>

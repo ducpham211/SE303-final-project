@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaTimes, FaRobot, FaCheckCircle } from 'react-icons/fa';
+import axiosClient from '../../../api/axiosClient';
 
 const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
   const [criteria, setCriteria] = useState({
@@ -42,16 +43,38 @@ const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
   };
 
   useEffect(() => {
-    // UI-only
-    setAvailableSlots([]);
-    if (!criteria.timeStartStr && standardSlots.length > 0) {
-      setCriteria(prev => ({
-        ...prev,
-        timeStartStr: '18:00',
-        timeEndStr: '19:30'
-      }));
+    if (criteria.fieldId && criteria.date && !isAnyTime) {
+      setIsLoadingSlots(true);
+      axiosClient.get(`/fields/${criteria.fieldId}/availability?date=${criteria.date}`)
+        .then(res => {
+          const data = res.data;
+          const slotsArray = Array.isArray(data) ? data : (data.availableTimeSlots || data.timeSlots || []);
+          setAvailableSlots(slotsArray);
+          
+          if (slotsArray.length > 0) {
+            const firstSlot = slotsArray[0];
+            setCriteria(prev => ({
+              ...prev,
+              timeStartStr: extractTime(firstSlot.startTime),
+              timeEndStr: extractTime(firstSlot.endTime)
+            }));
+          }
+        })
+        .catch(() => {
+          setAvailableSlots([]);
+        })
+        .finally(() => setIsLoadingSlots(false));
+    } else {
+      setAvailableSlots([]);
+      if (!criteria.timeStartStr && standardSlots.length > 0) {
+        setCriteria(prev => ({
+          ...prev,
+          timeStartStr: '18:00',
+          timeEndStr: '19:30'
+        }));
+      }
     }
-  }, [criteria.timeStartStr]);
+  }, [criteria.fieldId, criteria.date, isAnyTime]);
 
   if (!isOpen) return null;
 
@@ -66,9 +89,35 @@ const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
   };
 
   const renderTimeOptions = () => {
-    return standardSlots.map(s => (
-      <option key={`${s.start}|${s.end}`} value={`${s.start}|${s.end}`}>{s.start} - {s.end}</option>
-    ));
+    if (criteria.fieldId && criteria.date && !isAnyTime) {
+      if (isLoadingSlots) return <option value="">Đang tải ca trống...</option>;
+      
+      const uniqueSlots = [];
+      const seen = new Set();
+      
+      availableSlots.forEach((slot) => {
+          const startStr = extractTime(slot.startTime);
+          const endStr = extractTime(slot.endTime);
+          const timeKey = `${startStr}|${endStr}`;
+          
+          if (!seen.has(timeKey)) {
+              seen.add(timeKey);
+              uniqueSlots.push({ ...slot, startStr, endStr, timeKey });
+          }
+      });
+
+      if (uniqueSlots.length === 0) return <option value="">Không có ca trống</option>;
+      
+      return uniqueSlots.map((slot) => (
+        <option key={slot.id || slot.timeKey} value={slot.timeKey}>
+          {slot.startStr} - {slot.endStr}
+        </option>
+      ));
+    } else {
+      return standardSlots.map(s => (
+        <option key={`${s.start}|${s.end}`} value={`${s.start}|${s.end}`}>{s.start} - {s.end}</option>
+      ));
+    }
   };
 
   return (
