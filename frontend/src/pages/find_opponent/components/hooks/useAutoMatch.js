@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import axiosClient from '../../../../api/axiosClient';
 
 export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) => {
   const navigate = useNavigate();
@@ -70,9 +68,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
     if (currentSilentId) {
         try {
-            const token = localStorage.getItem('access_token');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            await axios.delete(`${API_URL}/match-posts/${currentSilentId}`, config);
+            await axiosClient.delete(`/match-posts/${currentSilentId}`);
         } catch (e) {}
     }
     onChangeViewMode('all');
@@ -90,9 +86,8 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
       try {
         const token = localStorage.getItem('access_token');
         if (!token) { setIsPolling(false); return; }
-        const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        const postsRes = await axios.get(`${API_URL}/match-posts?size=100`, config);
+        const postsRes = await axiosClient.get('/match-posts?size=100');
         const currentMatches = postsRes.data.content || postsRes.data || [];
         if (isMounted) onMatchesFetched(currentMatches);
 
@@ -114,7 +109,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                fieldId: searchCriteriaRef.current.fieldId || null
              };
              try {
-                 const resPost = await axios.post(`${API_URL}/match-posts`, postData, config);
+                 const resPost = await axiosClient.post('/match-posts', postData);
                  const newId = resPost.data.id || resPost.data.matchPostId || resPost.data;
                  const stringId = String(typeof newId === 'object' ? newId.id : newId);
                  if (isMounted) {
@@ -161,7 +156,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                              alert('Đối phương đã chốt! Chuyển đến phòng chat...');
                              
                              if (silentPostIdRef.current) {
-                                 try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
+                                 try { await axiosClient.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
                              }
                              setSilentPostId(null);
                              setWaitingForPostId(null);
@@ -215,7 +210,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
             let staticMatches = [];
             try {
-                const resAi = await axios.get(`${API_URL}/match-posts/recommendations?playstyle=${encodeURIComponent(searchCriteriaRef.current.message)}`, config);
+                const resAi = await axiosClient.get(`/match-posts/recommendations?playstyle=${encodeURIComponent(searchCriteriaRef.current.message)}`);
                 staticMatches = resAi.data.map((rec) => {
                   const fullMatch = currentMatches.find((m) => 
                       m.id === rec.matchId && 
@@ -273,7 +268,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isPolling, isProcessingMatch, API_URL, navigate]);
+  }, [isPolling, isProcessingMatch, navigate]);
 
   const handleAutoMatchSubmit = async (criteria) => {
     setSearchCriteria(criteria);
@@ -286,8 +281,6 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsPolling(false);
     
     try {
-        const token = localStorage.getItem('access_token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
         let finalTimeStart = null;
         let finalTimeEnd = null;
         if (criteria.date && criteria.timeStartStr) {
@@ -304,7 +297,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
           postType: 'FIND_OPPONENT',
           fieldId: criteria.fieldId || null
         };
-        const resPost = await axios.post(`${API_URL}/match-posts`, postData, config);
+        const resPost = await axiosClient.post('/match-posts', postData);
         const newId = resPost.data.id || resPost.data.matchPostId || resPost.data;
         const stringId = String(typeof newId === 'object' ? newId.id : newId);
         
@@ -318,16 +311,14 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
   const handleAcceptLiveMatch = async () => {
     setIsProcessingMatch(true);
-    const token = localStorage.getItem('access_token');
-    const config = { headers: { Authorization: `Bearer ${token}` } };
 
     if (foundLivePost) {
         try {
-            await axios.post(`${API_URL}/match-requests`, {
+            await axiosClient.post('/match-requests', {
                 postId: foundLivePost.id,
                 requesterId: currentUserIdRef.current,
                 message: "Auto Match Live: Chốt kèo!"
-            }, config);
+            });
             
             setWaitingForPostId(foundLivePost.id);
             localStorage.setItem('autoMatch_waitingForPostId', foundLivePost.id);
@@ -360,16 +351,14 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('access_token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.post(`${API_URL}/match-requests`, {
+        await axiosClient.post('/match-requests', {
             postId: matchId,
             requesterId: currentUserIdRef.current,
             message: "Gợi ý AI: Mình thấy rất phù hợp! Chốt kèo nhé."
-        }, config);
+        });
         
         if (silentPostIdRef.current) {
-            try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
+            try { await axiosClient.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');
@@ -391,12 +380,9 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
   const handleRejectPending = async () => {
     setIsProcessingMatch(true);
     try {
-        const token = localStorage.getItem('access_token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
         if (pendingRequest) {
-            await axios.put(`${API_URL}/match-requests/${pendingRequest.id}/status`, { status: 'REJECTED' }, config);
-            const postsRes = await axios.get(`${API_URL}/match-posts?size=100`, config);
+            await axiosClient.put(`/match-requests/${pendingRequest.id}/status`, { status: 'REJECTED' });
+            const postsRes = await axiosClient.get('/match-posts?size=100');
             const currentMatches = postsRes.data.content || postsRes.data || [];
             const theirPost = currentMatches.find((p) => p.userId === pendingRequest.requesterId && p.message?.startsWith("[LIVE_MATCH]"));
             if (theirPost) setSkippedMatchIds(prev => [...prev, theirPost.id]);
@@ -413,13 +399,10 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('access_token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
-        await axios.put(`${API_URL}/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' }, config);
+        await axiosClient.put(`/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' });
         
         if (silentPostIdRef.current) {
-            try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
+            try { await axiosClient.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');

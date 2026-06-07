@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import axiosClient from '../../../api/axiosClient';
 
 const ConfirmApplyModal = ({ isOpen, match, onClose, onConfirm }) => {
