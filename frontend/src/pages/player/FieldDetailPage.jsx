@@ -4,16 +4,18 @@ import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 import useAuthStore from '../../store/useAuthStore'
 import BookingModal from '../../components/common/BookingModal'
+import Toast from '../../components/common/Toast'
 
 export default function FieldDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isLoggedIn, user } = useAuthStore()
+  const { isLoggedIn } = useAuthStore()
   
   const [field, setField] = useState(null)
   const [slots, setSlots] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
+  const [error, setError] = useState(false)
   
   // Date selection (default today)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -28,7 +30,6 @@ export default function FieldDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingError, setBookingError] = useState(null)
 
   useEffect(() => {
     fetchFieldAndSlots()
@@ -49,7 +50,7 @@ export default function FieldDetailPage() {
   const fetchFieldAndSlots = async () => {
     try {
       setLoading(true)
-      setError(null)
+      setError(false)
       setSelectedSlot(null)
       
       const fieldData = await fieldService.getFieldById(id)
@@ -71,7 +72,8 @@ export default function FieldDetailPage() {
       
       setSlots(finalSlots)
     } catch (err) {
-      setError('Không thể tải thông tin sân hoặc lịch trống.')
+      setError(true)
+      setToast({ msg: 'Không thể tải thông tin sân hoặc lịch trống.', type: 'error' })
       console.error(err)
     } finally {
       setLoading(false)
@@ -102,14 +104,12 @@ export default function FieldDetailPage() {
       navigate('/dang-nhap')
       return
     }
-    setBookingError(null)
     setIsModalOpen(true)
   }
 
   const confirmBooking = async (note) => {
     try {
       setIsBooking(true)
-      setBookingError(null)
 
       // 1. Create booking (note already includes add-on labels, built by BookingModal)
       const bookingRes = await bookingService.createBooking(selectedSlot.id, note)
@@ -125,7 +125,7 @@ export default function FieldDetailPage() {
     } catch (err) {
       console.error(err)
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.'
-      setBookingError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg)
+      setToast({ msg: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg, type: 'error' })
       setIsBooking(false)
     }
   }
@@ -141,10 +141,12 @@ export default function FieldDetailPage() {
   if (error && !field) {
     return (
       <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8] px-4">
-        <div className="max-w-3xl mx-auto bg-red-50 p-8 rounded-3xl text-center border border-red-100">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Lỗi tải dữ liệu</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Link to="/dat-san" className="px-6 py-2 bg-white text-gray-700 rounded-full font-semibold border border-gray-200 hover:bg-gray-50">Quay lại danh sách</Link>
+        <div className="max-w-3xl mx-auto bg-white p-12 rounded-3xl text-center border border-gray-100 flex flex-col items-center justify-center">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 opacity-30 text-gray-400">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <h2 className="text-xl font-bold text-[#1a202c] mb-2">Lỗi tải dữ liệu</h2>
+          <Link to="/dat-san" className="mt-4 px-6 py-2 bg-gray-100 text-gray-700 rounded-full font-semibold hover:bg-gray-200 transition-colors">Quay lại danh sách</Link>
         </div>
       </main>
     )
@@ -182,7 +184,7 @@ export default function FieldDetailPage() {
               </div>
               <div className="p-6">
                 <span className="px-3 py-1 rounded-full bg-[#1a202c] text-white text-xs font-semibold uppercase tracking-wider mb-3 inline-block">
-                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân 11 người'}
+                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân bóng'}
                 </span>
                 <h1 className="text-2xl font-extrabold text-[#1a202c] leading-tight mb-2">{field?.name}</h1>
                 <p className="text-gray-500 text-sm flex items-start gap-1.5 mb-6">
@@ -288,10 +290,10 @@ export default function FieldDetailPage() {
       {/* Booking Confirmation Modal — shared component */}
       <BookingModal
         isOpen={isModalOpen}
-        onClose={() => { if (!isBooking) { setIsModalOpen(false); setBookingError(null) } }}
+        onClose={() => { if (!isBooking) { setIsModalOpen(false) } }}
         onConfirm={confirmBooking}
         isBooking={isBooking}
-        bookingError={bookingError}
+        bookingError={null}
         fieldName={field?.name || ''}
         startTime={selectedSlot?.startTime || ''}
         endTime={selectedSlot?.endTime || ''}
@@ -305,6 +307,7 @@ export default function FieldDetailPage() {
           to { transform: translateY(0); }
         }
       `}</style>
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

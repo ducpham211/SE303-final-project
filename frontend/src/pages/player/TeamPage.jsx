@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import teamService from '../../services/teamService'
 import TeamFormModal from './components/TeamFormModal'
+import Toast from '../../components/common/Toast'
+import ConfirmModal from '../../components/common/ConfirmModal'
 
 const LEVEL_LABELS = {
   BEGINNER: { label: 'Mới chơi', color: '#60D86E', bg: '#F0FDF4' },
@@ -21,15 +23,15 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
-  const [deleteId, setDeleteId] = useState(null)
-  const [error, setError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [toast, setToast] = useState(null)
 
   const loadTeams = async () => {
     try {
       const data = await teamService.getMyTeams()
       setTeams(data || [])
     } catch (err) {
-      setError('Không thể tải danh sách đội bóng.')
+      setToast({ msg: 'Không thể tải danh sách đội bóng.', type: 'error' })
       console.error('TeamPage load error:', err)
     } finally {
       setLoading(false)
@@ -39,25 +41,37 @@ export default function TeamPage() {
   useEffect(() => { loadTeams() }, [])
 
   const handleCreate = async (formData) => {
-    await teamService.createTeam({ ...formData, captainId: user?.id || user?.email })
-    await loadTeams()
+    try {
+      await teamService.createTeam({ ...formData, captainId: user?.id || user?.email })
+      setToast({ msg: 'Tạo đội bóng thành công!', type: 'success' })
+      await loadTeams()
+    } catch (err) {
+      setToast({ msg: err.response?.data?.message || 'Không thể tạo đội bóng.', type: 'error' })
+    }
   }
 
   const handleUpdate = async (formData) => {
     if (!editTarget) return
-    await teamService.updateTeam(editTarget.id, { ...formData, captainId: editTarget.captainId })
-    setEditTarget(null)
-    await loadTeams()
+    try {
+      await teamService.updateTeam(editTarget.id, { ...formData, captainId: editTarget.captainId })
+      setToast({ msg: 'Cập nhật thành công!', type: 'success' })
+      setEditTarget(null)
+      await loadTeams()
+    } catch (err) {
+      setToast({ msg: err.response?.data?.message || 'Không thể cập nhật đội bóng.', type: 'error' })
+    }
   }
 
   const handleDelete = async (teamId) => {
     try {
       await teamService.deleteTeam(teamId)
       setTeams((prev) => prev.filter((t) => t.id !== teamId))
+      setToast({ msg: 'Đã xóa đội bóng.', type: 'success' })
     } catch (err) {
       console.error('Delete team error:', err)
+      setToast({ msg: 'Không thể xóa đội bóng.', type: 'error' })
     } finally {
-      setDeleteId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -70,12 +84,6 @@ export default function TeamPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1a202c] mt-1">Đội bóng của tôi</h1>
           <p className="text-gray-500 text-sm mt-1">Tạo và quản lý các đội bóng để tham gia ghép kèo.</p>
         </div>
-
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-100 rounded-2xl p-4 text-red-600 text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Create Button */}
         <button
@@ -141,15 +149,7 @@ export default function TeamPage() {
                       Sửa
                     </button>
                     <span className="text-gray-200">|</span>
-                    {deleteId === team.id ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-red-500">Xác nhận?</span>
-                        <button onClick={() => handleDelete(team.id)} className="text-xs font-bold text-red-500 hover:text-red-600">Xóa</button>
-                        <button onClick={() => setDeleteId(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">Hủy</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setDeleteId(team.id)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
-                    )}
+                    <button onClick={() => setDeleteTarget(team)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
                   </div>
                 </div>
               )
@@ -163,6 +163,16 @@ export default function TeamPage() {
           onSubmit={editTarget ? handleUpdate : handleCreate}
           initialData={editTarget}
         />
+        <ConfirmModal
+          isOpen={!!deleteTarget}
+          title="Xóa đội bóng"
+          message={`Bạn có chắc chắn muốn xóa đội "${deleteTarget?.name}"?`}
+          confirmText="Xóa"
+          isDestructive={true}
+          onConfirm={() => handleDelete(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+        <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
       </div>
     </main>
   )

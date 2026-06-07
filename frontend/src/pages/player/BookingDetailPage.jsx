@@ -64,23 +64,6 @@ export default function BookingDetailPage() {
   )
   const [loading, setLoading] = useState(!location.state?.booking)
   const [error, setError] = useState(null)
-  const [isPaying, setIsPaying] = useState(false)
-  const [payError, setPayError] = useState(null)
-
-  const handleContinuePayment = async () => {
-    try {
-      setIsPaying(true)
-      setPayError(null)
-      const bookingId = booking?.bookingId || booking?.id
-      const res = await bookingService.createPaymentSession(bookingId)
-      if (!res?.url) throw new Error('Không nhận được URL thanh toán')
-      window.location.href = res.url
-    } catch (err) {
-      console.error(err)
-      setPayError(err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
-      setIsPaying(false)
-    }
-  }
 
   useEffect(() => {
     // Skip fetch if booking was passed via location.state

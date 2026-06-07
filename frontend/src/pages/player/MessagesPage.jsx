@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import useChatStore from '../../store/useChatStore'
+import Toast from '../../components/common/Toast'
 
 /* ─── Helpers ──────────────────────────────────────────────────────── */
 function formatTime(dateStr) {
@@ -324,19 +325,6 @@ export default function MessagesPage() {
           )}
         </div>
 
-        {/* Error bar */}
-        {error && (
-          <div className="mx-4 mt-3 flex-shrink-0 px-4 py-2.5 bg-red-50 border border-red-100 rounded-xl flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm text-red-600">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {error}
-            </div>
-            <button onClick={clearError} className="text-red-400 hover:text-red-600 text-lg leading-none">&times;</button>
-          </div>
-        )}
-
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 bg-gray-50/40">
           {!activeId ? (
@@ -404,6 +392,7 @@ export default function MessagesPage() {
           </div>
         )}
       </main>
+      <Toast message={error} type="error" onClose={clearError} />
     </div>
   )
 }

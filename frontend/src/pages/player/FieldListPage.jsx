@@ -4,6 +4,7 @@ import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 import useAuthStore from '../../store/useAuthStore'
 import BookingModal from '../../components/common/BookingModal'
+import Toast from '../../components/common/Toast'
 
 const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {
   const totalMinutes = 6 * 60 + i * 90;
@@ -58,7 +59,8 @@ export default function FieldListPage() {
   const [slotsByField, setSlotsByField] = useState({})   // { fieldId: groupedSlots[] }
   const [loading, setLoading] = useState(true)
   const [loadingFields, setLoadingFields] = useState(new Set()) // fieldIds đang load
-  const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
+  const [error, setError] = useState(false)
 
   // Cache in-memory: tránh re-fetch khi quay lại cùng type/date/search/page
   const cache = React.useRef({}) // { 'TYPE|date|search|page': { fields, slotsMap, totalPages } }
@@ -67,7 +69,6 @@ export default function FieldListPage() {
   const [selectedSlot, setSelectedSlot] = useState(null)  // { ...slot, fieldName, fieldId }
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingError, setBookingError] = useState(null)
 
 
   const fieldTypes = [
@@ -188,7 +189,7 @@ export default function FieldListPage() {
 
     try {
       setLoading(true)
-      setError(null)
+      setError(false)
       setSelectedSlot(null)
       setSlotsByField({})
 
@@ -252,7 +253,8 @@ export default function FieldListPage() {
       // Lưu cache
       cache.current[cacheKey] = { fields: groupedFields, slotsMap, totalPages: calculatedTotalPages }
     } catch (err) {
-      setError('Không thể tải danh sách sân. Vui lòng thử lại sau.')
+      setError(true)
+      setToast({ msg: 'Không thể tải danh sách sân. Vui lòng thử lại sau.', type: 'error' })
       console.error(err)
     } finally {
       setLoading(false)
@@ -272,14 +274,12 @@ export default function FieldListPage() {
       navigate('/dang-nhap')
       return
     }
-    setBookingError(null)
     setIsModalOpen(true)
   }
 
   const confirmBooking = async (note) => {
     try {
       setIsBooking(true)
-      setBookingError(null)
 
       // 1. Create booking
       const bookingRes = await bookingService.createBooking(selectedSlot.id, note)
@@ -294,7 +294,7 @@ export default function FieldListPage() {
     } catch (err) {
       console.error(err)
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.'
-      setBookingError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg)
+      setToast({ msg: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg, type: 'error' })
       setIsBooking(false)
     }
   }
@@ -406,12 +406,12 @@ export default function FieldListPage() {
 
         {/* ── Content ── */}
         {error ? (
-          <div className="bg-red-50 text-red-500 p-6 rounded-3xl text-center border border-red-100 flex flex-col items-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 opacity-50">
+          <div className="bg-white p-12 rounded-3xl text-center border border-gray-100 flex flex-col items-center justify-center min-h-[300px]">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 opacity-30 text-gray-400">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <p className="font-semibold">{error}</p>
-            <button onClick={fetchFieldsAndSlots} className="mt-4 px-6 py-2 bg-white text-red-500 rounded-full text-sm font-semibold hover:bg-red-100 transition-colors">Thử lại</button>
+            <h3 className="text-xl font-bold text-[#1a202c]">Lỗi tải dữ liệu</h3>
+            <button onClick={fetchFieldsAndSlots} className="mt-4 px-6 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors">Thử lại</button>
           </div>
         ) : loading ? (
           <div>
@@ -598,10 +598,10 @@ export default function FieldListPage() {
       {/* Booking Modal — shared component */}
       <BookingModal
         isOpen={isModalOpen}
-        onClose={() => { if (!isBooking) { setIsModalOpen(false); setBookingError(null) } }}
+        onClose={() => { if (!isBooking) { setIsModalOpen(false) } }}
         onConfirm={confirmBooking}
         isBooking={isBooking}
-        bookingError={bookingError}
+        bookingError={null}
         fieldName={selectedSlot?.fieldName || ''}
         startTime={selectedSlot?.startTime || ''}
         endTime={selectedSlot?.endTime || ''}
@@ -615,6 +615,7 @@ export default function FieldListPage() {
           to { transform: translateY(0); }
         }
       `}</style>
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

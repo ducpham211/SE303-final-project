@@ -47,4 +47,11 @@ public class Message {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // THÊM CÁC HÀM GETTER/SETTER SAU:
+    public Conversation getConversation() { return conversation; }
+    public void setConversation(Conversation conversation) { this.conversation = conversation; }
+
+    public User getSender() { return sender; }
+    public void setSender(User sender) { this.sender = sender; }
 }

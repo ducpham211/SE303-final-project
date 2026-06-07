@@ -9,4 +9,5 @@ import com.example.backend.entity.MatchRequest;
 public interface MatchRequestService {
     MatchRequestResponse createMatchRequest(MatchRequestCreateRequest request);
     MatchRequestStatusResponse updateRequestStatus(String requestId, String currentUserId, MatchRequestStatusCreateRequest requestDTO);
+    void markAsComplete(String requestId, String currentUserId, String fieldId);
 }

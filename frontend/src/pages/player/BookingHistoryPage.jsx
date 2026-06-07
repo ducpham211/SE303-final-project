@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import bookingService from '../../services/bookingService'
 import ReviewModal from './components/ReviewModal'
+import Toast from '../../components/common/Toast'
 
 const STATUS_META = {
   PENDING:      { label: 'Chờ thanh toán', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400',  border: 'border-amber-200' },
@@ -113,6 +114,7 @@ export default function BookingHistoryPage() {
   const [filter, setFilter] = useState('ALL')
   const [selectedReviewBooking, setSelectedReviewBooking] = useState(null)
   const [payingId, setPayingId] = useState(null)
+  const [toast, setToast] = useState(null)
 
   const handlePayBooking = async (booking) => {
     const bookingId = booking.bookingId || booking.id
@@ -123,7 +125,7 @@ export default function BookingHistoryPage() {
       window.location.href = res.url
     } catch (err) {
       console.error(err)
-      alert(err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
+      setToast({ msg: err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.', type: 'error' })
       setPayingId(null)
     }
   }
@@ -224,6 +226,7 @@ export default function BookingHistoryPage() {
         fieldId={selectedReviewBooking?.field?.id || selectedReviewBooking?.fieldId}
         bookingId={selectedReviewBooking?.bookingId || selectedReviewBooking?.id}
       />
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

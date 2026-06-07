@@ -47,10 +47,8 @@ export default function Navbar() {
     if (role === 'OWNER' || role === 'ROLE_OWNER') {
       return [
         { label: 'Trang chủ', to: '/' },
-        { label: 'Sân của tôi', to: '/owner/fields' },
+        { label: 'Quản lý sân', to: '/owner/fields' },
         { label: 'Lịch đặt sân', to: '/owner/bookings' },
-        { label: 'Doanh thu', to: '/owner/revenue' },
-        { label: 'Liên hệ', to: '/lien-he' },
       ]
     }
 
@@ -60,7 +58,6 @@ export default function Navbar() {
       { label: 'Đặt sân', to: '/dat-san' },
       { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
       { label: 'Cộng đồng', to: '/cong-dong' },
-      { label: 'Liên hệ', to: '/lien-he' },
     ]
   }
 

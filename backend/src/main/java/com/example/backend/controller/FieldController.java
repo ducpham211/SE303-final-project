@@ -33,6 +33,15 @@ public class FieldController {
         return ResponseEntity.ok(fieldService.getFields(type, minPrice, maxPrice));
     }
 
+    @GetMapping("/page")
+    public ResponseEntity<org.springframework.data.domain.Page<FieldResponse>> getFieldsPage(
+            @RequestParam(required = false) Enums.FieldType type,
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+        return ResponseEntity.ok(fieldService.getFieldsPage(type, name, page, size));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getFieldById(@PathVariable String id) {
         try {

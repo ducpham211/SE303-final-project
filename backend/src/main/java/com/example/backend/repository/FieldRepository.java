@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
@@ -23,5 +25,15 @@ public interface FieldRepository extends JpaRepository<Field, String> {
     List<Field> findFieldsWithFilters(@Param("type") Enums.FieldType type,
                                       @Param("minPrice") BigDecimal minPrice,
                                       @Param("maxPrice") BigDecimal maxPrice);
+
+    @Query("SELECT f FROM Field f WHERE (:#{#type == null ? 1 : 0} = 1 OR f.type = :type)")
+    List<Field> findFieldsWithoutTimeSlots(@Param("type") Enums.FieldType type);
+
+    @Query("SELECT f FROM Field f WHERE " +
+           "(:#{#type == null ? 1 : 0} = 1 OR f.type = :type) AND " +
+           "(:#{#name == null || #name.isEmpty()} = true OR LOWER(f.name) LIKE LOWER(CONCAT('%', :name, '%')))")
+    Page<Field> findFieldsPaginated(@Param("type") Enums.FieldType type,
+                                    @Param("name") String name,
+                                    Pageable pageable);
 }
 

@@ -3,6 +3,8 @@ import useAuthStore from '../../store/useAuthStore'
 import userService from '../../services/userService'
 import teamService from '../../services/teamService'
 import TeamFormModal from './components/TeamFormModal'
+import Toast from '../../components/common/Toast'
+import ConfirmModal from '../../components/common/ConfirmModal'
 
 const LEVEL_LABELS = {
   BEGINNER: { label: 'Mới chơi', color: '#60D86E', bg: '#F0FDF4' },
@@ -23,6 +25,7 @@ function ProfileTab() {
   const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' })
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' })
   const [savingPassword, setSavingPassword] = useState(false)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -47,9 +50,9 @@ function ProfileTab() {
       setProfile(updated)
       // Sync auth store name
       useAuthStore.setState((s) => ({ user: { ...s.user, name: updated.fullName || s.user?.name } }))
-      setMessage({ type: 'success', text: 'Cập nhật thành công!' })
+      setToast({ type: 'success', msg: 'Cập nhật thành công!' })
     } catch (err) {
-      setMessage({ type: 'error', text: err?.response?.data?.message || 'Có lỗi xảy ra.' })
+      setToast({ type: 'error', msg: err?.response?.data?.message || 'Có lỗi xảy ra.' })
     } finally { setSaving(false) }
   }
 
@@ -67,10 +70,10 @@ function ProfileTab() {
     setSavingPassword(true)
     try {
       await userService.updateUser(profile.id, { password: passwordForm.newPassword })
-      setPasswordMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' })
+      setToast({ type: 'success', msg: 'Đổi mật khẩu thành công!' })
       setPasswordForm({ newPassword: '', confirmPassword: '' })
     } catch (err) {
-      setPasswordMessage({ type: 'error', text: err?.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.' })
+      setToast({ type: 'error', msg: err?.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.' })
     } finally {
       setSavingPassword(false)
     }
@@ -169,6 +172,7 @@ function ProfileTab() {
           {savingPassword ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
         </button>
       </form>
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   )
 }
@@ -180,7 +184,8 @@ function TeamsTab() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
-  const [deleteId, setDeleteId] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [toast, setToast] = useState(null)
 
   const loadTeams = async () => {
     try {
@@ -208,8 +213,12 @@ function TeamsTab() {
     try {
       await teamService.deleteTeam(teamId)
       setTeams((prev) => prev.filter((t) => t.id !== teamId))
-    } catch (err) { console.error('Delete team error:', err) }
-    finally { setDeleteId(null) }
+      setToast({ type: 'success', msg: 'Đã xóa đội bóng.' })
+    } catch (err) {
+      console.error('Delete team error:', err)
+      setToast({ type: 'error', msg: 'Có lỗi xảy ra khi xóa đội bóng.' })
+    }
+    finally { setDeleteTarget(null) }
   }
 
   if (loading) {
@@ -256,15 +265,7 @@ function TeamsTab() {
                   <button onClick={() => { setEditTarget(team); setModalOpen(true) }}
                     className="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors">Sửa</button>
                   <span className="text-gray-300">·</span>
-                  {deleteId === team.id ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-500">Xác nhận xóa?</span>
-                      <button onClick={() => handleDelete(team.id)} className="text-xs font-bold text-red-500 hover:text-red-600">Xóa</button>
-                      <button onClick={() => setDeleteId(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">Hủy</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setDeleteId(team.id)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
-                  )}
+                  <button onClick={() => setDeleteTarget(team)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
                 </div>
               </div>
             )
@@ -278,6 +279,16 @@ function TeamsTab() {
         onSubmit={editTarget ? handleUpdate : handleCreate}
         initialData={editTarget}
       />
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Xóa đội bóng"
+        message={`Bạn có chắc chắn muốn xóa đội "${deleteTarget?.name}"?`}
+        confirmText="Xóa"
+        isDestructive={true}
+        onConfirm={() => handleDelete(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   )
 }

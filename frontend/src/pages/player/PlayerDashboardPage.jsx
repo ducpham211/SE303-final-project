@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import bookingService from '../../services/bookingService'
+import Toast from '../../components/common/Toast'
 
 const STATUS_META = {
   PENDING:      { label: 'Chờ thanh toán', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400',  border: 'border-amber-200' },
@@ -14,7 +15,7 @@ export default function PlayerDashboardPage() {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -22,7 +23,7 @@ export default function PlayerDashboardPage() {
         const data = await bookingService.getMyBookings()
         setBookings(data || [])
       } catch (err) {
-        setError('Không thể tải thông tin lịch đặt sân.')
+        setToast({ msg: 'Không thể tải thông tin lịch đặt sân.', type: 'error' })
         console.error('PlayerDashboardPage load error', err)
       } finally {
         setLoading(false)
@@ -50,12 +51,6 @@ export default function PlayerDashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1a202c] mt-1">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">Chào mừng quay trở lại. Đây là tóm tắt hoạt động của bạn.</p>
         </div>
-
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-100 rounded-2xl p-4 text-red-600 text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-8">
@@ -165,6 +160,7 @@ export default function PlayerDashboardPage() {
         </div>
 
       </div>
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

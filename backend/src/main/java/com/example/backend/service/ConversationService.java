@@ -8,4 +8,5 @@ import java.util.List;
 public interface ConversationService {
     ConversationResponse createDirectConversation(ConversationCreateRequest request, String user1Id, String user2Id);
     List<ConversationResponse> getInbox(String currentUserId);
+    void markConversationsAsCompletedByMatchId(String matchId);
 }

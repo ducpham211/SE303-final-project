@@ -27,7 +27,7 @@ const PaymentSuccessPage = lazy(() => import('../pages/payment/PaymentSuccessPag
 const PaymentCancelPage  = lazy(() => import('../pages/payment/PaymentCancelPage'))
 
 // ── Community ─────────────────────────────────────────────────────────
-const CommunityPage = lazy(() => import('../pages/community/CommunityPage'))
+import CommunityPage from '../pages/community/CommunityPage'
 const ContactPage   = lazy(() => import('../pages/community/ContactPage'))
 
 // ── Admin ─────────────────────────────────────────────────────────────
@@ -36,12 +36,16 @@ const AdminUsersPage     = lazy(() => import('../pages/admin/AdminUsersPage'))
 const AdminBookingsPage  = lazy(() => import('../pages/admin/AdminBookingsPage'))
 const AdminMatchesPage   = lazy(() => import('../pages/admin/AdminMatchesPage'))
 
+// Owner
+import OwnerFieldsPage   from '../pages/owner/OwnerFieldsPage'
+import OwnerBookingsPage from '../pages/owner/OwnerBookingsPage'
+
 /**
  * Central router — all application routes are defined here.
  *
  * Role hierarchy used by ProtectedRoute:
  *   PLAYER  → can access /lich-dat, /ho-so, /tin-nhan, /dat-san/*
- *   OWNER   → (currently handled by OwnerDashboardTeaser embedded in HomePage)
+ *   OWNER   → /owner/*
  *   ADMIN   → /admin/*
  */
 export default function AppRouter() {
@@ -111,6 +115,14 @@ export default function AppRouter() {
           } />
           <Route path="/admin/matches" element={
             <ProtectedRoute roles={['ADMIN']}><AdminMatchesPage /></ProtectedRoute>
+          } />
+
+          {/* Owner (OWNER role required) */}
+          <Route path="/owner/fields" element={
+            <ProtectedRoute roles={['OWNER']}><OwnerFieldsPage /></ProtectedRoute>
+          } />
+          <Route path="/owner/bookings" element={
+            <ProtectedRoute roles={['OWNER']}><OwnerBookingsPage /></ProtectedRoute>
           } />
 
           {/* ── Misc static pages ───────────────────────────────────── */}
