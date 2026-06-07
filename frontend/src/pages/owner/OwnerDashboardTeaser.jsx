@@ -10,6 +10,7 @@ const STATUS_META = {
   CONFIRMED: { label: 'Đã xác nhận', badge: 'bg-blue-100 text-blue-700', ring: 'border-blue-200 bg-blue-50' },
   COMPLETED: { label: 'Hoàn thành', badge: 'bg-indigo-100 text-indigo-700', ring: 'border-indigo-200 bg-indigo-50' },
   CANCELLED: { label: 'Đã hủy', badge: 'bg-gray-100 text-gray-500', ring: 'border-gray-200 bg-gray-50' },
+  NO_SHOW: { label: 'Không đến sân', badge: 'bg-gray-100 text-gray-400', ring: 'border-gray-200 bg-gray-50' },
 }
 
 const FIELD_TYPE_LABELS = {
@@ -423,7 +424,7 @@ export default function OwnerDashboardTeaser() {
             {[
               { to: '/owner/fields', label: 'Sân & khung giờ', color: '#60D86E', bg: '#F0FDF4', icon: <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /> },
               { to: '/owner/bookings', label: 'Lịch đặt sân', color: '#3b82f6', bg: '#EFF6FF', icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></> },
-              { to: '/tin-nhan', label: 'Tin nhắn', color: '#f59e0b', bg: '#FFFBEB', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /> },
+              { to: '/messages', label: 'Tin nhắn', color: '#f59e0b', bg: '#FFFBEB', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /> },
             ].map((item) => (
               <Link key={item.to} to={item.to} className="flex flex-col items-center justify-center gap-3 min-h-32 p-4 bg-gray-50 border border-gray-100 rounded-2xl hover:bg-white hover:shadow-md transition-all group">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105" style={{ backgroundColor: item.bg, color: item.color }}>

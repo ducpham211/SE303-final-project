@@ -24,7 +24,6 @@ public class AdminServiceImpl implements AdminService {
     private final BookingRepository bookingRepository;
     private final MatchRequestRepository matchRequestRepository;
     private final FieldMapper fieldMapper;
-
     // HÀM ADJUDICATE REVIEW ĐÃ BỊ XÓA (CHUYỂN SANG FAIRPLAY SERVICE)
 
     @Override

@@ -23,14 +23,14 @@ export default function OpponentFinder() {
               
               <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
                 <Link 
-                  to="/tim-doi-thu" 
+                  to="/matchmaking" 
                   className="px-8 py-4 bg-[#60D86E] hover:bg-[#45c45a] text-white font-bold rounded-2xl transition-all shadow-lg shadow-[#60D86E]/30 hover:shadow-[#60D86E]/50 hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto text-center flex items-center justify-center gap-2"
                 >
                   Đến trang Tìm đối thủ
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </Link>
                 <Link 
-                  to="/tim-doi-thu/tao-keo" 
+                  to="/matchmaking/create" 
                   className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all w-full sm:w-auto text-center border border-white/10 hover:border-white/20"
                 >
                   Tạo kèo mới

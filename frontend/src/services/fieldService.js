@@ -60,9 +60,9 @@ const fieldService = {
     const cached = fieldListCache.get(cacheKey)
     if (!options.force && isFresh(cached, FIELD_LIST_TTL_MS)) return cached.data
     if (!options.force && fieldListRequests.has(cacheKey)) return fieldListRequests.get(cacheKey)
-
     const params = new URLSearchParams()
     if (filters.type) params.append('type', filters.type)
+    if (filters.name) params.append('name', filters.name)
     if (filters.minPrice) params.append('minPrice', filters.minPrice)
     if (filters.maxPrice) params.append('maxPrice', filters.maxPrice)
     

@@ -94,7 +94,7 @@ export default function DashboardTeaser() {
               Xin chào, {user?.name || 'bạn'} 👋
             </h2>
           </div>
-          <Link to="/lich-dat" className="text-sm font-bold text-[#60D86E] hover:underline hidden sm:block">
+          <Link to="/booking-history" className="text-sm font-bold text-[#60D86E] hover:underline hidden sm:block">
             Xem tất cả lịch →
           </Link>
         </div>
@@ -126,7 +126,7 @@ export default function DashboardTeaser() {
             </div>
           </div>
 
-          <Link to="/dat-san" className="bg-[#1a202c] rounded-2xl p-5 flex items-center justify-center gap-3 hover:bg-gray-800 transition-colors group">
+          <Link to="/fields" className="bg-[#1a202c] rounded-2xl p-5 flex items-center justify-center gap-3 hover:bg-gray-800 transition-colors group">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14"/>
             </svg>
@@ -145,7 +145,7 @@ export default function DashboardTeaser() {
           {!loading && bookings.length === 0 && (
             <div className="py-10 text-center">
               <p className="text-gray-400 text-sm">Bạn chưa có lịch đặt sân nào.</p>
-              <Link to="/dat-san" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">
+              <Link to="/fields" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">
                 Đặt sân ngay →
               </Link>
             </div>
@@ -155,7 +155,7 @@ export default function DashboardTeaser() {
         </div>
 
         <div className="mt-4 sm:hidden text-center">
-          <Link to="/lich-dat" className="text-sm font-bold text-[#60D86E] hover:underline">
+          <Link to="/booking-history" className="text-sm font-bold text-[#60D86E] hover:underline">
             Xem tất cả lịch đặt →
           </Link>
         </div>
