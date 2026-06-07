@@ -183,10 +183,12 @@ public class BookingServiceImpl implements BookingService {
         }
         return result.stream().map(booking -> {
             BookingResponse response = bookingMapper.toResponse(booking, null);
-            timeSlotRepository.findById(booking.getTimeSlotId()).ifPresent(slot -> {
-                response.setStartTime(slot.getStartTime() != null ? slot.getStartTime().toString() : null);
-                response.setEndTime(slot.getEndTime() != null ? slot.getEndTime().toString() : null);
-            });
+            if (booking.getTimeSlotId() != null) {
+                timeSlotRepository.findById(booking.getTimeSlotId()).ifPresent(slot -> {
+                    response.setStartTime(slot.getStartTime() != null ? slot.getStartTime().toString() : null);
+                    response.setEndTime(slot.getEndTime() != null ? slot.getEndTime().toString() : null);
+                });
+            }
             return response;
         }).toList();
     }
