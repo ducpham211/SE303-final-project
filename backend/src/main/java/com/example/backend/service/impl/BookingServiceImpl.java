@@ -175,7 +175,12 @@ public class BookingServiceImpl implements BookingService {
     @Transactional (readOnly = true)
     public List<BookingResponse> getBookings(String userId){
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(404, "Không tìm thấy user"));
-        List<Booking> result =  bookingRepository.findByUserId(userId);
+        List<Booking> result;
+        if (user.getRole() == Enums.UserRole.ADMIN || user.getRole() == Enums.UserRole.OWNER) {
+            result = bookingRepository.findAll();
+        } else {
+            result = bookingRepository.findByUserId(userId);
+        }
         return result.stream().map(booking -> {
             BookingResponse response = bookingMapper.toResponse(booking, null);
             timeSlotRepository.findById(booking.getTimeSlotId()).ifPresent(slot -> {
