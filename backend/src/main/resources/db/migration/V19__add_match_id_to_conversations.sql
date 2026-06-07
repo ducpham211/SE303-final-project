@@ -1,0 +1,1 @@
+ALTER TABLE conversations ADD COLUMN match_id VARCHAR(255);

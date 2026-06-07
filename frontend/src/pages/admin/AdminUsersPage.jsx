@@ -5,7 +5,7 @@ import adminService from '../../services/adminService'
 const ROLE_OPTS = [
   { value: '',       label: 'Tất cả vai trò' },
   { value: 'PLAYER', label: 'Người chơi'    },
-  { value: 'OWNER',  label: 'Chủ sân'       },
+  { value: 'OWNER',  label: 'Quản lý sân'   },
   { value: 'ADMIN',  label: 'Quản trị viên' },
 ]
 

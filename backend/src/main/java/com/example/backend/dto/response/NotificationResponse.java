@@ -12,5 +12,6 @@ public class NotificationResponse {
     private NotificationType type;
     private Boolean isRead;
     private LocalDateTime createdAt;
+    private String senderId;
 }
 //dto/response

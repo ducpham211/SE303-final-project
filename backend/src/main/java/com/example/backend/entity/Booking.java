@@ -43,11 +43,11 @@ public class Booking {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "field_id", insertable = false, updatable = false)
     private Field field;
 
@@ -93,4 +93,13 @@ public class Booking {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
+    public Field getField() { return field; }
+    public void setField(Field field) { this.field = field; }
+
+    public TimeSlot getTimeSlot() { return timeSlot; }
+    public void setTimeSlot(TimeSlot timeSlot) { this.timeSlot = timeSlot; }
 }

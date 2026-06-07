@@ -12,8 +12,9 @@ import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.PaymentRepository;
 import com.example.backend.repository.TimeSlotRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.event.BookingNotificationEvent;
 import com.example.backend.service.BookingService;
-import com.example.backend.service.NotificationService;
+import org.springframework.context.ApplicationEventPublisher;
 import com.example.backend.utils.Enums;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,10 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final BigDecimal DEPOSIT_RATE = BigDecimal.valueOf(0.3);
+    private static final long LOCK_TIMEOUT_MINUTES = 5;
+    private static final String LOCK_VALUE = "LOCKED";
+
     private final StringRedisTemplate redisTemplate;
     private final TimeSlotRepository timeSlotRepository;
     private final BookingRepository bookingRepository;
@@ -39,7 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final PaymentMapper paymentMapper;
     private final PaymentRepository paymentRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -51,13 +56,33 @@ public class BookingServiceImpl implements BookingService {
 
         Enums.TimeSlotStatus currentStatus = slot.getStatus() != null ? slot.getStatus() : Enums.TimeSlotStatus.AVAILABLE;
 
+        if (currentStatus == Enums.TimeSlotStatus.PENDING) {
+            // Kiểm tra xem có phải chính user này đang có đơn đặt sân PENDING cho slot này hay không
+            List<Booking> userPendingBookings = bookingRepository.findByTimeSlotIdAndUserIdAndStatus(timeSlotId, userId, Enums.BookingStatus.PENDING);
+            if (!userPendingBookings.isEmpty()) {
+                // Nếu có, cho phép đi tiếp (tái sử dụng đơn hàng cũ)
+                Booking existingBooking = userPendingBookings.get(0);
+                
+                // Gia hạn/cập nhật thời gian tạo mới của đơn hàng để tránh bị cronjob hủy quá sớm
+                existingBooking.setCreatedAt(LocalDateTime.now());
+                existingBooking.setUpdatedAt(LocalDateTime.now());
+                Booking savedBooking = bookingRepository.save(existingBooking);
+                
+                // Gia hạn Redis lock thêm 5 phút
+                String lockKey = "lock:booking:slot_" + timeSlotId;
+                redisTemplate.opsForValue().set(lockKey, LOCK_VALUE, LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+                
+                return bookingMapper.toResponse(savedBooking, "Vui lòng thanh toán trong 5 phút!");
+            }
+        }
+
         if (currentStatus != Enums.TimeSlotStatus.AVAILABLE) {
             throw new AppException(400, "Sân đã có người đặt hoặc đang chờ thanh toán");
         }
 
         String lockKey = "lock:booking:slot_" + timeSlotId;
         Boolean isLocked = redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, "LOCKED", 5, TimeUnit.MINUTES);
+                .setIfAbsent(lockKey, LOCK_VALUE, LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         if (Boolean.FALSE.equals(isLocked)) {
             throw new AppException(409, "Hệ thống đang xử lý giao dịch cho sân này. Vui lòng thử lại sau 5 phút.");
@@ -73,7 +98,7 @@ public class BookingServiceImpl implements BookingService {
             bookingSaved.setTotalAmount(slot.getPrice());
             bookingSaved.setStatus(Enums.BookingStatus.PENDING);
             if (bookingSaved.getTotalAmount() != null) {
-                BigDecimal deposit = bookingSaved.getTotalAmount().multiply(BigDecimal.valueOf(0.3));
+                BigDecimal deposit = bookingSaved.getTotalAmount().multiply(DEPOSIT_RATE);
                 bookingSaved.setDepositAmount(deposit);
             } else {
                 bookingSaved.setDepositAmount(BigDecimal.ZERO);
@@ -82,23 +107,27 @@ public class BookingServiceImpl implements BookingService {
             bookingSaved.setUpdatedAt(LocalDateTime.now());
             bookingSaved.setCreatedAt(LocalDateTime.now());
             Booking savedBooking = bookingRepository.save(bookingSaved);
-            NotificationCreateRequest notifRequest = new NotificationCreateRequest();
-            notifRequest.setTitle("🎉 Đặt sân thành công (Chờ thanh toán)!");
+            
             String content = String.format("Bạn vừa giữ chỗ thành công ca %s - %s. Vui lòng thanh toán cọc trong vòng 5 phút để chốt sân nhé!",
                     slot.getStartTime(),
                     slot.getEndTime());
 
-            notifRequest.setContent(content);
-            notifRequest.setType(Enums.NotificationType.BOOKING_UPDATE);
-
-            notificationService.createAndSendNotification(userId, notifRequest);
+            eventPublisher.publishEvent(new BookingNotificationEvent(
+                    userId, 
+                    "Đặt sân thành công (Chờ thanh toán)!", 
+                    content, 
+                    Enums.NotificationType.BOOKING_UPDATE
+            ));
+            
             log.info("Khóa slot thành công trong 5 phút. Booking ID: {}", savedBooking.getId());
             return bookingMapper.toResponse(savedBooking, "Vui lòng thanh toán trong 5 phút!");
 
         } catch (Exception e) {
-            redisTemplate.delete(lockKey);
             log.error("Lỗi khi tạo booking: ", e);
             throw new AppException(500, "Lỗi hệ thống khi tạo booking");
+        } finally {
+            // Đảm bảo Lock luôn được giải phóng kể cả khi thành công hay thất bại, tránh ngốn RAM Redis vô ích
+            redisTemplate.delete(lockKey);
         }
     }
     
@@ -175,13 +204,19 @@ public class BookingServiceImpl implements BookingService {
     @Transactional (readOnly = true)
     public List<BookingResponse> getBookings(String userId){
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(404, "Không tìm thấy user"));
-        List<Booking> result =  bookingRepository.findByUserId(userId);
+        List<Booking> result;
+        if (user.getRole() == Enums.UserRole.OWNER || user.getRole() == Enums.UserRole.ADMIN) {
+            result = bookingRepository.findAll();
+        } else {
+            result = bookingRepository.findByUserId(userId);
+        }
         return result.stream().map(booking -> {
             BookingResponse response = bookingMapper.toResponse(booking, null);
-            timeSlotRepository.findById(booking.getTimeSlotId()).ifPresent(slot -> {
+            TimeSlot slot = booking.getTimeSlot();
+            if (slot != null) {
                 response.setStartTime(slot.getStartTime() != null ? slot.getStartTime().toString() : null);
                 response.setEndTime(slot.getEndTime() != null ? slot.getEndTime().toString() : null);
-            });
+            }
             return response;
         }).toList();
     }
@@ -204,31 +239,28 @@ public class BookingServiceImpl implements BookingService {
         long remainingAmount = totalAmount - depositAmount;
 
         if (remainingAmount > 0) {
-            try {
-                PaymentCreateRequest paymentRequest = new PaymentCreateRequest();
-                paymentRequest.setAmount(BigDecimal.valueOf(remainingAmount));
-                
-                Payment restOfAmount = paymentMapper.createPaymentEntity(paymentRequest);
-                restOfAmount.setBookingId(booking.getId());
-                restOfAmount.setUserId(booking.getUserId());
-                restOfAmount.setStatus(Enums.PaymentStatus.SUCCESS);
-                restOfAmount.setCreatedAt(LocalDateTime.now());
-                paymentRepository.save(restOfAmount);
-                log.info("==== KẾ TOÁN ==== Đã thu thêm tiền ngoài {} VND cho đơn {}", remainingAmount, bookingId);
-            } catch (Exception e) {
-                log.error("Lỗi khi lưu lịch sử thu tiền: ", e);
-            }
+            PaymentCreateRequest paymentRequest = new PaymentCreateRequest();
+            paymentRequest.setAmount(BigDecimal.valueOf(remainingAmount));
+            
+            Payment restOfAmount = paymentMapper.createPaymentEntity(paymentRequest);
+            restOfAmount.setBookingId(booking.getId());
+            restOfAmount.setUserId(booking.getUserId());
+            restOfAmount.setStatus(Enums.PaymentStatus.SUCCESS);
+            restOfAmount.setCreatedAt(LocalDateTime.now());
+            
+            // Xóa try-catch ở đây để nếu DB lỗi, toàn bộ Transaction sẽ được Rollback, bảo toàn dữ liệu Booking.
+            paymentRepository.save(restOfAmount);
+            log.info("==== KẾ TOÁN ==== Đã thu thêm tiền ngoài {} VND cho đơn {}", remainingAmount, bookingId);
         }
 
-        try {
-            NotificationCreateRequest notif = new NotificationCreateRequest();
-            notif.setTitle("✅ Ca đá đã hoàn tất!");
-            String shortId = bookingId.length() >= 6 ? bookingId.substring(0, 6).toUpperCase() : bookingId;
-            notif.setContent("Chủ sân đã xác nhận thu đủ tiền và hoàn tất ca đá mã " + shortId + " của bạn. Cảm ơn bạn!");
-            notif.setType(Enums.NotificationType.SYSTEM);
-            notificationService.createAndSendNotification(booking.getUserId(), notif);
-        } catch (Exception e) {
-            log.error("Lỗi khi gửi thông báo hoàn tất đơn: ", e);
-        }
+        String shortId = bookingId.length() >= 6 ? bookingId.substring(0, 6).toUpperCase() : bookingId;
+        String content = "Chủ sân đã xác nhận thu đủ tiền và hoàn tất ca đá mã " + shortId + " của bạn. Cảm ơn bạn!";
+        
+        eventPublisher.publishEvent(new BookingNotificationEvent(
+                booking.getUserId(),
+                "✅ Ca đá đã hoàn tất!",
+                content,
+                Enums.NotificationType.SYSTEM
+        ));
     }
 }

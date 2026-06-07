@@ -4,6 +4,7 @@ import com.example.backend.dto.request.NotificationCreateRequest;
 import com.example.backend.dto.request.UserCreateRequest;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.utils.Enums;
+import com.example.backend.utils.HashUtils;
 import com.example.backend.entity.User;
 import com.example.backend.mapper.UserMapper;
 import com.example.backend.repository.UserRepository;
@@ -28,6 +29,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse createUser(String userId, UserCreateRequest request) {
         User user = userMapper.toEntity(request);
+        if (user.getPassword() != null) {
+            user.setPassword(HashUtils.hashSHA256(user.getPassword()));
+        }
         User userSaved = userRepository.save(user);
         NotificationCreateRequest notifRequest = new NotificationCreateRequest();
         notifRequest.setTitle("Đặt sân thành công!");
@@ -41,8 +45,17 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateUser(String userId, UserCreateRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(404, "User not found"));
         userMapper.updateEntityFromRequest(request, user);
+        if (request.getPassword() != null) {
+            user.setPassword(HashUtils.hashSHA256(request.getPassword()));
+        }
         User savedUser = userRepository.save(user);
         return userMapper.toResponse(savedUser);
+    }
+
+    @Override
+    public Object getAllUsers(String role, Integer minTrustScore, int page, int size) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getAllUsers'");
     }
 
 }

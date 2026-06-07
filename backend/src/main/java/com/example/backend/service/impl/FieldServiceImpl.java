@@ -13,6 +13,7 @@ import com.example.backend.mapper.TimeSlotMapper;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.FieldRepository;
 import com.example.backend.repository.TimeSlotRepository;
+import com.example.backend.repository.ReviewRepository;
 import com.example.backend.service.FieldService;
 import com.example.backend.dto.request.FieldUpdateRequest;
 import com.example.backend.dto.request.TimeSlotCreateRequest;
@@ -22,6 +23,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.example.backend.exception.AppException;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -37,12 +41,33 @@ public class FieldServiceImpl implements FieldService {
     private final TimeSlotRepository timeSlotRepository;
     private final FieldMapper fieldMapper;
     private final TimeSlotMapper timeSlotMapper;
+    
+    // THÊM REPOSITORY ĐỂ LẤY ĐIỂM ĐÁNH GIÁ
+    private final ReviewRepository reviewRepository; 
+
+    @Override
+    public Page<FieldResponse> getFieldsPage(Enums.FieldType type, String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Field> fields = fieldRepository.findFieldsPaginated(type, name, pageable);
+        return fields.map(f -> new FieldResponse(f.getId(), f.getName(), f.getType(), f.getCoverImage(), 0.0));
+    }
 
     @Override
     public List<FieldResponse> getFields(Enums.FieldType type, BigDecimal minPrice, BigDecimal maxPrice) {
-        List<Field> fields = fieldRepository.findFieldsWithFilters(type, minPrice, maxPrice);
+        List<Field> fields;
+        if (minPrice == null && maxPrice == null) {
+            fields = fieldRepository.findFieldsWithoutTimeSlots(type);
+        } else {
+            fields = fieldRepository.findFieldsWithFilters(type, minPrice, maxPrice);
+        }
         return fields.stream()
-                .map(f -> new FieldResponse(f.getId(), f.getName(), f.getType(), f.getCoverImage()))
+                .map(f -> {
+                    // Lấy điểm trung bình từ Database
+                    Double avgRating = reviewRepository.getAverageRatingByFieldId(f.getId());
+                    Double finalRating = avgRating != null ? avgRating : 0.0;
+                    
+                    return new FieldResponse(f.getId(), f.getName(), f.getType(), f.getCoverImage(), finalRating);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -90,7 +115,10 @@ public class FieldServiceImpl implements FieldService {
     public FieldResponse createField(FieldCreateRequest request) {
         Field field = fieldMapper.toEntity(request);
         Field fieldSaved = fieldRepository.save(field);
-        return fieldMapper.toResponse(fieldSaved);
+        
+        FieldResponse response = fieldMapper.toResponse(fieldSaved);
+        response.setAverageRating(0.0); // Sân mới tạo chưa có đánh giá
+        return response;
     }
 
     @Override
@@ -101,7 +129,10 @@ public class FieldServiceImpl implements FieldService {
         fieldMapper.updateEntityFromRequest(request, field);
         Field savedField = fieldRepository.save(field);
 
-        return fieldMapper.toResponse(savedField);
+        FieldResponse response = fieldMapper.toResponse(savedField);
+        Double avgRating = reviewRepository.getAverageRatingByFieldId(savedField.getId());
+        response.setAverageRating(avgRating != null ? avgRating : 0.0);
+        return response;
     }
 
     @Override
