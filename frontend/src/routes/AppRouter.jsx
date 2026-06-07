@@ -26,7 +26,6 @@ import FindOpponentPage from '../pages/find_opponent/FindOpponentPage'
 
 // ── Community ─────────────────────────────────────────────────────────
 import CommunityPage from '../pages/community/CommunityPage'
-import ContactPage   from '../pages/community/ContactPage'
 
 // ── Admin ─────────────────────────────────────────────────────────────
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
@@ -34,12 +33,16 @@ import AdminUsersPage     from '../pages/admin/AdminUsersPage'
 import AdminBookingsPage  from '../pages/admin/AdminBookingsPage'
 import AdminMatchesPage   from '../pages/admin/AdminMatchesPage'
 
+// Owner
+import OwnerFieldsPage   from '../pages/owner/OwnerFieldsPage'
+import OwnerBookingsPage from '../pages/owner/OwnerBookingsPage'
+
 /**
  * Central router — all application routes are defined here.
  *
  * Role hierarchy used by ProtectedRoute:
  *   PLAYER  → can access /lich-dat, /ho-so, /tin-nhan, /dat-san/*
- *   OWNER   → (currently handled by OwnerDashboardTeaser embedded in HomePage)
+ *   OWNER   → /owner/*
  *   ADMIN   → /admin/*
  */
 export default function AppRouter() {
@@ -79,7 +82,6 @@ export default function AppRouter() {
 
         {/* ── Community ───────────────────────────────────────────── */}
         <Route path="/cong-dong" element={<CommunityPage />} />
-        <Route path="/lien-he"   element={<ContactPage />} />
 
         {/* ── Admin (ADMIN role required) ──────────────────────────── */}
         <Route path="/admin/dashboard" element={
@@ -93,6 +95,14 @@ export default function AppRouter() {
         } />
         <Route path="/admin/matches" element={
           <ProtectedRoute roles={['ADMIN']}><AdminMatchesPage /></ProtectedRoute>
+        } />
+
+        {/* Owner (OWNER role required) */}
+        <Route path="/owner/fields" element={
+          <ProtectedRoute roles={['OWNER']}><OwnerFieldsPage /></ProtectedRoute>
+        } />
+        <Route path="/owner/bookings" element={
+          <ProtectedRoute roles={['OWNER']}><OwnerBookingsPage /></ProtectedRoute>
         } />
 
         {/* ── Misc static pages ───────────────────────────────────── */}
