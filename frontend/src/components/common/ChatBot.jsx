@@ -14,7 +14,7 @@ const FloatingChatbot = () => {
   // UI-only mode: no backend chat API call.
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];

@@ -70,7 +70,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
     if (currentSilentId) {
         try {
-            const token = localStorage.getItem('accessToken');
+            const token = localStorage.getItem('access_token');
             const config = { headers: { Authorization: `Bearer ${token}` } };
             await axios.delete(`${API_URL}/match-posts/${currentSilentId}`, config);
         } catch (e) {}
@@ -88,7 +88,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
       isActiveRequest = true;
 
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         if (!token) { setIsPolling(false); return; }
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
@@ -286,7 +286,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsPolling(false);
     
     try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         let finalTimeStart = null;
         let finalTimeEnd = null;
@@ -318,7 +318,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
   const handleAcceptLiveMatch = async () => {
     setIsProcessingMatch(true);
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
     if (foundLivePost) {
@@ -360,7 +360,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         await axios.post(`${API_URL}/match-requests`, {
             postId: matchId,
@@ -391,7 +391,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
   const handleRejectPending = async () => {
     setIsProcessingMatch(true);
     try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
         if (pendingRequest) {
@@ -413,7 +413,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
         await axios.put(`${API_URL}/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' }, config);

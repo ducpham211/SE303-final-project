@@ -21,7 +21,7 @@ const ConfirmApplyModal = ({ isOpen, match, onClose, onConfirm }) => {
     setError('');
     
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('access_token');
       if (!token) {
         setError('Vui lòng đăng nhập để nhận kèo!');
         setIsSubmitting(false);
