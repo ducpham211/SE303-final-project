@@ -61,33 +61,7 @@ public class AdminController {
         }
     }
 
-    // 2. GET: Lịch sử đánh giá (Có thể lọc theo trạng thái)
-    @GetMapping("/reviews")
-    public ResponseEntity<Page<Review>> getReviews(
-            @RequestParam(required = false) Enums.ReviewStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Review> reviews;
-        if (status != null) {
-            reviews = reviewRepository.findByStatus(status, pageable);
-        } else {
-            reviews = reviewRepository.findAll(pageable);
-        }
-        return ResponseEntity.ok(reviews);
-    }
-
-    // 3. PUT: Phán quyết của Admin cho một review
-    @PutMapping("/reviews/{reviewId}")
-    public ResponseEntity<String> adjudicateReview(
-            @PathVariable String reviewId,
-            @RequestBody AdminCreateRequest request) {
-
-        String message = adminService.adjudicateReview(reviewId, request);
-        return ResponseEntity.ok(message);
-    }
-
+  
     @GetMapping("/fields")
     public ResponseEntity<List<FieldResponse>> getAllFields() {
         return ResponseEntity.ok(adminService.getAllFields());

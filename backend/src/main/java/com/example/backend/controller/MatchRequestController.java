@@ -34,4 +34,12 @@ public class MatchRequestController {
         MatchRequestStatusResponse response = matchRequestService.updateRequestStatus(requestId, currentUserId, status);
         return ResponseEntity.ok(response);
     }
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<Void> markRequestAsComplete(
+            @PathVariable("id") String requestId,
+            @RequestParam(required = false) String fieldId) {
+        String currentUserId = TokenUtils.getCurrentUserId();
+        matchRequestService.markAsComplete(requestId, currentUserId, fieldId);
+        return ResponseEntity.ok().build();
+    }
 }

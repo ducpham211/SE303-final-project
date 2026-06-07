@@ -3,6 +3,7 @@ package com.example.backend.seeder;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
 import com.example.backend.utils.Enums;
+import com.example.backend.utils.HashUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,24 +40,86 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // --- Định nghĩa danh sách tên và ảnh thật cho các sân bóng ---
+        String[] fieldNames = {
+                "Sân Bóng 1",
+                "Sân Bóng 2",
+                "Sân Bóng 3",
+                "Sân Bóng 4",
+                "Sân Bóng 5",
+                "Sân Bóng 6",
+                "Sân Bóng 7",
+                "Sân Bóng 8",
+                "Sân Bóng 9",
+                "Sân Bóng 10"
+        };
+
+        String[] fieldImages = {
+                "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1518604666860-9ed391f76460?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1556056504-517cf0154fb5?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1600250395178-40da752e5189?q=80&w=800&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=800&auto=format&fit=crop"
+        };
+
+        // 👉 Tự động cập nhật các sân bóng đã có trong DB với tên và ảnh thật mới
+        try {
+            List<Field> existingFields = fieldRepository.findAll();
+            if (!existingFields.isEmpty()) {
+                System.out.println("Updating existing fields with new real names and images...");
+                for (int i = 0; i < Math.min(existingFields.size(), fieldNames.length); i++) {
+                    Field field = existingFields.get(i);
+                    field.setName(fieldNames[i]);
+                    field.setCoverImage(fieldImages[i]);
+                    fieldRepository.save(field);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động cập nhật sân bóng: " + e.getMessage());
+        }
+
+        // 👉 Tự động mã hóa mật khẩu của các user đã tồn tại sang SHA-256 nếu chưa được mã hóa
+        try {
+            List<User> existingUsers = userRepository.findAll();
+            if (!existingUsers.isEmpty()) {
+                System.out.println("Checking and encrypting plain-text user passwords to SHA-256...");
+                for (User user : existingUsers) {
+                    String password = user.getPassword();
+                    // Một chuỗi băm SHA-256 Hex luôn có độ dài đúng bằng 64 ký tự.
+                    // Nếu mật khẩu không null và độ dài khác 64, tức là mật khẩu chưa được băm (dạng plain text cũ).
+                    if (password != null && password.length() != 64) {
+                        user.setPassword(HashUtils.hashSHA256(password));
+                        userRepository.save(user);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động mã hóa mật khẩu người dùng: " + e.getMessage());
+        }
+
         // ==========================================
-        // 1. LUỒNG KHỞI TẠO DỮ LIỆU TĨNH (CHỈ CHẠY 1 LẦN)
+        // 1. LUỒNG KHỞI TẠO DỮ LIỆU TĨNH (CHỈ CHẠY 1 LẦN KHI KHỞI TẠO MỚI)
         // ==========================================
         if (userRepository.count() == 0) {
             System.out.println("Seeding entire ecosystem database...");
 
             // --- TẠO 14 USERS (1 ADMIN, 3 OWNERS, 10 PLAYERS) ---
-            User admin = userRepository.save(new User(UUID.randomUUID().toString(), "admin@system.com", "123456", Enums.UserRole.ADMIN, "System Admin", "0123456780"));
-            User owner1 = userRepository.save(new User(UUID.randomUUID().toString(), "owner1@gmail.com", "123456", Enums.UserRole.OWNER, "Trần Văn Chủ B", "0123456781"));
-            User owner2 = userRepository.save(new User(UUID.randomUUID().toString(), "owner2@gmail.com", "123456", Enums.UserRole.OWNER, "Nguyễn Văn Chủ A", "0123456782"));
-            User owner3 = userRepository.save(new User(UUID.randomUUID().toString(), "owner3@gmail.com", "123456", Enums.UserRole.OWNER, "Lê Văn Chủ C", "0123456783"));
+            User admin = userRepository.save(new User(UUID.randomUUID().toString(), "admin@system.com", HashUtils.hashSHA256("123456"), Enums.UserRole.ADMIN, "System Admin", "0123456780"));
+            User owner1 = userRepository.save(new User(UUID.randomUUID().toString(), "owner1@gmail.com", HashUtils.hashSHA256("123456"), Enums.UserRole.OWNER, "Trần Văn Chủ B", "0123456781"));
+            User owner2 = userRepository.save(new User(UUID.randomUUID().toString(), "owner2@gmail.com", HashUtils.hashSHA256("123456"), Enums.UserRole.OWNER, "Nguyễn Văn Chủ A", "0123456782"));
+            User owner3 = userRepository.save(new User(UUID.randomUUID().toString(), "owner3@gmail.com", HashUtils.hashSHA256("123456"), Enums.UserRole.OWNER, "Lê Văn Chủ C", "0123456783"));
 
             List<User> players = new ArrayList<>();
             for (int i = 1; i <= 10; i++) {
                 User player = new User(
                         UUID.randomUUID().toString(),
                         "player" + i + "@gmail.com",
-                        "123456",
+                        HashUtils.hashSHA256("123456"),
                         Enums.UserRole.PLAYER,
                         "Cầu Thủ " + i,
                         "09876543" + String.format("%02d", i)
@@ -91,18 +154,12 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
 
             // --- TẠO 10 SÂN BÓNG ---
-            String[] fieldNames = {
-                    "Sân bóng Mỹ Đình 1", "Sân bóng Mỹ Đình 2", "Sân bóng Bách Khoa", "Sân bóng Tao Đàn",
-                    "Sân bóng Chảo Lửa", "Sân bóng Phú Nhuận", "Sân bóng Dĩ An 1", "Sân bóng Dĩ An 2",
-                    "Sân bóng Thống Nhất", "Sân bóng Quân Khu 7"
-            };
-
             List<Field> allFields = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 Field field = new Field();
                 field.setName(fieldNames[i]);
                 field.setType(i % 3 == 0 ? Enums.FieldType.SEVEN_A_SIDE : Enums.FieldType.FIVE_A_SIDE);
-                field.setCoverImage("https://example.com/san" + (i + 1) + ".jpg");
+                field.setCoverImage(fieldImages[i]);
                 field.setCreatedAt(LocalDateTime.now());
                 field.setUpdatedAt(LocalDateTime.now());
                 allFields.add(fieldRepository.save(field));

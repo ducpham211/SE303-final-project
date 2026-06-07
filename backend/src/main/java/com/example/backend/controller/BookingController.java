@@ -24,7 +24,7 @@ public class BookingController {
         return ResponseEntity.ok(result);
     }
     @PostMapping
-    @PreAuthorize("hasAnyRole('PLAYER', 'OWNER')")
+    @PreAuthorize("hasAnyRole('PLAYER', 'OWNER', 'ADMIN')")
     public ResponseEntity<BookingResponse> createBooking(
             @RequestBody BookingCreateRequest request,
             @AuthenticationPrincipal String userId) { // Lấy ID user từ token

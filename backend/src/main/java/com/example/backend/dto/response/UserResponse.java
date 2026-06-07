@@ -9,4 +9,5 @@ public class UserResponse {
     private String fullName;
     private String phone;
     private String role;
+    private Integer trustScore;
 }

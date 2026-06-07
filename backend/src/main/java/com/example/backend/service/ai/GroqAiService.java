@@ -169,7 +169,7 @@ public class GroqAiService {
 
             session.getMessages().add(new ChatSession.MessageNode("user", request.getMessage()));
 
-            List<Field> dbFields = fieldRepository.findAll();
+            List<Field> dbFields = fieldRepository.findFieldsWithoutTimeSlots(null);
             String realFieldData = dbFields.isEmpty() 
                 ? "Hiện tại hệ thống chưa có sân bóng nào được tạo." 
                 : "Hệ thống đang có các sân sau: " + dbFields.stream()
@@ -201,7 +201,11 @@ public class GroqAiService {
             systemNode.put("role", "system");
             systemNode.put("content", systemContext);
 
-            for (ChatSession.MessageNode msg : session.getMessages()) {
+            List<ChatSession.MessageNode> chatMessages = session.getMessages();
+            int limit = 10;
+            int startIdx = Math.max(0, chatMessages.size() - limit);
+            for (int i = startIdx; i < chatMessages.size(); i++) {
+                ChatSession.MessageNode msg = chatMessages.get(i);
                 if ("system".equals(msg.getRole())) {
                     continue;
                 }
@@ -235,7 +239,7 @@ public class GroqAiService {
 
         } catch (Exception e) {
             log.error("Lỗi hệ thống khi xử lý Chatbot: ", e);
-            return new ChatResponse("Hệ thống trợ lý ảo đang bảo trì. Vui lòng thử lại sau.", null);
+            return new ChatResponse("Lỗi hệ thống: " + e.toString(), null);
         }
     }
 }

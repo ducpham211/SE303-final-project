@@ -60,4 +60,36 @@ public class MatchPostController {
 
         return ResponseEntity.ok(recommendations);
     }
+
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<Void> markMatchPostAsComplete(
+            @PathVariable("id") String postId,
+            @RequestParam(required = false) String fieldId) {
+        String currentUserId = TokenUtils.getCurrentUserId();
+        matchPostService.markAsComplete(postId, currentUserId, fieldId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/my-posts")
+    public ResponseEntity<Page<MatchPostResponse>> getMyActivePosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String currentUserId = TokenUtils.getCurrentUserId();
+        Page<MatchPostResponse> response = matchPostService.getMyActivePosts(currentUserId, page, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<Page<MatchPostResponse>> getMatchHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String currentUserId = TokenUtils.getCurrentUserId();
+        Page<MatchPostResponse> response = matchPostService.getMatchHistory(currentUserId, page, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/live")
+    public ResponseEntity<List<MatchPostResponse>> getActiveLiveMatches() {
+        return ResponseEntity.ok(matchPostService.getActiveLiveMatches());
+    }
 }
