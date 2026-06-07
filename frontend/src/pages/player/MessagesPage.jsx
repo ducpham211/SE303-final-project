@@ -128,7 +128,7 @@ function EmptyInbox() {
         một yêu cầu kèo giao hữu từ trang Tìm đối thủ.
       </p>
       <button
-        onClick={() => navigate('/tim-doi-thu')}
+        onClick={() => navigate('/matchmaking')}
         className="mt-1 px-4 py-2 rounded-full bg-[#60D86E] text-white text-xs font-semibold hover:bg-[#45c45a] transition-colors"
       >
         Tìm đối thủ ngay
@@ -154,7 +154,7 @@ export default function MessagesPage() {
 
   /* ── Auth guard ── */
   useEffect(() => {
-    if (!isLoggedIn) navigate('/dang-nhap')
+    if (!isLoggedIn) navigate('/login')
   }, [isLoggedIn, navigate])
 
   /* ── Connect WS & load inbox on mount ── */

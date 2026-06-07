@@ -55,9 +55,10 @@ export default function Navbar() {
     // Default PLAYER or GUEST
     return [
       { label: 'Trang chủ', to: '/' },
-      { label: 'Đặt sân', to: '/dat-san' },
-      { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
-      { label: 'Cộng đồng', to: '/cong-dong' },
+      { label: 'Đặt sân', to: '/fields' },
+      { label: 'Tìm đối thủ', to: '/matchmaking' },
+      { label: 'Đội bóng', to: '/teams' },
+      { label: 'Cộng đồng', to: '/community' },
     ]
   }
 
@@ -166,9 +167,10 @@ export default function Navbar() {
                             }
                             return [
                               { label: 'Dashboard', to: '/dashboard' },
-                              { label: 'Hồ sơ', to: '/ho-so' },
-                              { label: 'Lịch đặt', to: '/lich-dat' },
-                              { label: 'Tin nhắn', to: '/tin-nhan' },
+                              { label: 'Hồ sơ', to: '/profile' },
+                              { label: 'Lịch đặt', to: '/booking-history' },
+                              { label: 'Đội bóng', to: '/teams' },
+                              { label: 'Tin nhắn', to: '/messages' },
                             ]
                           })().map((item) => (
                             <Link
@@ -195,14 +197,14 @@ export default function Navbar() {
                 ) : (
                   <>
                     <Link
-                      to="/dang-nhap"
+                      to="/login"
                       id="navbar-login-btn"
                       className="px-4 py-1.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all duration-200"
                     >
                       Đăng nhập
                     </Link>
                     <Link
-                      to="/dang-ky"
+                      to="/register"
                       id="navbar-register-btn"
                       className="px-4 py-1.5 rounded-full text-sm font-semibold bg-[#60D86E] text-white hover:bg-[#45c45a] transition-all duration-200"
                     >
@@ -258,10 +260,10 @@ export default function Navbar() {
                   </button>
                 ) : (
                   <>
-                    <Link to="/dang-nhap" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
+                    <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
                       Đăng nhập
                     </Link>
-                    <Link to="/dang-ky" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
+                    <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
                       Đăng ký
                     </Link>
                   </>

@@ -1,44 +1,60 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
-import Navbar from '../components/layout/Navbar'
-import Footer from '../components/layout/Footer'
-import ScrollToTopButton from '../components/common/ScrollToTopButton'
-import ProtectedRoute from '../components/common/ProtectedRoute'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
+import ScrollToTopButton from "../components/common/ScrollToTopButton";
+import ProtectedRoute from "../components/common/ProtectedRoute";
 
 // ── Public / Auth ──────────────────────────────────────────────────────
-const HomePage        = lazy(() => import('../pages/home/HomePage'))
-const LoginPage       = lazy(() => import('../pages/auth/LoginPage'))
-const RegisterPage        = lazy(() => import('../pages/auth/RegisterPage'))
-const ForgotPasswordPage  = lazy(() => import('../pages/auth/ForgotPasswordPage'))
-const ResetPasswordPage   = lazy(() => import('../pages/auth/ResetPasswordPage'))
+const HomePage = lazy(() => import("../pages/home/HomePage"));
+const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"));
+const ForgotPasswordPage = lazy(
+  () => import("../pages/auth/ForgotPasswordPage"),
+);
+const ResetPasswordPage = lazy(() => import("../pages/auth/ResetPasswordPage"));
 
 // ── Player ────────────────────────────────────────────────────────────
-const FieldListPage        = lazy(() => import('../pages/player/FieldListPage'))
-const PlayerDashboardPage  = lazy(() => import('../pages/player/PlayerDashboardPage'))
-const FieldDetailPage      = lazy(() => import('../pages/player/FieldDetailPage'))
-const MessagesPage         = lazy(() => import('../pages/player/MessagesPage'))
-const BookingHistoryPage   = lazy(() => import('../pages/player/BookingHistoryPage'))
-const ProfilePage          = lazy(() => import('../pages/player/ProfilePage'))
-const TeamPage             = lazy(() => import('../pages/player/TeamPage'))
-const TeamDetailPage       = lazy(() => import('../pages/player/TeamDetailPage'))
+const FieldListPage = lazy(() => import("../pages/player/FieldListPage"));
+const PlayerDashboardPage = lazy(
+  () => import("../pages/player/PlayerDashboardPage"),
+);
+const FieldDetailPage = lazy(() => import("../pages/player/FieldDetailPage"));
+const MessagesPage = lazy(() => import("../pages/player/MessagesPage"));
+const BookingHistoryPage = lazy(
+  () => import("../pages/player/BookingHistoryPage"),
+);
+const BookingDetailPage = lazy(
+  () => import("../pages/player/BookingDetailPage"),
+);
+const ProfilePage = lazy(() => import("../pages/player/ProfilePage"));
+const TeamPage = lazy(() => import("../pages/player/TeamPage"));
+const TeamDetailPage = lazy(() => import("../pages/player/TeamDetailPage"));
 
 // ── Payment (Stripe callbacks) ────────────────────────────────────────
-const PaymentSuccessPage = lazy(() => import('../pages/payment/PaymentSuccessPage'))
-const PaymentCancelPage  = lazy(() => import('../pages/payment/PaymentCancelPage'))
+const PaymentSuccessPage = lazy(
+  () => import("../pages/payment/PaymentSuccessPage"),
+);
+const PaymentCancelPage = lazy(
+  () => import("../pages/payment/PaymentCancelPage"),
+);
 
 // ── Community ─────────────────────────────────────────────────────────
-import CommunityPage from '../pages/community/CommunityPage'
-const ContactPage   = lazy(() => import('../pages/community/ContactPage'))
+import CommunityPage from "../pages/community/CommunityPage";
 
 // ── Admin ─────────────────────────────────────────────────────────────
-const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage'))
-const AdminUsersPage     = lazy(() => import('../pages/admin/AdminUsersPage'))
-const AdminBookingsPage  = lazy(() => import('../pages/admin/AdminBookingsPage'))
-const AdminMatchesPage   = lazy(() => import('../pages/admin/AdminMatchesPage'))
+const AdminDashboardPage = lazy(
+  () => import("../pages/admin/AdminDashboardPage"),
+);
+const AdminUsersPage = lazy(() => import("../pages/admin/AdminUsersPage"));
+const AdminBookingsPage = lazy(
+  () => import("../pages/admin/AdminBookingsPage"),
+);
+const AdminMatchesPage = lazy(() => import("../pages/admin/AdminMatchesPage"));
 
 // Owner
-import OwnerFieldsPage   from '../pages/owner/OwnerFieldsPage'
-import OwnerBookingsPage from '../pages/owner/OwnerBookingsPage'
+import OwnerFieldsPage from "../pages/owner/OwnerFieldsPage";
+import OwnerBookingsPage from "../pages/owner/OwnerBookingsPage";
 
 /**
  * Central router — all application routes are defined here.
@@ -52,93 +68,181 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Navbar />
-      <Suspense fallback={
-        <div className="flex-1 flex items-center justify-center py-24 min-h-screen">
-          <div className="w-8 h-8 border-4 border-[#60D86E] border-t-transparent rounded-full animate-spin" />
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="flex-1 flex items-center justify-center py-24 min-h-screen">
+            <div className="w-8 h-8 border-4 border-[#60D86E] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
         <Routes>
-
           {/* ── Public ──────────────────────────────────────────────── */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/dang-nhap" element={<LoginPage />} />
-          <Route path="/dang-ky"   element={<RegisterPage />} />
-          <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
-          <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* ── Sân bóng (public browse, auth required to book) ─────── */}
-          <Route path="/dat-san"     element={<FieldListPage />} />
-          <Route path="/dat-san/:id" element={<FieldDetailPage />} />
+          <Route path="/fields" element={<FieldListPage />} />
+          <Route path="/fields/:id" element={<FieldDetailPage />} />
 
           {/* ── Payment callbacks (Stripe) ───────────────────────────── */}
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
-          <Route path="/payment/cancel"  element={<PaymentCancelPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
           {/* ── Player (auth required) ───────────────────────────────── */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute><PlayerDashboardPage /></ProtectedRoute>
-          } />
-          <Route path="/lich-dat" element={
-            <ProtectedRoute><BookingHistoryPage /></ProtectedRoute>
-          } />
-          <Route path="/ho-so" element={
-            <ProtectedRoute><ProfilePage /></ProtectedRoute>
-          } />
-          <Route path="/tin-nhan" element={
-            <ProtectedRoute><MessagesPage /></ProtectedRoute>
-          } />
-          <Route path="/doi-bong" element={
-            <ProtectedRoute><TeamPage /></ProtectedRoute>
-          } />
-          <Route path="/doi-bong/:id" element={
-            <ProtectedRoute><TeamDetailPage /></ProtectedRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <PlayerDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/booking-history"
+            element={
+              <ProtectedRoute>
+                <BookingHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/booking-history/:id"
+            element={
+              <ProtectedRoute>
+                <BookingDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teams"
+            element={
+              <ProtectedRoute>
+                <TeamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teams/:id"
+            element={
+              <ProtectedRoute>
+                <TeamDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ── Matchmaking (built by another team member) ───────────── */}
-          <Route path="/tim-doi-thu"        element={<PlaceholderPage title="Tìm đối thủ" />} />
-          <Route path="/tim-doi-thu/tao-keo" element={<PlaceholderPage title="Tạo kèo đấu" />} />
-          <Route path="/tim-doi-thu/lich"    element={<PlaceholderPage title="Lịch kèo đấu" />} />
+          <Route
+            path="/matchmaking"
+            element={<PlaceholderPage title="Tìm đối thủ" />}
+          />
+          <Route
+            path="/matchmaking/create"
+            element={<PlaceholderPage title="Tạo kèo đấu" />}
+          />
+          <Route
+            path="/matchmaking/schedule"
+            element={<PlaceholderPage title="Lịch kèo đấu" />}
+          />
 
           {/* ── Community ───────────────────────────────────────────── */}
-          <Route path="/cong-dong" element={<CommunityPage />} />
-          <Route path="/lien-he"   element={<ContactPage />} />
+          <Route path="/community" element={<CommunityPage />} />
 
           {/* ── Admin (ADMIN role required) ──────────────────────────── */}
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute roles={['ADMIN']}><AdminDashboardPage /></ProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <ProtectedRoute roles={['ADMIN']}><AdminUsersPage /></ProtectedRoute>
-          } />
-          <Route path="/admin/bookings" element={
-            <ProtectedRoute roles={['ADMIN']}><AdminBookingsPage /></ProtectedRoute>
-          } />
-          <Route path="/admin/matches" element={
-            <ProtectedRoute roles={['ADMIN']}><AdminMatchesPage /></ProtectedRoute>
-          } />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/bookings"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminBookingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/matches"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminMatchesPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Owner (OWNER role required) */}
-          <Route path="/owner/fields" element={
-            <ProtectedRoute roles={['OWNER']}><OwnerFieldsPage /></ProtectedRoute>
-          } />
-          <Route path="/owner/bookings" element={
-            <ProtectedRoute roles={['OWNER']}><OwnerBookingsPage /></ProtectedRoute>
-          } />
+          <Route
+            path="/owner/fields"
+            element={
+              <ProtectedRoute roles={["OWNER"]}>
+                <OwnerFieldsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/owner/bookings"
+            element={
+              <ProtectedRoute roles={["OWNER"]}>
+                <OwnerBookingsPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ── Misc static pages ───────────────────────────────────── */}
-          <Route path="/faq"        element={<PlaceholderPage title="Câu hỏi thường gặp" />} />
-          <Route path="/chinh-sach" element={<PlaceholderPage title="Chính sách bảo mật" />} />
-          <Route path="/dieu-khoan" element={<PlaceholderPage title="Điều khoản dịch vụ" />} />
+          <Route
+            path="/faq"
+            element={<PlaceholderPage title="Câu hỏi thường gặp" />}
+          />
+          <Route
+            path="/privacy-policy"
+            element={<PlaceholderPage title="Chính sách bảo mật" />}
+          />
+          <Route
+            path="/terms-of-service"
+            element={<PlaceholderPage title="Điều khoản dịch vụ" />}
+          />
 
           {/* ── 404 ─────────────────────────────────────────────────── */}
-          <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang (404)" />} />
-
+          <Route
+            path="*"
+            element={<PlaceholderPage title="Không tìm thấy trang (404)" />}
+          />
         </Routes>
       </Suspense>
       <ScrollToTopButton />
       <Footer />
     </BrowserRouter>
-  )
+  );
 }
 
 function PlaceholderPage({ title }) {
@@ -147,5 +251,5 @@ function PlaceholderPage({ title }) {
       <h1 className="text-2xl font-bold text-[#1a202c]">{title}</h1>
       <p className="text-gray-500">Trang này đang được xây dựng.</p>
     </div>
-  )
+  );
 }

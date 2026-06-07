@@ -136,7 +136,7 @@ export default function TeamPage() {
 
                   <div className="flex items-center gap-2 mt-4 ml-[52px]">
                     <button
-                      onClick={() => navigate(`/doi-bong/${team.id}`)}
+                      onClick={() => navigate(`/teams/${team.id}`)}
                       className="text-xs font-bold text-[#60D86E] hover:text-[#45c45a] transition-colors"
                     >
                       Quản lý →

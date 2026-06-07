@@ -4,7 +4,7 @@ const COMMUNITY_FEATURES = [
   {
     id: 'find-players',
     title: 'Tìm đối thủ',
-    path: '/tim-doi-thu',
+    path: '/matchmaking',
     description: 'Tìm kiếm và kết nối với người chơi bóng đá phù hợp với trình độ của bạn',
     icon: (
       <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">

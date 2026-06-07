@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
                 Chúng tôi đã gửi liên kết khôi phục mật khẩu đến <strong className="text-[#1a202c]">{email}</strong>. Vui lòng kiểm tra hộp thư (cả mục spam).
               </p>
               <Link
-                to="/dang-nhap"
+                to="/login"
                 className="auth-btn-primary"
                 style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
               >
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
               <h2 className="auth-form-card__title">Quên mật khẩu?</h2>
               <p className="auth-form-card__sub">
                 Nhớ mật khẩu rồi?{' '}
-                <Link to="/dang-nhap" className="auth-link">
+                <Link to="/login" className="auth-link">
                   Đăng nhập
                 </Link>
               </p>

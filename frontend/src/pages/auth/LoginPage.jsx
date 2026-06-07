@@ -87,7 +87,7 @@ export default function LoginPage() {
           <h2 className="auth-form-card__title">Chào mừng trở lại</h2>
           <p className="auth-form-card__sub">
             Chưa có tài khoản?{' '}
-            <Link to="/dang-ky" className="auth-link">
+            <Link to="/register" className="auth-link">
               Đăng ký ngay
             </Link>
           </p>
@@ -151,7 +151,7 @@ export default function LoginPage() {
 
             {/* Forgot Password Link */}
             <div className="flex justify-end">
-              <Link to="/quen-mat-khau" className="text-xs font-medium text-[#60D86E] hover:underline">
+              <Link to="/forgot-password" className="text-xs font-medium text-[#60D86E] hover:underline">
                 Quên mật khẩu?
               </Link>
             </div>

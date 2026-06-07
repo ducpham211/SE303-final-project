@@ -48,7 +48,7 @@ export default function HeroSection() {
     if (date) params.set('date', date)
     if (startTime) params.set('startTime', startTime)
     if (fieldType) params.set('type', fieldType)
-    navigate(`/dat-san?${params.toString()}`)
+    navigate(`/fields?${params.toString()}`)
   }
 
   return (

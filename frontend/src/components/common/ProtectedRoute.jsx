@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children, roles = [] }) {
   const { isLoggedIn, user } = useAuthStore()
 
   if (!isLoggedIn) {
-    return <Navigate to="/dang-nhap" replace />
+    return <Navigate to="/login" replace />
   }
 
   if (roles.length > 0) {

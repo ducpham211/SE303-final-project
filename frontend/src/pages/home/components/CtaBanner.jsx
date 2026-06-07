@@ -19,7 +19,7 @@ export default function CtaBanner() {
         </div>
 
         <Link
-          to="/tim-doi-thu/tao-keo"
+          to="/matchmaking/create"
           id="cta-find-opponent-btn"
           className="px-8 py-3.5 rounded-full bg-white text-[#45c45a] font-bold text-base hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-sm"
         >

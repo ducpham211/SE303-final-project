@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
       setSuccess(true)
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/dang-nhap')
+        navigate('/login')
       }, 3000)
     } catch (err) {
       const msg =
@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
                 Mật khẩu của bạn đã được đặt lại thành công. Bạn sẽ được chuyển về trang đăng nhập trong giây lát.
               </p>
               <Link
-                to="/dang-nhap"
+                to="/login"
                 className="auth-btn-primary"
                 style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
               >

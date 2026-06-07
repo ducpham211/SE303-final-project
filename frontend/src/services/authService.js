@@ -37,7 +37,7 @@ const authService = {
    * Supabase handles the email sending and reset link generation.
    */
   forgotPassword: async (email) => {
-    const redirectTo = `${window.location.origin}/dat-lai-mat-khau`
+    const redirectTo = `${window.location.origin}/reset-password`
     const { data } = await axios.post(
       `${SUPABASE_URL}/auth/v1/recover`,
       { email },

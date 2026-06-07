@@ -132,7 +132,7 @@ export default function BookingDetailPage() {
             </div>
             <p className="font-bold text-red-700 mb-4">{error}</p>
             <button
-              onClick={() => navigate('/lich-dat')}
+              onClick={() => navigate('/booking-history')}
               className="px-6 py-2.5 rounded-full bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
             >
               ← Quay lại lịch đặt
@@ -161,7 +161,7 @@ export default function BookingDetailPage() {
 
         {/* Back */}
         <Link
-          to="/lich-dat"
+          to="/booking-history"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#1a202c] transition-colors mb-6"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

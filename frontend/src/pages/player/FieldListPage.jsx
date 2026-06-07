@@ -271,7 +271,7 @@ export default function FieldListPage() {
 
   const handleBookClick = () => {
     if (!isLoggedIn) {
-      navigate('/dang-nhap')
+      navigate('/login')
       return
     }
     setIsModalOpen(true)
@@ -486,7 +486,7 @@ export default function FieldListPage() {
                         </div>
                         {/* Task 2: Link to FieldDetailPage */}
                         <Link
-                          to={`/dat-san/${field.id}`}
+                          to={`/fields/${field.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="flex-shrink-0 text-xs font-bold text-[#60D86E] hover:text-[#45c45a] hover:underline transition-colors"
                         >

@@ -53,7 +53,7 @@ export default function TeamDetailPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center py-20">
           <h2 className="text-xl font-bold text-[#1a202c] mb-2">Không tìm thấy đội bóng</h2>
           <p className="text-sm text-gray-400 mb-6">Đội bóng này không tồn tại hoặc bạn không có quyền truy cập.</p>
-          <Link to="/doi-bong" className="text-sm font-bold text-[#60D86E] hover:underline">
+          <Link to="/teams" className="text-sm font-bold text-[#60D86E] hover:underline">
             ← Quay lại danh sách đội
           </Link>
         </div>
@@ -67,7 +67,7 @@ export default function TeamDetailPage() {
     <main className="pt-28 pb-16 min-h-screen bg-[#f8faf8]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         {/* Back link */}
-        <Link to="/doi-bong" className="inline-flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-[#60D86E] transition-colors mb-6">
+        <Link to="/teams" className="inline-flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-[#60D86E] transition-colors mb-6">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
           Đội bóng
         </Link>

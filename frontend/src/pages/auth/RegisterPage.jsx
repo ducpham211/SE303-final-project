@@ -53,7 +53,7 @@ export default function RegisterPage() {
         )
         // Redirect to login page after a brief delay so user sees the success message
         setTimeout(() => {
-          navigate('/dang-nhap')
+          navigate('/login')
         }, 1500)
       }
     } catch (err) {
@@ -102,7 +102,7 @@ export default function RegisterPage() {
           <h2 className="auth-form-card__title">Tạo tài khoản</h2>
           <p className="auth-form-card__sub">
             Đã có tài khoản?{' '}
-            <Link to="/dang-nhap" className="auth-link">
+            <Link to="/login" className="auth-link">
               Đăng nhập
             </Link>
           </p>
@@ -258,11 +258,11 @@ export default function RegisterPage() {
 
             <p className="auth-terms">
               Bằng cách đăng ký, bạn đồng ý với{' '}
-              <Link to="/dieu-khoan" className="auth-link">
+              <Link to="/terms-of-service" className="auth-link">
                 Điều khoản dịch vụ
               </Link>{' '}
               và{' '}
-              <Link to="/chinh-sach" className="auth-link">
+              <Link to="/privacy-policy" className="auth-link">
                 Chính sách bảo mật
               </Link>{' '}
               của chúng tôi.

@@ -197,7 +197,7 @@ export default function BookingHistoryPage() {
           {!loading && filtered.length === 0 && (
             <div className="text-center py-16 bg-white rounded-3xl border border-gray-100">
               <p className="text-gray-400 font-medium">{filter === 'ALL' ? 'Bạn chưa có lịch đặt sân nào.' : 'Không có đơn nào ở trạng thái này.'}</p>
-              {filter === 'ALL' && <Link to="/dat-san" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">Đặt sân ngay →</Link>}
+              {filter === 'ALL' && <Link to="/fields" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">Đặt sân ngay →</Link>}
             </div>
           )}
           {!loading && filtered.map((b) => {
@@ -206,7 +206,7 @@ export default function BookingHistoryPage() {
             return (
               <div
                 key={bId}
-                onClick={() => navigate(`/lich-dat/${bId}`, { state: { booking: b } })}
+                onClick={() => navigate(`/booking-history/${bId}`, { state: { booking: b } })}
                 className="cursor-pointer"
               >
                 <BookingCard

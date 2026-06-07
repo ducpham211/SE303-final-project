@@ -37,7 +37,7 @@ api.interceptors.response.use(
           localStorage.setItem('auth-storage', JSON.stringify(stored))
         }
       } catch (_) {}
-      window.location.href = '/dang-nhap'
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }
