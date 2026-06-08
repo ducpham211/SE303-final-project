@@ -73,7 +73,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     if (currentSilentId) {
         try {
             await api.delete(`/match-posts/${currentSilentId}`);
-        } catch (e) {}
+        } catch { /* ignore */ }
     }
     onChangeViewMode('all');
   };
@@ -120,7 +120,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                      setSilentPostId(stringId);
                      localStorage.setItem('autoMatch_silentPostId', stringId);
                  }
-             } catch (e) {}
+             } catch { /* ignore */ }
         }
 
         const currentSilentId = silentPostIdRef.current;
@@ -159,7 +159,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                               alert('Đối phương đã chốt! Chuyển đến phòng chat...');
                               
                               if (silentPostIdRef.current) {
-                                  try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
+                                  try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch { /* ignore */ }
                               }
                               setSilentPostId(null);
                               setWaitingForPostId(null);
@@ -223,7 +223,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                    );
                    return { ...rec, fullMatch };
                  }).filter((r) => r.fullMatch);
-             } catch (error) {}
+             } catch { /* ignore */ }
 
              if (staticMatches.length === 0) {
                  const fallbackMatches = currentMatches.filter((m) => 
@@ -307,7 +307,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
         setSilentPostId(stringId);
         localStorage.setItem('autoMatch_silentPostId', stringId);
         localStorage.setItem('autoMatch_criteria', JSON.stringify(criteria));
-    } catch (error) {}
+    } catch { /* ignore */ }
     onChangeViewMode('ai');
     setIsPolling(true);
   };
@@ -328,7 +328,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             setFoundLivePost(null);
             setAiStep('WAITING_OPPONENT');
             setIsPolling(true);
-        } catch (e) {
+        } catch {
             alert('Đối phương đã rời đi hoặc từ chối, Tiếp tục quét...');
             setSkippedMatchIds(prev => [...prev, foundLivePost.id]);
             setFoundLivePost(null);
@@ -361,7 +361,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
         });
         
         if (silentPostIdRef.current) {
-            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
+            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch { /* ignore */ }
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');
@@ -371,7 +371,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
         alert('Đã gửi yêu cầu ghép trận! Đang chờ đối phương xác nhận. Bạn có thể xem ở tab Lịch Sử.');
         setSearchCriteria(null);
         onChangeViewMode('history');
-    } catch (error) {
+    } catch {
         alert('Trận này đã bị đóng hoặc bạn đã gửi yêu cầu rồi!');
         setSkippedMatchIds(prev => [...prev, matchId]);
         setIsPolling(true);
@@ -390,7 +390,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             const theirPost = currentMatches.find((p) => p.userId === pendingRequest.requesterId && p.message?.startsWith("[LIVE_MATCH]"));
             if (theirPost) setSkippedMatchIds(prev => [...prev, theirPost.id]);
         }
-    } catch (e) {}
+    } catch { /* ignore */ }
     
     setPendingRequest(null);
     setAiStep('SEARCHING');
@@ -405,7 +405,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
         await api.put(`/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' });
         
         if (silentPostIdRef.current) {
-            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
+            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch { /* ignore */ }
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');
@@ -415,7 +415,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
         alert('Đã chốt thành công! Chuyển tới phòng chat...');
         setSearchCriteria(null);
         navigate('/messages');
-    } catch (e) {
+    } catch {
         alert('Rất tiếc, có lỗi xảy ra hoặc đối phương đã hủy.');
         handleRejectPending(); 
     } finally {

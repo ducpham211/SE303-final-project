@@ -4,7 +4,7 @@ import ManualMatch from './components/ManualMatch'
 import AutoMatch from './components/AutoMatch'
 import AutoMatchView from './components/AutoMatchView';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
-import axiosClient from '../../api/axiosClient';
+import api from '../../services/api';
 
 const tabs = [
   {
@@ -30,7 +30,7 @@ export default function FindOpponentPage() {
   const autoMatch = useAutoMatch(currentUserId, (data) => setMatches(data), setViewMode);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
@@ -47,8 +47,8 @@ export default function FindOpponentPage() {
       setIsLoading(true);
       try {
         const [postsRes, fieldsRes] = await Promise.all([
-          axiosClient.get('/match-posts?size=100'),
-          axiosClient.get('/fields')
+          api.get('/match-posts?size=100'),
+          api.get('/fields')
         ]);
 
         setMatches(postsRes.data.content || postsRes.data || []);
@@ -65,7 +65,7 @@ export default function FindOpponentPage() {
 
   const refreshMatches = async () => {
     try {
-      const postsRes = await axiosClient.get('/match-posts?size=100');
+      const postsRes = await api.get('/match-posts?size=100');
       setMatches(postsRes.data.content || postsRes.data || []);
     } catch (error) {
       console.error('Lỗi khi refresh match posts', error);
@@ -74,7 +74,7 @@ export default function FindOpponentPage() {
 
   const handleCreatePostSubmit = async (post) => {
     try {
-      await axiosClient.post('/match-posts', post);
+      await api.post('/match-posts', post);
       await refreshMatches();
       setIsCreateOpen(false);
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaTimes, FaRobot, FaCheckCircle } from 'react-icons/fa';
-import axiosClient from '../../../api/axiosClient';
+import api from '../../../services/api';
 
 const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
   const [criteria, setCriteria] = useState({
@@ -44,8 +44,8 @@ const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
 
   useEffect(() => {
     if (criteria.fieldId && criteria.date && !isAnyTime) {
-      setIsLoadingSlots(true);
-      axiosClient.get(`/fields/${criteria.fieldId}/availability?date=${criteria.date}`)
+      setIsLoadingSlots(true); // eslint-disable-line react-hooks/set-state-in-effect
+      api.get(`/fields/${criteria.fieldId}/availability?date=${criteria.date}`)
         .then(res => {
           const data = res.data;
           const slotsArray = Array.isArray(data) ? data : (data.availableTimeSlots || data.timeSlots || []);
@@ -74,7 +74,7 @@ const AutoMatchModal = ({ isOpen, onClose, onSubmit, fields = [] }) => {
         }));
       }
     }
-  }, [criteria.fieldId, criteria.date, isAnyTime]);
+  }, [criteria.fieldId, criteria.date, isAnyTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen) return null;
 

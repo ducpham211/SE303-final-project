@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaRobot, FaPaperPlane } from 'react-icons/fa'
+import { FaRobot, FaPaperPlane } from 'react-icons/fa';
 
 const FloatingChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,13 +14,14 @@ const FloatingChatbot = () => {
   // UI-only mode: no backend chat API call.
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || 'guest-session');
-      } catch (e) {
+        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || 'guest-session'); // eslint-disable-line react-hooks/set-state-in-effect
+      } catch {
+        /* ignore */
       }
     }
   }, []);
@@ -35,7 +36,6 @@ const FloatingChatbot = () => {
 
     const newUserMsg = { id: Date.now().toString(), content: messageText, senderId: currentUserId };
     setMessages(prev => [...prev, newUserMsg]);
-    const currentMessage = messageText;
     setMessageText('');
     setIsTyping(true);
 

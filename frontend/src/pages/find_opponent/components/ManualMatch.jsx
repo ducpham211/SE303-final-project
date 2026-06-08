@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
-import axiosClient from '../../../api/axiosClient';
+import api from '../../../services/api';
 
 const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
   const [newPost, setNewPost] = useState({
@@ -58,8 +58,8 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
 
   useEffect(() => {
     if (newPost.fieldId && newPost.date) {
-      setIsLoadingSlots(true);
-      axiosClient.get(`/fields/${newPost.fieldId}/availability?date=${newPost.date}`)
+      setIsLoadingSlots(true); // eslint-disable-line react-hooks/set-state-in-effect
+      api.get(`/fields/${newPost.fieldId}/availability?date=${newPost.date}`)
         .then(res => {
           const data = res.data;
           const slotsArray = Array.isArray(data) ? data : (data.availableTimeSlots || data.timeSlots || []);
@@ -94,7 +94,7 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
         }));
       }
     }
-  }, [newPost.fieldId, newPost.date]);
+  }, [newPost.fieldId, newPost.date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen) return null;
 
