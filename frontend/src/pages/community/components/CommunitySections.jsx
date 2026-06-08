@@ -30,6 +30,8 @@ function CommunitySection({ section }) {
         <img 
           src={section.image} 
           alt={section.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover"
         />
       </div>

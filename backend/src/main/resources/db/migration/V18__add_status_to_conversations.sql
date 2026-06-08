@@ -1,0 +1,1 @@
+ALTER TABLE conversations ADD COLUMN status VARCHAR(50) DEFAULT 'ACTIVE';

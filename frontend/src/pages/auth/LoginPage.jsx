@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import authService from '../../services/authService'
+import userService from '../../services/userService'
 import useAuthStore from '../../store/useAuthStore'
 
 /**
@@ -32,6 +33,11 @@ export default function LoginPage() {
       const data = await authService.login(email, password)
       if (data.accessToken) {
         login(data.accessToken)
+        // Fetch the actual user profile (including backend-assigned role)
+        try {
+          const profile = await userService.getMe()
+          useAuthStore.getState().enrichUser(profile)
+        } catch (_) { /* enrichment is best-effort */ }
         navigate('/')
       } else {
         setError(data.message || 'Đăng nhập thất bại.')
@@ -81,7 +87,7 @@ export default function LoginPage() {
           <h2 className="auth-form-card__title">Chào mừng trở lại</h2>
           <p className="auth-form-card__sub">
             Chưa có tài khoản?{' '}
-            <Link to="/dang-ky" className="auth-link">
+            <Link to="/register" className="auth-link">
               Đăng ký ngay
             </Link>
           </p>
@@ -141,6 +147,13 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Forgot Password Link */}
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs font-medium text-[#60D86E] hover:underline">
+                Quên mật khẩu?
+              </Link>
             </div>
 
             {/* Error */}

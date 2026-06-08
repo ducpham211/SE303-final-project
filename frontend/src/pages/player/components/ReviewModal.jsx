@@ -4,8 +4,14 @@ import reviewService from '../../../services/reviewService'
 /**
  * Modal for reviewing an opponent after a completed match.
  * Sends POST /api/reviews with { revieweeId, matchRequestId, reason }
+ *
+ * Props:
+ *   isOpen         – boolean
+ *   onClose        – (submitted: boolean) => void
+ *   revieweeId     – ID of the opponent being reviewed
+ *   matchRequestId – ID of the completed match request
  */
-export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, matchRequestId }) {
+export default function ReviewModal({ isOpen, onClose, revieweeId, matchRequestId }) {
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -55,7 +61,7 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-extrabold text-[#1a202c]">Đánh giá đối thủ</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Chia sẻ nhận xét của bạn về trận đấu</p>
+              <p className="text-xs text-gray-400 mt-0.5">Chia sẻ trải nghiệm về trận đấu với đối thủ</p>
             </div>
             <button
               onClick={() => onClose(false)}
@@ -70,10 +76,17 @@ export default function ReviewModal({ isOpen, onClose, bookingId, revieweeId, ma
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="px-6 pb-6">
+          {/* Info badges */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full uppercase tracking-wide">
+              Trận đấu #{matchRequestId?.slice(0, 8)}
+            </span>
+          </div>
+
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Nhập nhận xét của bạn về đối thủ (thái độ thi đấu, trình độ, đúng giờ...)..."
+            placeholder="Nhận xét của bạn về đối thủ: tinh thần thể thao, fairplay, đúng giờ..."
             rows={4}
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all resize-none"
             disabled={submitting || success}

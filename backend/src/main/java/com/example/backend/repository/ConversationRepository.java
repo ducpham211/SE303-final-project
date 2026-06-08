@@ -24,5 +24,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, Stri
         @Param("userId1") String userId1,
         @Param("userId2") String userId2
     );
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Conversation c WHERE c.id = :conversationId")
+    void deleteConversationById(@Param("conversationId") String conversationId);
+    List<Conversation> findByMatchId(String matchId);
 }
 

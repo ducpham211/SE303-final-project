@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import bookingService from '../../services/bookingService'
 import ReviewModal from './components/ReviewModal'
+import Toast from '../../components/common/Toast'
 
 const STATUS_META = {
   PENDING:      { label: 'Chờ thanh toán', bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400',  border: 'border-amber-200' },
-  DEPOSIT_PAID: { label: 'Đã cọc',        bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
+  DEPOSIT_PAID: { label: 'Đã cọc',       bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500',  border: 'border-green-200' },
   CONFIRMED:    { label: 'Đã xác nhận',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500',   border: 'border-blue-200' },
   COMPLETED:    { label: 'Hoàn thành',    bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', border: 'border-emerald-200' },
   CANCELLED:    { label: 'Đã hủy',        bg: 'bg-red-100',    text: 'text-red-600',    dot: 'bg-red-400',    border: 'border-red-200' },
@@ -32,7 +33,7 @@ function SkeletonCard() {
   )
 }
 
-function BookingCard({ booking, onReview }) {
+function BookingCard({ booking, onReviewClick, onPayClick }) {
   const s = STATUS_META[booking.status] || STATUS_META.PENDING
   const fieldName = booking.field?.name || booking.fieldName || 'Sân bóng'
   const slotTime = booking.startTime && booking.endTime
@@ -63,15 +64,43 @@ function BookingCard({ booking, onReview }) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {slotTime}
         </span>
-        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">Cọc: {deposit}</span>
-        {total && <span className="text-gray-400">Tổng: {total}</span>}
+        <span className="flex items-center gap-1.5 font-semibold text-[#1a202c]">
+            {booking.status === 'COMPLETED' ? 'Đã thanh toán:' : 'Đã cọc:'}{' '}
+            {booking.status === 'COMPLETED' ? total : deposit}
+          </span>
+          {booking.status !== 'COMPLETED' && total && (
+            <span className="text-gray-400">Tổng: {total}</span>
+          )}
       </div>
-      {booking.status === 'COMPLETED' && (
-        <div className="mt-3 ml-4">
-          <button onClick={() => onReview(booking)} className="text-xs font-bold text-[#60D86E] hover:text-[#45c45a] transition-colors flex items-center gap-1">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Đánh giá đối thủ
-          </button>
+
+      {/* Action row */}
+      {(booking.status === 'PENDING' || booking.status === 'COMPLETED') && (
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          {booking.status === 'PENDING' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onPayClick?.(booking)
+              }}
+              className="text-xs font-bold px-4 py-2 rounded-xl bg-[#1a202c] text-white hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              Tiếp tục thanh toán — {deposit}
+            </button>
+          )}
+          {booking.status === 'COMPLETED' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onReviewClick(booking)
+              }}
+              className="text-xs font-bold px-4 py-2 rounded-xl bg-[#fbbf24] text-[#1a202c] hover:bg-[#f59e0b] transition-colors"
+            >
+              Đánh giá sân
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -79,10 +108,27 @@ function BookingCard({ booking, onReview }) {
 }
 
 export default function BookingHistoryPage() {
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
-  const [reviewTarget, setReviewTarget] = useState(null)
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState(null)
+  const [payingId, setPayingId] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const handlePayBooking = async (booking) => {
+    const bookingId = booking.bookingId || booking.id
+    try {
+      setPayingId(bookingId)
+      const res = await bookingService.createPaymentSession(bookingId)
+      if (!res?.url) throw new Error('Không nhận được URL thanh toán')
+      window.location.href = res.url
+    } catch (err) {
+      console.error(err)
+      setToast({ msg: err.response?.data?.message || err.message || 'Có lỗi xảy ra. Vui lòng thử lại.', type: 'error' })
+      setPayingId(null)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -90,8 +136,8 @@ export default function BookingHistoryPage() {
         const data = await bookingService.getMyBookings()
         const priorityOrder = { PENDING: 0, DEPOSIT_PAID: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4 }
         const sorted = [...data].sort((a, b) => {
-          const pa = priorityOrder[a.status] ?? 5
-          const pb = priorityOrder[b.status] ?? 5
+          const pa = priorityOrder[a.status] ?? 6
+          const pb = priorityOrder[b.status] ?? 6
           if (pa !== pb) return pa - pb
           return new Date(b.bookingDate || b.createdAt || 0) - new Date(a.bookingDate || a.createdAt || 0)
         })
@@ -151,22 +197,36 @@ export default function BookingHistoryPage() {
           {!loading && filtered.length === 0 && (
             <div className="text-center py-16 bg-white rounded-3xl border border-gray-100">
               <p className="text-gray-400 font-medium">{filter === 'ALL' ? 'Bạn chưa có lịch đặt sân nào.' : 'Không có đơn nào ở trạng thái này.'}</p>
-              {filter === 'ALL' && <Link to="/dat-san" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">Đặt sân ngay →</Link>}
+              {filter === 'ALL' && <Link to="/fields" className="mt-3 inline-block text-sm font-bold text-[#60D86E] hover:underline">Đặt sân ngay →</Link>}
             </div>
           )}
-          {!loading && filtered.map((b) => (
-            <BookingCard key={b.bookingId || b.id} booking={b} onReview={(booking) => setReviewTarget(booking)} />
-          ))}
+          {!loading && filtered.map((b) => {
+            const bId = b.bookingId || b.id
+            const isPaying = payingId === bId
+            return (
+              <div
+                key={bId}
+                onClick={() => navigate(`/booking-history/${bId}`, { state: { booking: b } })}
+                className="cursor-pointer"
+              >
+                <BookingCard
+                  booking={isPaying ? { ...b, _paying: true } : b}
+                  onReviewClick={setSelectedReviewBooking}
+                  onPayClick={handlePayBooking}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
 
       <ReviewModal
-        isOpen={!!reviewTarget}
-        onClose={() => setReviewTarget(null)}
-        bookingId={reviewTarget?.bookingId || reviewTarget?.id}
-        revieweeId={reviewTarget?.userId}
-        matchRequestId={reviewTarget?.matchRequestId}
+        isOpen={!!selectedReviewBooking}
+        onClose={() => setSelectedReviewBooking(null)}
+        fieldId={selectedReviewBooking?.field?.id || selectedReviewBooking?.fieldId}
+        bookingId={selectedReviewBooking?.bookingId || selectedReviewBooking?.id}
       />
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

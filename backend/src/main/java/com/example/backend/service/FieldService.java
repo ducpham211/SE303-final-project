@@ -15,7 +15,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 
+import org.springframework.data.domain.Page;
+
 public interface FieldService {
+    Page<FieldResponse> getFieldsPage(Enums.FieldType type, String name, int page, int size);
+
     List<FieldResponse> getFields(Enums.FieldType type, BigDecimal minPrice, BigDecimal maxPrice);
     
     FieldDetailResponse getFieldById(String id);

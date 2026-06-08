@@ -7,14 +7,16 @@ public class FieldResponse {
     private String name;
     private Enums.FieldType type;
     private String coverImage;
-
+    private Double averageRating;
+    
     public FieldResponse() {}
 
-    public FieldResponse(String id, String name, Enums.FieldType type, String coverImage) {
+    public FieldResponse(String id, String name, Enums.FieldType type, String coverImage, Double averageRating) {
         this.id = id;
         this.name = name;
         this.type = type;
         this.coverImage = coverImage;
+        this.averageRating = averageRating;
     }
 
     public String getId() { return id; }
@@ -28,4 +30,7 @@ public class FieldResponse {
     
     public String getCoverImage() { return coverImage; }
     public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
+
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
 }

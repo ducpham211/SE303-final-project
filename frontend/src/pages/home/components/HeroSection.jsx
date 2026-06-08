@@ -48,7 +48,7 @@ export default function HeroSection() {
     if (date) params.set('date', date)
     if (startTime) params.set('startTime', startTime)
     if (fieldType) params.set('type', fieldType)
-    navigate(`/dat-san?${params.toString()}`)
+    navigate(`/fields?${params.toString()}`)
   }
 
   return (
@@ -60,6 +60,8 @@ export default function HeroSection() {
       <img
         src={heroImg}
         alt="Sân bóng đá"
+        loading="eager"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover"
       />
 

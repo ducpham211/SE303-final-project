@@ -1,11 +1,8 @@
 package com.example.backend.entity;
 
-import com.example.backend.utils.Enums;
 import jakarta.persistence.*;
-import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data
 @Entity
 @Table(name = "reviews")
 public class Review {
@@ -13,30 +10,59 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    // Thay @JoinColumn bằng @Column
-    @Column(name = "reviewer_id")
-    private String reviewerId; // Người viết đánh giá
+    @Column(name = "booking_id")
+    private String bookingId;
 
-    @Column(name = "reviewee_id")
-    private String revieweeId; // Người bị đánh giá
+    @Column(name = "field_id")
+    private String fieldId;
 
-    @Column(name = "match_request_id")
-    private String matchRequestId; // Trận đấu nào
+    @Column(name = "user_id")
+    private String userId;
 
-    @Column(name = "score_change")
-    private Integer scoreChange; // Số điểm trừ CHÍNH THỨC (do Admin chốt)
+    private Integer rating;
 
     @Column(columnDefinition = "TEXT")
-    private String reason; // Nội dung review người dùng viết
+    private String comment;
 
-    @Column(name = "ai_suggested_penalty")
-    private Integer aiSuggestedPenalty; // Điểm trừ AI đề xuất (VD: -10)
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50)
-    private Enums.ReviewStatus status;
-    // AUTO_PASSED (Không lỗi), PENDING_ADMIN_REVIEW (Chờ duyệt), PENALIZED (Đã trừ chính thức)
+    // THÊM TRƯỜNG IMAGE URL
+    @Column(name = "image_url")
+    private String imageUrl;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+
+    // THÊM LẠI LIÊN KẾT USER NÀY
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User user;
+
+    // --- GETTERS & SETTERS ---
+    public Review() {}
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getBookingId() { return bookingId; }
+    public void setBookingId(String bookingId) { this.bookingId = bookingId; }
+
+    public String getFieldId() { return fieldId; }
+    public void setFieldId(String fieldId) { this.fieldId = fieldId; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
+
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }

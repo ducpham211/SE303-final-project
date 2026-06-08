@@ -1,4 +1,3 @@
-// controller/ReviewController.java
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.ReviewCreateRequest;
@@ -27,5 +26,10 @@ public class ReviewController {
                 .orElseThrow(() -> new AppException(404, "Không tìm thấy người dùng"));
         ReviewResponse response = reviewService.createReview(reviewerId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/field/{fieldId}")
+    public ResponseEntity<?> getReviewsByFieldId(@PathVariable String fieldId) {
+        return ResponseEntity.ok(reviewService.getReviewsByFieldId(fieldId));
     }
 }

@@ -1,60 +1,73 @@
-// service/impl/ReviewServiceImpl.java
 package com.example.backend.service.impl;
 
 import com.example.backend.dto.request.ReviewCreateRequest;
 import com.example.backend.dto.response.ReviewResponse;
-import com.example.backend.utils.Enums;
+import com.example.backend.entity.Booking;
 import com.example.backend.entity.Review;
+import com.example.backend.exception.AppException;
 import com.example.backend.mapper.ReviewMapper;
+import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.ReviewRepository;
 import com.example.backend.service.ReviewService;
-import com.example.backend.exception.AppException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import com.example.backend.service.ai.GroqAiService; // Import service mới
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class ReviewServiceImpl implements ReviewService {
+import java.util.List;
+import java.util.stream.Collectors;
 
+@Service
+@AllArgsConstructor
+public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
     private final ReviewMapper reviewMapper;
 
-    // 👉Tiêm GroqAiService vào đây
-    private final GroqAiService groqAiService;
+    @Override
+    public ReviewResponse createReview(String userId, ReviewCreateRequest request) {
+        String targetFieldId = request.getFieldId();
+
+        if (request.getBookingId() != null && !request.getBookingId().isEmpty()) {
+            Booking booking = bookingRepository.findById(request.getBookingId())
+                    .orElseThrow(() -> new AppException(404, "Không tìm thấy đặt sân này"));
+
+            if (!booking.getUserId().equals(userId)) {
+                throw new AppException(403, "Bạn không có quyền đánh giá sân này");
+            }
+
+            if (reviewRepository.existsByBookingId(booking.getId())) {
+                throw new AppException(400, "Bạn đã đánh giá sân này rồi");
+            }
+            
+            targetFieldId = booking.getFieldId();
+        } 
+        else if (targetFieldId == null || targetFieldId.isEmpty()) {
+            throw new AppException(400, "Thiếu thông tin sân bóng để đánh giá");
+        }
+
+        Review review = reviewMapper.toEntity(request);
+        review.setUserId(userId);
+        review.setFieldId(targetFieldId);
+        review.setImageUrl(request.getImageUrl());
+        review.setCreatedAt(LocalDateTime.now());
+        review = reviewRepository.save(review);
+
+        return reviewMapper.toResponse(review);
+    }
 
     @Override
-    @Transactional
-    public ReviewResponse createReview(String reviewerId, ReviewCreateRequest request) {
-        if (reviewRepository.existsByMatchRequestIdAndReviewerId(request.getMatchRequestId(), reviewerId)) {
-            // Ném lỗi 400 Bad Request để Frontend hiển thị chữ đỏ cho khách
-            throw new AppException(400, "Bạn đã đánh giá trận đấu này rồi, không thể đánh giá lại!");
-            // Nếu bạn có custom AppException thì dùng: throw new AppException(400, "Bạn đã...");
-        }
-        Review review = reviewMapper.toEntity(request);
-        review.setReviewerId(reviewerId);
-        review.setCreatedAt(LocalDateTime.now());
-        review.setScoreChange(0);
+    public List<ReviewResponse> getReviewsByFieldId(String fieldId) {
+        return reviewRepository.findByFieldIdOrderByCreatedAtDesc(fieldId)
+                .stream()
+                .map(reviewMapper::toResponse)
+                .collect(Collectors.toList());
+    }
 
-        //  GỌI GROQ AI Ở ĐÂY
-        GroqAiService.AiAnalysisResult aiResult = groqAiService.analyzeReview(request.getReason());
-
-        log.info("==== GROQ AI REVIEW ==== Toxic: {}, Penalty: {}", aiResult.isToxic(), aiResult.penaltyScore());
-
-        // Logic check điểm và lưu DB như cũ...
-        if (aiResult.isToxic()) {
-            review.setAiSuggestedPenalty(aiResult.penaltyScore());
-            review.setStatus(Enums.ReviewStatus.PENDING_ADMIN_REVIEW);
-        } else {
-            review.setAiSuggestedPenalty(0);
-            review.setStatus(Enums.ReviewStatus.AUTO_PASSED);
-        }
-
-        Review savedReview = reviewRepository.save(review);
-        return reviewMapper.toResponse(savedReview);
+    @Override
+    public List<ReviewResponse> getMyReviews(String userId) {
+        return reviewRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(reviewMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }

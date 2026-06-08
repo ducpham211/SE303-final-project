@@ -3,16 +3,19 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import fieldService from '../../services/fieldService'
 import bookingService from '../../services/bookingService'
 import useAuthStore from '../../store/useAuthStore'
+import BookingModal from '../../components/common/BookingModal'
+import Toast from '../../components/common/Toast'
 
 export default function FieldDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isLoggedIn, user } = useAuthStore()
+  const { isLoggedIn } = useAuthStore()
   
   const [field, setField] = useState(null)
   const [slots, setSlots] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
+  const [error, setError] = useState(false)
   
   // Date selection (default today)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -27,42 +30,50 @@ export default function FieldDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingError, setBookingError] = useState(null)
-  
-  // Add-ons & Split Bill State
-  const [addons, setAddons] = useState({
-    water: false,
-    bibs: false,
-    referee: false,
-    goalkeeper: false
-  })
-  const [teamSize, setTeamSize] = useState(10)
-
-  const ADDON_PRICES = {
-    water: 50000,
-    bibs: 30000,
-    referee: 150000,
-    goalkeeper: 100000
-  }
 
   useEffect(() => {
     fetchFieldAndSlots()
   }, [id, selectedDate])
 
+  const parseTimeMs = (value, dateStr) => {
+    if (!value) return 0
+    if (value.includes('T') || value.includes('-')) {
+      const ms = new Date(value).getTime()
+      return isNaN(ms) ? 0 : ms
+    }
+    const [h, m] = value.split(':').map(Number)
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const d = new Date(year, month - 1, day, h, m, 0, 0)
+    return d.getTime()
+  }
+
   const fetchFieldAndSlots = async () => {
     try {
       setLoading(true)
-      setError(null)
+      setError(false)
       setSelectedSlot(null)
       
       const fieldData = await fieldService.getFieldById(id)
       setField(fieldData)
       
       const availabilityData = await fieldService.getFieldAvailability(id, selectedDate)
-      // availabilityData might be just the slots array directly coming from the controller
-      setSlots(Array.isArray(availabilityData) ? availabilityData : [])
+      let finalSlots = Array.isArray(availabilityData) ? availabilityData : []
+      
+      const now = new Date()
+      const isToday = selectedDate === now.toISOString().split('T')[0]
+      const cutoffMs = isToday ? now.getTime() : 0
+      
+      if (isToday) {
+        finalSlots = finalSlots.filter(slot => {
+          const slotMs = parseTimeMs(slot.startTime, selectedDate)
+          return slotMs >= cutoffMs
+        })
+      }
+      
+      setSlots(finalSlots)
     } catch (err) {
-      setError('Không thể tải thông tin sân hoặc lịch trống.')
+      setError(true)
+      setToast({ msg: 'Không thể tải thông tin sân hoặc lịch trống.', type: 'error' })
       console.error(err)
     } finally {
       setLoading(false)
@@ -74,10 +85,14 @@ export default function FieldDetailPage() {
     setSelectedSlot(slot)
   }
 
-  const formatTime = (isoString) => {
-    if (!isoString) return ''
-    const date = new Date(isoString)
-    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  const formatTime = (value) => {
+    if (!value) return ''
+    // Already in "HH:mm" format — return as-is
+    if (!value.includes('T') && !value.includes('-') && value.includes(':')) {
+      return value.slice(0, 5)
+    }
+    // ISO datetime string
+    return new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   }
 
   const formatCurrency = (amount) => {
@@ -86,44 +101,31 @@ export default function FieldDetailPage() {
 
   const handleBookClick = () => {
     if (!isLoggedIn) {
-      navigate('/dang-nhap')
+      navigate('/login')
       return
     }
-    setBookingError(null)
     setIsModalOpen(true)
   }
 
-  const confirmBooking = async () => {
+  const confirmBooking = async (note) => {
     try {
       setIsBooking(true)
-      setBookingError(null)
-      
-      // Build the final note including add-ons
-      const selectedAddonLabels = []
-      if (addons.water) selectedAddonLabels.push('Nước uống (+50k)')
-      if (addons.bibs) selectedAddonLabels.push('Áo bíp (+30k)')
-      if (addons.referee) selectedAddonLabels.push('Trọng tài (+150k)')
-      if (addons.goalkeeper) selectedAddonLabels.push('Thủ môn (+100k)')
-      
-      let finalNote = bookingNote
-      if (selectedAddonLabels.length > 0) {
-        finalNote = `Dịch vụ thêm: ${selectedAddonLabels.join(', ')}. ` + bookingNote
-      }
 
-      // 1. Create booking (returns { bookingId: "uuid", status: "...", ... })
-      const bookingRes = await bookingService.createBooking(selectedSlot.id, finalNote.trim())
+      // 1. Create booking (note already includes add-on labels, built by BookingModal)
+      const bookingRes = await bookingService.createBooking(selectedSlot.id, note)
       if (!bookingRes || !bookingRes.bookingId) throw new Error('Không nhận được mã đơn đặt')
 
-      // 2. Create Payment Session
+      // 2. Create Stripe Payment Session
       const paymentRes = await bookingService.createPaymentSession(bookingRes.bookingId)
       if (!paymentRes || !paymentRes.url) throw new Error('Không nhận được URL thanh toán')
 
-      // 3. Redirect to Stripe
+      // 3. Redirect to Stripe Checkout
       window.location.href = paymentRes.url
 
     } catch (err) {
       console.error(err)
-      setBookingError(err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.')
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || 'Có lỗi xảy ra khi tạo đơn.'
+      setToast({ msg: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg, type: 'error' })
       setIsBooking(false)
     }
   }
@@ -139,35 +141,25 @@ export default function FieldDetailPage() {
   if (error && !field) {
     return (
       <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8] px-4">
-        <div className="max-w-3xl mx-auto bg-red-50 p-8 rounded-3xl text-center border border-red-100">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Lỗi tải dữ liệu</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Link to="/dat-san" className="px-6 py-2 bg-white text-gray-700 rounded-full font-semibold border border-gray-200 hover:bg-gray-50">Quay lại danh sách</Link>
+        <div className="max-w-3xl mx-auto bg-white p-12 rounded-3xl text-center border border-gray-100 flex flex-col items-center justify-center">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 opacity-30 text-gray-400">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <h2 className="text-xl font-bold text-[#1a202c] mb-2">Lỗi tải dữ liệu</h2>
+          <Link to="/fields" className="mt-4 px-6 py-2 bg-gray-100 text-gray-700 rounded-full font-semibold hover:bg-gray-200 transition-colors">Quay lại danh sách</Link>
         </div>
       </main>
     )
   }
 
   const today = new Date().toISOString().split('T')[0]
-  
-  const calculateTotalWithAddons = () => {
-    let total = selectedSlot?.price || 0
-    if (addons.water) total += ADDON_PRICES.water
-    if (addons.bibs) total += ADDON_PRICES.bibs
-    if (addons.referee) total += ADDON_PRICES.referee
-    if (addons.goalkeeper) total += ADDON_PRICES.goalkeeper
-    return total
-  }
-  
-  const totalExpectedAmount = calculateTotalWithAddons()
-  const splitAmount = Math.ceil(totalExpectedAmount / Math.max(1, teamSize))
 
   return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Back Link */}
-        <Link to="/dat-san" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1a202c] transition-colors mb-6 font-medium text-sm">
+        <Link to="/fields" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1a202c] transition-colors mb-6 font-medium text-sm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Quay lại danh sách
         </Link>
@@ -177,13 +169,22 @@ export default function FieldDetailPage() {
           {/* Left Column: Field Info */}
           <div className="lg:w-1/3 flex flex-col gap-6">
             <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-              <div 
-                className="w-full aspect-video bg-gray-100"
-                style={{ backgroundColor: field?.coverImage || '#e8f9eb' }}
-              />
+              <div className="w-full aspect-video bg-gray-100 overflow-hidden relative">
+                <img
+                  src={
+                    field?.coverImage && !field.coverImage.includes('example.com')
+                      ? field.coverImage
+                      : field?.type === 'SEVEN_A_SIDE'
+                        ? 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=800&q=80'
+                        : 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80'
+                  }
+                  alt={field?.name || 'Sân bóng'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="p-6">
                 <span className="px-3 py-1 rounded-full bg-[#1a202c] text-white text-xs font-semibold uppercase tracking-wider mb-3 inline-block">
-                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân 11 người'}
+                  {field?.type === 'FIVE_A_SIDE' ? 'Sân 5 người' : field?.type === 'SEVEN_A_SIDE' ? 'Sân 7 người' : 'Sân bóng'}
                 </span>
                 <h1 className="text-2xl font-extrabold text-[#1a202c] leading-tight mb-2">{field?.name}</h1>
                 <p className="text-gray-500 text-sm flex items-start gap-1.5 mb-6">
@@ -204,26 +205,6 @@ export default function FieldDetailPage() {
               </div>
             </div>
             
-            {/* Sticky Order Summary Box (Appears when a slot is selected) */}
-            {selectedSlot && (
-              <div className="bg-[#1a202c] rounded-3xl p-6 shadow-md text-white sticky top-24">
-                <h3 className="font-bold text-lg mb-4 text-[#60D86E]">Bạn đã chọn slot</h3>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-400">Thời gian</span>
-                  <span className="font-semibold">{formatTime(selectedSlot.startTime)} - {formatTime(selectedSlot.endTime)}</span>
-                </div>
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-gray-400">Giá</span>
-                  <span className="font-semibold">{formatCurrency(selectedSlot.price)}</span>
-                </div>
-                <button
-                  onClick={handleBookClick}
-                  className="w-full py-3 rounded-full bg-[#60D86E] text-[#1a202c] font-extrabold text-sm hover:bg-[#45c45a] hover:text-white transition-all active:scale-95"
-                >
-                  {isLoggedIn ? 'Xác nhận & Cọc 30%' : 'Đăng nhập để đặt sân'}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Right Column: Time Slots */}
@@ -280,128 +261,53 @@ export default function FieldDetailPage() {
         </div>
       </section>
 
-      {/* Booking Confirmation Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-y-auto pt-24 pb-12">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isBooking && setIsModalOpen(false)}></div>
-          
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-auto">
-            <button 
-              onClick={() => setIsModalOpen(false)} 
-              disabled={isBooking}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            
-            <h3 className="text-xl font-extrabold text-[#1a202c] pr-8">Xác nhận đặt sân</h3>
-            <p className="text-gray-500 text-sm mt-1 mb-6">Xin vui lòng kiểm tra kỹ thông tin trước khi thanh toán cọc.</p>
-            
-            <div className="bg-[#f8faf8] rounded-2xl p-4 border border-[#e8f9eb] mb-5">
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Sân bóng</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">{field?.name}</span>
+      {/* ── Sticky Bottom Bar (when a slot is selected) ── */}
+      {selectedSlot && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[#1a202c] text-white py-4 px-4 sm:px-8 z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.15)]" style={{ animation: 'slideUp 0.3s ease-out' }}>
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="hidden sm:flex w-10 h-10 rounded-full bg-[#60D86E]/20 items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60D86E" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Thời gian</span>
-                <span className="text-[#1a202c] font-bold text-right pl-4">{formatTime(selectedSlot?.startTime)} - {formatTime(selectedSlot?.endTime)}<br/><span className="text-xs font-normal text-gray-500">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span></span>
-              </div>
-              <div className="flex justify-between mb-3 pb-3 border-b border-gray-200/50">
-                <span className="text-gray-500 font-medium text-sm">Tổng tiền slot</span>
-                <span className="text-[#1a202c] font-bold">{formatCurrency(selectedSlot?.price)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-extrabold">Tiền cọc (30%)</span>
-                <span className="text-[#60D86E] font-extrabold text-xl">{formatCurrency((selectedSlot?.price || 0) * 0.3)}</span>
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-400">{field?.name}</p>
+                <p className="font-bold">
+                  {formatTime(selectedSlot.startTime)} – {formatTime(selectedSlot.endTime)}
+                  <span className="ml-3 text-[#60D86E] font-extrabold">{formatCurrency(selectedSlot.price)}</span>
+                </p>
               </div>
             </div>
-
-            {/* Add-on Services */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-[#1a202c] mb-3">Dịch vụ đi kèm (Thanh toán tại sân)</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.water} onChange={(e) => setAddons({...addons, water: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Nước (+50k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.bibs} onChange={(e) => setAddons({...addons, bibs: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Áo bíp (+30k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.referee} onChange={(e) => setAddons({...addons, referee: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Trọng tài (+150k)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <input type="checkbox" className="w-4 h-4 text-[#60D86E] rounded border-gray-300 focus:ring-[#60D86E]" checked={addons.goalkeeper} onChange={(e) => setAddons({...addons, goalkeeper: e.target.checked})} />
-                  <span className="text-sm text-gray-700">Thủ môn (+100k)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Split Bill Calculator */}
-            <div className="mb-5 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-semibold text-blue-900">Máy tính chia tiền (Dự kiến)</span>
-                <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-md">Tổng: {formatCurrency(totalExpectedAmount)}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-1/2">
-                  <label className="block text-xs text-gray-500 mb-1">Số người đá</label>
-                  <input 
-                    type="number" min="1" max="50" 
-                    value={teamSize} 
-                    onChange={(e) => setTeamSize(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                  />
-                </div>
-                <div className="w-1/2">
-                  <label className="block text-xs text-gray-500 mb-1">Mỗi người đóng</label>
-                  <div className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-blue-700">
-                    {formatCurrency(splitAmount)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-[#1a202c] mb-2" htmlFor="note">Ghi chú (Tùy chọn)</label>
-              <textarea 
-                id="note"
-                rows="2"
-                value={bookingNote}
-                onChange={(e) => setBookingNote(e.target.value)}
-                placeholder="Yêu cầu thêm về bóng, vị trí sân..."
-                className="w-full px-4 py-3 rounded-2xl bg-[#f8faf8] border border-gray-200 text-sm outline-none focus:border-[#60D86E] focus:ring-2 focus:ring-[#60D86E]/20 transition-all resize-none"
-              ></textarea>
-            </div>
-
-            {bookingError && (
-              <div className="mb-4 text-sm text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
-                {bookingError}
-              </div>
-            )}
-
             <button
-              disabled={isBooking}
-              onClick={confirmBooking}
-              className="w-full py-3.5 rounded-full bg-[#1a202c] text-white font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
+              onClick={handleBookClick}
+              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#60D86E] text-[#1a202c] font-extrabold text-sm hover:bg-[#45c45a] hover:text-white transition-all active:scale-95 whitespace-nowrap"
             >
-               {isBooking ? (
-                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Đang chuyển hướng Stripe...
-                 </>
-               ) : 'Thanh toán & Đặt sân'}
+              {isLoggedIn ? 'Xác nhận & Cọc 30%' : 'Đăng nhập để đặt sân'}
             </button>
-            <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
-              {/* Lock icon */}
-               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-               Thanh toán bảo mật an toàn
-            </p>
           </div>
         </div>
       )}
+
+      {/* Booking Confirmation Modal — shared component */}
+      <BookingModal
+        isOpen={isModalOpen}
+        onClose={() => { if (!isBooking) { setIsModalOpen(false) } }}
+        onConfirm={confirmBooking}
+        isBooking={isBooking}
+        bookingError={null}
+        fieldName={field?.name || ''}
+        startTime={selectedSlot?.startTime || ''}
+        endTime={selectedSlot?.endTime || ''}
+        date={selectedDate}
+        price={selectedSlot?.price || 0}
+      />
+
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
+      <Toast message={toast?.msg} type={toast?.type} onClose={() => setToast(null)} />
     </main>
   )
 }

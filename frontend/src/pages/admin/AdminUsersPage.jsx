@@ -4,8 +4,8 @@ import adminService from '../../services/adminService'
 
 const ROLES = [
   { value: '', label: 'Tất cả' },
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'OWNER', label: 'Chủ sân' },
+  { value: 'ADMIN', label: 'Quản trị viên' },
+  { value: 'OWNER', label: 'Quản lý sân' },
   { value: 'PLAYER', label: 'Người chơi' },
 ]
 

@@ -12,6 +12,6 @@ public class NotificationCreateRequest {
     private String content;
     private Enums.NotificationType type;
     private LocalDateTime createdAt;
-
+    private String senderId;
 }
 //dto/request
