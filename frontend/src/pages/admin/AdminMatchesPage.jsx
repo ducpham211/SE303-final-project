@@ -4,7 +4,7 @@ import adminService from '../../services/adminService'
 
 const POST_TYPE_LABEL = {
   FIND_OPPONENT: 'Tìm đối thủ',
-  FIND_TEAMMATE: 'Tìm đồng đội',
+  FIND_MEMBER: 'Tìm đồng đội',
 }
 
 const LEVEL_LABEL = {

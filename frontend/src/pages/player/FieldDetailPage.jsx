@@ -28,57 +28,56 @@ export default function FieldDetailPage() {
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [bookingNote, setBookingNote] = useState('')
   const [isBooking, setIsBooking] = useState(false)
 
   useEffect(() => {
+    const parseTimeMs = (value, dateStr) => {
+      if (!value) return 0
+      if (value.includes('T') || value.includes('-')) {
+        const ms = new Date(value).getTime()
+        return isNaN(ms) ? 0 : ms
+      }
+      const [h, m] = value.split(':').map(Number)
+      const [year, month, day] = dateStr.split('-').map(Number)
+      const d = new Date(year, month - 1, day, h, m, 0, 0)
+      return d.getTime()
+    }
+
+    const fetchFieldAndSlots = async () => {
+      try {
+        setLoading(true)
+        setError(false)
+        setSelectedSlot(null)
+        
+        const fieldData = await fieldService.getFieldById(id)
+        setField(fieldData)
+        
+        const availabilityData = await fieldService.getFieldAvailability(id, selectedDate)
+        let finalSlots = Array.isArray(availabilityData) ? availabilityData : []
+        
+        const now = new Date()
+        const isToday = selectedDate === now.toISOString().split('T')[0]
+        const cutoffMs = isToday ? now.getTime() : 0
+        
+        if (isToday) {
+          finalSlots = finalSlots.filter(slot => {
+            const slotMs = parseTimeMs(slot.startTime, selectedDate)
+            return slotMs >= cutoffMs
+          })
+        }
+        
+        setSlots(finalSlots)
+      } catch (err) {
+        setError(true)
+        setToast({ msg: 'Không thể tải thông tin sân hoặc lịch trống.', type: 'error' })
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchFieldAndSlots()
   }, [id, selectedDate])
-
-  const parseTimeMs = (value, dateStr) => {
-    if (!value) return 0
-    if (value.includes('T') || value.includes('-')) {
-      const ms = new Date(value).getTime()
-      return isNaN(ms) ? 0 : ms
-    }
-    const [h, m] = value.split(':').map(Number)
-    const [year, month, day] = dateStr.split('-').map(Number)
-    const d = new Date(year, month - 1, day, h, m, 0, 0)
-    return d.getTime()
-  }
-
-  const fetchFieldAndSlots = async () => {
-    try {
-      setLoading(true)
-      setError(false)
-      setSelectedSlot(null)
-      
-      const fieldData = await fieldService.getFieldById(id)
-      setField(fieldData)
-      
-      const availabilityData = await fieldService.getFieldAvailability(id, selectedDate)
-      let finalSlots = Array.isArray(availabilityData) ? availabilityData : []
-      
-      const now = new Date()
-      const isToday = selectedDate === now.toISOString().split('T')[0]
-      const cutoffMs = isToday ? now.getTime() : 0
-      
-      if (isToday) {
-        finalSlots = finalSlots.filter(slot => {
-          const slotMs = parseTimeMs(slot.startTime, selectedDate)
-          return slotMs >= cutoffMs
-        })
-      }
-      
-      setSlots(finalSlots)
-    } catch (err) {
-      setError(true)
-      setToast({ msg: 'Không thể tải thông tin sân hoặc lịch trống.', type: 'error' })
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSlotClick = (slot) => {
     if (!slot.available) return

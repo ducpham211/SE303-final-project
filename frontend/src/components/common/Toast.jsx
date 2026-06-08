@@ -8,11 +8,10 @@ import { useEffect, useState } from 'react';
  * @param {number} duration - Auto close duration in ms
  */
 export default function Toast({ message, type = 'success', onClose, duration = 3000 }) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     if (message) {
-      setIsVisible(true);
       const timer = setTimeout(() => {
         setIsVisible(false);
         setTimeout(onClose, 300); // Wait for fade out animation

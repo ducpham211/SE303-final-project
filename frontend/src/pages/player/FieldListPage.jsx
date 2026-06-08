@@ -58,7 +58,6 @@ export default function FieldListPage() {
   const [fields, setFields] = useState([])               // named fields
   const [slotsByField, setSlotsByField] = useState({})   // { fieldId: groupedSlots[] }
   const [loading, setLoading] = useState(true)
-  const [loadingFields, setLoadingFields] = useState(new Set()) // fieldIds đang load
   const [toast, setToast] = useState(null)
   const [error, setError] = useState(false)
 
@@ -94,10 +93,9 @@ export default function FieldListPage() {
     setPage(0)
   }, [filterType, debouncedSearch])
 
-  // Fetch fields when type/page/search/date changes
   useEffect(() => {
     fetchFieldsAndSlots()
-  }, [filterType, selectedDate, debouncedSearch, page])
+  }, [filterType, selectedDate, debouncedSearch, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update URL when filters change
   useEffect(() => {
@@ -224,8 +222,6 @@ export default function FieldListPage() {
 
       // 2. Progressive: fetch từng sân và hiện ngay khi có dữ liệu
       const slotsMap = {}
-      const pending = new Set(groupedFields.map(f => f.name))
-      setLoadingFields(new Set(pending))
 
       await Promise.all(
         groupedFields.map(async (fieldGroup) => {
@@ -244,8 +240,6 @@ export default function FieldListPage() {
             setSlotsByField(prev => ({ ...prev, [fieldGroup.name]: groups }))
           } catch {
             slotsMap[fieldGroup.name] = []
-          } finally {
-            setLoadingFields(prev => { const s = new Set(prev); s.delete(fieldGroup.name); return s })
           }
         })
       )

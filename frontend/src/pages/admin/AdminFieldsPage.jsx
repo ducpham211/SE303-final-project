@@ -90,10 +90,6 @@ export default function AdminFieldsPage() {
 
   useEffect(() => { load() }, [])
 
-  const stats = useMemo(() => fields.reduce((acc, f) => {
-    acc[f.type] = (acc[f.type] || 0) + 1
-    return acc
-  }, {}), [fields])
 
   const typeOptions = useMemo(() => Array.from(new Set(fields.map(f => f.type).filter(Boolean))), [fields])
 

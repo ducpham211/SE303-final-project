@@ -133,13 +133,6 @@ export default function AdminUsersPage() {
   useEffect(() => { setPage(0) }, [role, minTrustScore])
   useEffect(() => { load() }, [load])
 
-  const pageStats = useMemo(() => {
-    const items = result.content || []
-    return items.reduce((acc, u) => {
-      acc[u.role] = (acc[u.role] || 0) + 1
-      return acc
-    }, { ADMIN: 0, OWNER: 0, PLAYER: 0 })
-  }, [result.content])
 
   const users = useMemo(() => {
     const q = search.trim().toLowerCase()

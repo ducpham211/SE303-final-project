@@ -33,11 +33,10 @@ export default function LoginPage() {
       const data = await authService.login(email, password)
       if (data.accessToken) {
         login(data.accessToken)
-        // Fetch the actual user profile (including backend-assigned role)
         try {
           const profile = await userService.getMe()
           useAuthStore.getState().enrichUser(profile)
-        } catch (_) { /* enrichment is best-effort */ }
+        } catch { /* enrichment is best-effort */ }
         navigate('/')
       } else {
         setError(data.message || 'Đăng nhập thất bại.')

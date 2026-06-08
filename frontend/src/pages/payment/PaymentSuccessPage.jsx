@@ -10,6 +10,14 @@ export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id')
   const [showConfetti, setShowConfetti] = useState(true)
+  const [confettiPieces] = useState(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      x: `${Math.random() * 100}vw`,
+      delay: `${Math.random() * 2}s`,
+      color: ['#60D86E', '#45c45a', '#ffd700', '#4fc3f7', '#ff8a65', '#ba68c8'][i % 6],
+      duration: `${2 + Math.random() * 2}s`,
+    }))
+  )
 
   useEffect(() => {
     // Hide confetti animation after 4 seconds
@@ -22,15 +30,15 @@ export default function PaymentSuccessPage() {
       {/* Confetti / celebration animation */}
       {showConfetti && (
         <div className="payment-confetti" aria-hidden="true">
-          {[...Array(20)].map((_, i) => (
+          {confettiPieces.map((p, i) => (
             <div
               key={i}
               className="payment-confetti__piece"
               style={{
-                '--x': `${Math.random() * 100}vw`,
-                '--delay': `${Math.random() * 2}s`,
-                '--color': ['#60D86E', '#45c45a', '#ffd700', '#4fc3f7', '#ff8a65', '#ba68c8'][i % 6],
-                '--duration': `${2 + Math.random() * 2}s`,
+                '--x': p.x,
+                '--delay': p.delay,
+                '--color': p.color,
+                '--duration': p.duration,
               }}
             />
           ))}
