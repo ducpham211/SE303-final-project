@@ -7,4 +7,5 @@ public interface UserService {
     UserResponse getUserById(String id);
     UserResponse createUser(String userId, UserCreateRequest request);
     UserResponse updateUser(String userId, UserCreateRequest request);
+    Object getAllUsers(String role, Integer minTrustScore, int page, int size);
 }

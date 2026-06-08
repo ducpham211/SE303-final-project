@@ -18,26 +18,26 @@ export default function PaymentCancelPage() {
 
         <h1 className="payment-callback-title">Thanh toán bị hủy</h1>
         <p className="payment-callback-desc">
-          Bạn đã hủy quá trình thanh toán. Đơn đặt sân chưa được xác nhận.
-          Đừng lo, bạn có thể thử lại bất cứ lúc nào!
+          Bạn đã hủy quá trình thanh toán. Đừng lo — đơn đặt sân <strong>vẫn còn đó</strong>!
+          Bạn có thể vào <strong>Lịch đặt sân</strong> để tiếp tục thanh toán cọc trước khi slot bị giải phóng.
         </p>
 
         <div className="payment-cancel-info">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <p>Không có khoản phí nào được tính. Slot sân vẫn còn trống trong thời gian giới hạn.</p>
+          <p>Slot sân vẫn được giữ trong <strong>5 phút</strong>. Sau đó sẽ tự động được trả lại nếu chưa thanh toán.</p>
         </div>
 
         <div className="payment-callback-actions">
-          <Link to="/dat-san" className="payment-btn payment-btn--primary">
+          <Link to="/booking-history" className="payment-btn payment-btn--primary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            Quay lại đặt sân
+            Vào lịch đặt sân để tiếp tục
           </Link>
-          <Link to="/" className="payment-btn payment-btn--ghost">
-            Về trang chủ
+          <Link to="/fields" className="payment-btn payment-btn--ghost">
+            Đặt sân mới
           </Link>
         </div>
       </div>

@@ -21,6 +21,7 @@ public class BookingCleanupTask {
 
     private final BookingRepository bookingRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final com.example.backend.repository.MatchPostRepository matchPostRepository;
 
     // Chạy ngầm định kỳ mỗi 10 giây (10000 ms) một lần
     @Scheduled(fixedDelay = 60000)
@@ -51,6 +52,18 @@ public class BookingCleanupTask {
             // Lưu lại đống booking đã hủy xuống DB
             bookingRepository.saveAll(expiredBookings);
             log.info("==== CRON-JOB ==== Đã nhả slot về AVAILABLE thành công!");
+        }
+    }
+
+    // Dọn dẹp các bài đăng live match (Auto Ghép) quá 10 phút không hoạt động để tránh kẹt cache/ghost match
+    @Scheduled(fixedDelay = 30000)
+    @Transactional
+    public void cleanExpiredLiveMatches() {
+        LocalDateTime deadline = LocalDateTime.now().minusMinutes(10);
+        List<com.example.backend.entity.MatchPost> expiredMatches = matchPostRepository.findExpiredLiveMatches(deadline);
+        if (!expiredMatches.isEmpty()) {
+            log.info("==== CRON-JOB ==== Phát hiện {} bài đăng live match quá 10 phút. Đang tự động xóa...", expiredMatches.size());
+            matchPostRepository.deleteAll(expiredMatches);
         }
     }
 }

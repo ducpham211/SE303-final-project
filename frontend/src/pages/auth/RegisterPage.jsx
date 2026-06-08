@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
 
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -26,7 +27,7 @@ export default function RegisterPage() {
     setError('')
     setSuccess('')
 
-    if (!email || !password || !confirmPassword) {
+    if (!fullName.trim() || !email || !password || !confirmPassword) {
       setError('Vui lòng nhập đầy đủ các thông tin bắt buộc.')
       return
     }
@@ -41,7 +42,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      const data = await authService.register(email, password)
+      const data = await authService.register(email, password, fullName.trim())
       // Backend returns success message; token may be null if email verification is required
       if (data.accessToken) {
         login(data.accessToken)
@@ -52,7 +53,7 @@ export default function RegisterPage() {
         )
         // Redirect to login page after a brief delay so user sees the success message
         setTimeout(() => {
-          navigate('/dang-nhap')
+          navigate('/login')
         }, 1500)
       }
     } catch (err) {
@@ -101,12 +102,28 @@ export default function RegisterPage() {
           <h2 className="auth-form-card__title">Tạo tài khoản</h2>
           <p className="auth-form-card__sub">
             Đã có tài khoản?{' '}
-            <Link to="/dang-nhap" className="auth-link">
+            <Link to="/login" className="auth-link">
               Đăng nhập
             </Link>
           </p>
 
           <form id="register-form" onSubmit={handleSubmit} className="auth-form" noValidate>
+            {/* Full Name */}
+            <div className="auth-field">
+              <label htmlFor="reg-fullname" className="auth-label">
+                Họ và tên
+              </label>
+              <input
+                id="reg-fullname"
+                type="text"
+                required
+                placeholder="Nguyễn Văn A"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className={`auth-input ${error && !fullName.trim() ? 'auth-input--error' : ''}`}
+              />
+            </div>
+
             {/* Email */}
             <div className="auth-field">
               <label htmlFor="reg-email" className="auth-label">
@@ -241,11 +258,11 @@ export default function RegisterPage() {
 
             <p className="auth-terms">
               Bằng cách đăng ký, bạn đồng ý với{' '}
-              <Link to="/dieu-khoan" className="auth-link">
+              <Link to="/terms-of-service" className="auth-link">
                 Điều khoản dịch vụ
               </Link>{' '}
               và{' '}
-              <Link to="/chinh-sach" className="auth-link">
+              <Link to="/privacy-policy" className="auth-link">
                 Chính sách bảo mật
               </Link>{' '}
               của chúng tôi.

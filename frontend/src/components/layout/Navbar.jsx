@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import NotificationDropdown from '../common/NotificationDropdown'
+import logoApp from '../../assets/Timsanbong.svg'
 
 /**
  * Top navigation bar — adapts to logged-in / logged-out state.
@@ -46,20 +47,18 @@ export default function Navbar() {
     if (role === 'OWNER' || role === 'ROLE_OWNER') {
       return [
         { label: 'Trang chủ', to: '/' },
-        { label: 'Sân của tôi', to: '/owner/fields' },
+        { label: 'Quản lý sân', to: '/owner/fields' },
         { label: 'Lịch đặt sân', to: '/owner/bookings' },
-        { label: 'Doanh thu', to: '/owner/revenue' },
-        { label: 'Liên hệ', to: '/lien-he' },
       ]
     }
 
     // Default PLAYER or GUEST
     return [
       { label: 'Trang chủ', to: '/' },
-      { label: 'Đặt sân', to: '/dat-san' },
-      { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
-      { label: 'Cộng đồng', to: '/cong-dong' },
-      { label: 'Liên hệ', to: '/lien-he' },
+      { label: 'Đặt sân', to: '/fields' },
+      { label: 'Tìm đối thủ', to: '/matchmaking' },
+      { label: 'Đội bóng', to: '/teams' },
+      { label: 'Cộng đồng', to: '/community' },
     ]
   }
 
@@ -82,19 +81,14 @@ export default function Navbar() {
                 id="navbar-logo"
                 className="flex items-center gap-2 flex-shrink-0 z-10"
               >
-                <div className="w-8 h-8 rounded-full bg-[#60D86E] flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                    <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" fill="none"/>
-                    <path d="M12 2L10 8H4.5L9 11.5L7 17.5L12 14L17 17.5L15 11.5L19.5 8H14L12 2Z" fill="white" opacity="0.8"/>
-                  </svg>
-                </div>
+                <img src={logoApp} alt="Timsanbong" className="w-8 h-8 object-contain" />
                 <span className="text-[#1a202c] font-bold text-lg tracking-tight">
                   Tim<span className="text-[#60D86E]">san</span>bong
                 </span>
               </Link>
 
               {/* Desktop Nav Links */}
-              <div 
+              <div
                 className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center justify-center gap-1 transition-all"
               >
                 {navLinks.map((link) => {
@@ -103,11 +97,10 @@ export default function Navbar() {
                     <Link
                       key={link.to}
                       to={link.to}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 flex-shrink-0 ${
-                        isActive 
-                          ? 'bg-[#60D86E] text-white shadow-sm' 
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 flex-shrink-0 ${isActive
+                          ? 'bg-[#60D86E] text-white shadow-sm'
                           : 'text-gray-600 hover:text-[#60D86E] hover:bg-[#e8f9eb]'
-                      }`}
+                        }`}
                     >
                       {link.label}
                     </Link>
@@ -149,50 +142,69 @@ export default function Navbar() {
                           strokeWidth="2"
                           className={`text-gray-400 group-hover:text-white transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
                         >
-                          <polyline points="6 9 12 15 18 9"/>
+                          <polyline points="6 9 12 15 18 9" />
                         </svg>
                       </button>
 
-                    {/* Dropdown */}
-                    {dropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 py-2 overflow-hidden">
-                        {[
-                          { label: 'Hồ sơ', to: '/ho-so' },
-                          { label: 'Lịch đặt', to: '/lich-dat' },
-                          { label: 'Tin nhắn', to: '/tin-nhan' },
-                        ].map((item) => (
-                          <Link
-                            key={item.to}
-                            to={item.to}
-                            onClick={() => setDropdownOpen(false)}
-                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#e8f9eb] hover:text-[#60D86E] transition-colors"
+                      {/* Dropdown */}
+                      {dropdownOpen && (
+                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 py-2 overflow-hidden">
+                          {(() => {
+                            const role = user?.role?.replace('ROLE_', '') || 'PLAYER'
+                            if (role === 'ADMIN') {
+                              return [
+                                { label: 'Dashboard', to: '/admin/dashboard' },
+                                { label: 'Quản lý Users', to: '/admin/users' },
+                                { label: 'Lịch hệ thống', to: '/admin/bookings' },
+                              ]
+                            }
+                            if (role === 'OWNER') {
+                              return [
+                                { label: 'Sân của tôi', to: '/owner/fields' },
+                                { label: 'Lịch đặt sân', to: '/owner/bookings' },
+                                { label: 'Doanh thu', to: '/owner/revenue' },
+                              ]
+                            }
+                            return [
+                              { label: 'Dashboard', to: '/dashboard' },
+                              { label: 'Hồ sơ', to: '/profile' },
+                              { label: 'Lịch đặt', to: '/booking-history' },
+                              { label: 'Đội bóng', to: '/teams' },
+                              { label: 'Tin nhắn', to: '/messages' },
+                            ]
+                          })().map((item) => (
+                            <Link
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setDropdownOpen(false)}
+                              className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-[#e8f9eb] hover:text-[#60D86E] transition-colors"
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+                          <div className="my-1 border-t border-gray-100" />
+                          <button
+                            id="navbar-logout-btn"
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                           >
-                            {item.label}
-                          </Link>
-                        ))}
-                        <div className="my-1 border-t border-gray-100"/>
-                        <button
-                          id="navbar-logout-btn"
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          Đăng xuất
-                        </button>
-                      </div>
-                    )}
+                            Đăng xuất
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
                   <>
                     <Link
-                      to="/dang-nhap"
+                      to="/login"
                       id="navbar-login-btn"
                       className="px-4 py-1.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all duration-200"
                     >
                       Đăng nhập
                     </Link>
                     <Link
-                      to="/dang-ky"
+                      to="/register"
                       id="navbar-register-btn"
                       className="px-4 py-1.5 rounded-full text-sm font-semibold bg-[#60D86E] text-white hover:bg-[#45c45a] transition-all duration-200"
                     >
@@ -211,11 +223,11 @@ export default function Navbar() {
               >
                 {mobileOpen ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 ) : (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
                   </svg>
                 )}
               </button>
@@ -230,11 +242,10 @@ export default function Navbar() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    location.pathname === link.to
+                  className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${location.pathname === link.to
                       ? 'bg-[#60D86E] text-white'
                       : 'text-gray-600 hover:text-[#60D86E] hover:bg-[#e8f9eb]'
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -249,10 +260,10 @@ export default function Navbar() {
                   </button>
                 ) : (
                   <>
-                    <Link to="/dang-nhap" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
+                    <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium text-center border border-gray-200 hover:bg-gray-50">
                       Đăng nhập
                     </Link>
-                    <Link to="/dang-ky" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
+                    <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center bg-[#60D86E] text-white hover:bg-[#45c45a]">
                       Đăng ký
                     </Link>
                   </>

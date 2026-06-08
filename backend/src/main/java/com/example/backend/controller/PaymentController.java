@@ -18,7 +18,7 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/create-session/{bookingId}")
-    @PreAuthorize("hasAnyRole('PLAYER', 'OWNER')") // Chặn ông nào không đăng nhập mà đòi thanh toán
+    @PreAuthorize("hasAnyRole('PLAYER', 'OWNER', 'ADMIN')") // Chặn ông nào không đăng nhập mà đòi thanh toán
     public ResponseEntity<PaymentResponse> createPaymentSession(@PathVariable String bookingId) {
         PaymentResponse response = paymentService.createCheckoutSession(bookingId);
         return ResponseEntity.ok(response);

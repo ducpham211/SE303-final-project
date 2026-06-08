@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom'
 
 const footerLinks = {
   'Dịch vụ': [
-    { label: 'Đặt sân', to: '/dat-san' },
-    { label: 'Tìm đối thủ', to: '/tim-doi-thu' },
-    { label: 'Cộng đồng', to: '/cong-dong' },
+    { label: 'Đặt sân', to: '/fields' },
+    { label: 'Tìm đối thủ', to: '/matchmaking' },
+    { label: 'Cộng đồng', to: '/community' },
   ],
   'Hỗ trợ': [
     { label: 'Câu hỏi thường gặp', to: '/faq' },
-    { label: 'Chính sách bảo mật', to: '/chinh-sach' },
-    { label: 'Điều khoản dịch vụ', to: '/dieu-khoan' },
+    { label: 'Chính sách bảo mật', to: '/privacy-policy' },
+    { label: 'Điều khoản dịch vụ', to: '/terms-of-service' },
   ],
   'Liên hệ': [
     { label: '📧 contact@timsanbong.vn', to: 'mailto:contact@timsanbong.vn' },

@@ -54,7 +54,7 @@ public class MatchRequestServiceImpl implements MatchRequestService {
         }
 
         // Chặn người chơi gửi yêu cầu vào bài đăng đã đóng
-        if (post.getStatus() == Enums.PostStatus.CLOSED) {
+        if (post.getStatus() == Enums.PostStatus.CLOSED || post.getStatus() == Enums.PostStatus.COMPLETED) {
             throw new AppException(400, "Bài đăng này đã đóng, không thể gửi yêu cầu ghép trận!");
         }
 
@@ -79,26 +79,21 @@ public class MatchRequestServiceImpl implements MatchRequestService {
         notifRequest.setTitle("Có lời mời giao hữu mới!");
         notifRequest.setContent(requesterName + " đã gửi yêu cầu nhận kèo của bạn tại sân " + fieldCode);
         notifRequest.setType(Enums.NotificationType.MATCH_REQUEST);
+        notifRequest.setSenderId(request.getRequesterId());
         notificationService.createAndSendNotification(post.getUserId(), notifRequest);
 
         try {
-            boolean chatExists = conversationRepository.findDirectConversationBetweenUsers(
-                    Enums.ConversationType.DIRECT,
+            // KHÔNG CHECK TỒN TẠI NỮA, MỖI KÈO TẠO 1 PHÒNG CHAT RIÊNG
+            ConversationCreateRequest chatRequest = new ConversationCreateRequest();
+            chatRequest.setType(Enums.ConversationType.DIRECT);
+            chatRequest.setMatchId(post.getId()); // ĐÍNH KÈM MÃ KÈO
+            chatRequest.setCreatedAt(LocalDateTime.now());
+
+            conversationService.createDirectConversation(
+                    chatRequest,
                     post.getUserId(),
-                    request.getRequesterId()
-            ).isPresent();
-
-            if (!chatExists) {
-                ConversationCreateRequest chatRequest = new ConversationCreateRequest();
-                chatRequest.setType(Enums.ConversationType.DIRECT);
-                chatRequest.setCreatedAt(LocalDateTime.now());
-
-                conversationService.createDirectConversation(
-                        chatRequest,
-                        post.getUserId(),
-                        request.getRequesterId() 
-                );
-            }
+                    request.getRequesterId() 
+            );
         } catch (Exception e) {
             System.err.println("Lỗi khi auto-create phòng chat: " + e.getMessage());
         }
@@ -120,13 +115,11 @@ public class MatchRequestServiceImpl implements MatchRequestService {
             throw new AppException(403, "Bạn không phải chủ bài đăng, không có quyền duyệt kèo này!");
         }
 
-        // Lỗ hổng 3: Chặn duyệt lại yêu cầu đã xử lý
         if (request.getStatus() != Enums.RequestStatus.PENDING) {
             throw new AppException(400, "Yêu cầu này đã được xử lý trước đó!");
         }
 
-        // Lỗ hổng 1: Chặn "bắt cá 2 tay", nếu bài đăng đã đóng thì không cho Accept nữa
-        if (requestDTO.getStatus() == Enums.RequestStatus.ACCEPTED && post.getStatus() == Enums.PostStatus.CLOSED) {
+        if (requestDTO.getStatus() == Enums.RequestStatus.ACCEPTED && (post.getStatus() == Enums.PostStatus.CLOSED || post.getStatus() == Enums.PostStatus.COMPLETED)) {
             throw new AppException(400, "Bài đăng đã được chốt kèo với người khác!");
         }
 
@@ -134,7 +127,6 @@ public class MatchRequestServiceImpl implements MatchRequestService {
         MatchRequest savedRequest = matchRequestRepository.save(request);
 
         if (requestDTO.getStatus() == Enums.RequestStatus.ACCEPTED) {
-            // Đóng bài đăng
             post.setStatus(Enums.PostStatus.CLOSED);
             matchPostRepository.save(post);
 
@@ -147,6 +139,7 @@ public class MatchRequestServiceImpl implements MatchRequestService {
             notifReq.setTitle("Kèo giao hữu đã được chốt!");
             notifReq.setContent("Tin vui! " + hostName + " đã CHỐT KÈO giao hữu với đội của bạn tại sân " + fieldCode + "!");
             notifReq.setType(Enums.NotificationType.MATCH_REQUEST);
+            notifReq.setSenderId(currentUserId);
             notificationService.createAndSendNotification(request.getRequesterId(), notifReq);
 
             // Lỗ hổng 2: TỰ ĐỘNG TỪ CHỐI (REJECT) các đối thủ khác đang chờ
@@ -174,5 +167,33 @@ public class MatchRequestServiceImpl implements MatchRequestService {
         }
 
         return matchRequestMapper.toStatusResponse(savedRequest);
+    }
+
+    @Override
+    @Transactional
+    public void markAsComplete(String requestId, String currentUserId, String fieldId) {
+        MatchRequest request = matchRequestRepository.findById(requestId)
+            .orElseThrow(() -> new AppException(404, "Không tìm thấy request!"));
+
+        if (!request.getRequesterId().equals(currentUserId)) {
+            throw new AppException(403, "Bạn không có quyền xác nhận cho yêu cầu này!");
+        }
+
+        MatchPost matchPost = matchPostRepository.findById(request.getPostId())
+            .orElseThrow(() -> new AppException(404, "Không tìm thấy bài đăng!"));
+
+        if (matchPost.getFieldId() == null || matchPost.getFieldId().isEmpty()) {
+            if (fieldId == null || fieldId.isEmpty()) {
+                throw new AppException(400, "Vui lòng chọn sân đã đá để hoàn thành trận đấu.");
+            }
+            matchPost.setFieldId(fieldId);
+            matchPostRepository.save(matchPost);
+        }
+
+        request.setStatus(Enums.RequestStatus.COMPLETED);
+        matchRequestRepository.save(request);
+
+        // KHÓA THEO MÃ KÈO (MatchId)
+        conversationService.markConversationsAsCompletedByMatchId(request.getPostId());
     }
 }

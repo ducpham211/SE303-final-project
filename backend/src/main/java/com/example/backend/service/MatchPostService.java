@@ -14,4 +14,8 @@ public interface MatchPostService {
     MatchPostResponse updateMatchPost(String postId, String currentUserId, MatchPostCreateRequest request);
     void deleteMatchPost(String postId, String currentUserId);
     public List<RecommendedMatchResponse> getSmartRecommendations(String currentUserId, String playstyleNote);
+    void markAsComplete(String postId, String currentUserId, String fieldId);
+    Page<MatchPostResponse> getMyActivePosts(String userId, int page, int size);
+    Page<MatchPostResponse> getMatchHistory(String userId, int page, int size);
+    List<MatchPostResponse> getActiveLiveMatches();
 }

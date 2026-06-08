@@ -8,11 +8,8 @@ import com.example.backend.dto.response.FieldResponse;
 import java.util.List;
 
 public interface AdminService {
-    String adjudicateReview(String reviewId, AdminCreateRequest request);
 
     List<FieldResponse> getAllFields();
-
     DashboardOverviewResponse getOverviewMetrics();
-
     DashboardTransactionResponse getTransactionMetrics();
 }

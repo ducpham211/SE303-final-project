@@ -2,6 +2,8 @@ package com.example.backend.entity;
 
 import com.example.backend.utils.Enums;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +56,7 @@ public class MatchPost {
     private User user;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @Fetch(FetchMode.SUBSELECT)
     private List<MatchRequest> requests;
 
     public MatchPost() {}
@@ -99,6 +102,9 @@ public class MatchPost {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
     public List<MatchRequest> getRequests() { return requests; }
     public void setRequests(List<MatchRequest> requests) { this.requests = requests; }

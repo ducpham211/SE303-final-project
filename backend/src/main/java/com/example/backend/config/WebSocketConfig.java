@@ -1,5 +1,7 @@
 package com.example.backend.config;
 
+import com.example.backend.security.JwtChannelInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -11,6 +13,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker // 👉 CÁI NHÃN QUAN TRỌNG NHẤT: Bật công tắc tổng cho WebSocket!
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Autowired
+    private JwtChannelInterceptor jwtChannelInterceptor;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -42,5 +47,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         executor.initialize();
         
         registration.taskExecutor(executor);
+        registration.interceptors(jwtChannelInterceptor);
     }
 }

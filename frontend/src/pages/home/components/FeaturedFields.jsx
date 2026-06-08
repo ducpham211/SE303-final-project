@@ -24,7 +24,7 @@ export default function FeaturedFields() {
 
   const handlePrev = () => setActiveIndex(prev => prev - 1)
   const handleNext = () => setActiveIndex(prev => prev + 1)
-  const handleBook = (typeId) => navigate(`/dat-san?type=${typeId}`)
+  const handleBook = (typeId) => navigate(`/fields?type=${typeId}`)
 
   const virtualOffsets = [-2, -1, 0, 1, 2]
 
