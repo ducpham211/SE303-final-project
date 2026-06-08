@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaRobot, FaPaperPlane } from 'react-icons/fa';
+import api from '../../services/api';
 
 const FloatingChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -7,47 +8,68 @@ const FloatingChatbot = () => {
     { id: 'init-bot', content: 'Xin chào! Tôi là trợ lý AI. Bạn cần hỗ trợ về việc gì?', senderId: 'bot' }
   ]);
   const [messageText, setMessageText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('guest-session');
+  const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
-
-  // UI-only mode: no backend chat API call.
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
+    let userId = 'guest-session';
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || 'guest-session'); // eslint-disable-line react-hooks/set-state-in-effect
+        userId = decodedPayload.sub || decodedPayload.id || decodedPayload.userId || 'guest-session';
       } catch {
         /* ignore */
       }
     }
+    setCurrentUserId(userId); // eslint-disable-line react-hooks/set-state-in-effect
+    setSessionId(userId); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping, isOpen]);
+  }, [messages, isLoading, isOpen]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!messageText.trim()) return;
+    if (!messageText.trim() || isLoading) return;
 
-    const newUserMsg = { id: Date.now().toString(), content: messageText, senderId: currentUserId };
+    const userMessage = messageText;
+    const newUserMsg = { id: Date.now().toString(), content: userMessage, senderId: currentUserId };
     setMessages(prev => [...prev, newUserMsg]);
     setMessageText('');
-    setIsTyping(true);
+    setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const response = await api.post('/chat/ask', {
+        message: userMessage,
+        sessionId: sessionId
+      });
+      
       const botMsg = {
         id: Date.now().toString() + 'bot',
-        content: 'Hiện tại tôi đang gặp sự cố kết nối. Bạn vui lòng thử lại sau.',
+        content: response.data.reply || 'Không nhận được phản hồi từ AI',
         senderId: 'bot'
       };
       setMessages(prev => [...prev, botMsg]);
-      setIsTyping(false);
-    }, 800);
+      
+      if (response.data.sessionId) {
+        setSessionId(response.data.sessionId);
+      }
+    } catch (error) {
+      console.error('Lỗi gửi tin nhắn:', error);
+      const errorMsg = {
+        id: Date.now().toString() + 'bot',
+        content: error.response?.data?.message || 'Hiện tại tôi đang gặp sự cố kết nối. Bạn vui lòng thử lại sau.',
+        senderId: 'bot'
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,7 +101,7 @@ const FloatingChatbot = () => {
                 </div>
               );
             })}
-            {isTyping && (
+            {isLoading && (
               <div className="flex justify-start items-center gap-2">
                 <div className="w-8 h-8 bg-[#60D86E] text-white rounded-full flex items-center justify-center flex-shrink-0"><FaRobot className="text-2xl" /></div>
                 <div className="bg-white text-gray-500 border border-gray-100 rounded-2xl rounded-bl-none px-4 py-2 shadow-sm flex items-center gap-1">
@@ -101,7 +123,7 @@ const FloatingChatbot = () => {
             <button 
               type="submit"
               className="w-10 h-10 bg-[#60D86E] hover:bg-[#45c45a] text-white rounded-full flex items-center justify-center transition shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={!messageText.trim() || isTyping}
+              disabled={!messageText.trim() || isLoading}
             >
               <FaPaperPlane />
             </button>

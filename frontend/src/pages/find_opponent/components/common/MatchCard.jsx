@@ -22,9 +22,9 @@ const formatDate = (dateStr) => {
 
 const translateSkillLevel = (level) => {
   switch(level) {
-    case 'BEGINNER': return 'Yếu / Vui vẻ';
-    case 'INTERMEDIATE': return 'Trung bình / Khá';
-    case 'ADVANCED': return 'Tốt / Chuyên nghiệp';
+    case 'BEGINNER': return 'Tân binh / Vui vẻ';
+    case 'INTERMEDIATE': return 'Nghiệp dư / Khá';
+    case 'ADVANCED': return 'Chuyên nghiệp / Tốt';
     default: return level || 'Mọi trình độ';
   }
 };
@@ -51,7 +51,7 @@ const MatchCard = ({ match, fieldName, onApply }) => {
       </div>
       
       <h3 className="text-lg font-bold text-gray-800 mb-2 truncate" title={match.message}>
-        {match.message || 'Cần tìm đối giao hữu'}
+        {match.message || 'Cần tìm đối thủ giao hữu'}
       </h3>
       
       <div className="space-y-2 text-sm text-gray-600 flex-1 mb-4 border-t border-gray-50 pt-3">
