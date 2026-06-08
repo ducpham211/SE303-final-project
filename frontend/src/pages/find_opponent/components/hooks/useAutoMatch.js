@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import api from '../../../../services/api';
 
 export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) => {
   const navigate = useNavigate();
@@ -21,47 +19,51 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
   const [waitingForPostId, setWaitingForPostId] = useState(null);
 
   const searchCriteriaRef = useRef(null);
-  const silentPostIdRef = useRef(null);
-  const skippedMatchIdsRef = useRef([]);
-  const currentUserIdRef = useRef('');
-  const aiStepRef = useRef('SEARCHING');
-  const waitingForPostIdRef = useRef(null);
+  searchCriteriaRef.current = searchCriteria;
 
-  useEffect(() => { searchCriteriaRef.current = searchCriteria; }, [searchCriteria]);
-  useEffect(() => { silentPostIdRef.current = silentPostId; }, [silentPostId]);
-  useEffect(() => { skippedMatchIdsRef.current = skippedMatchIds; }, [skippedMatchIds]);
-  useEffect(() => { currentUserIdRef.current = currentUserId; }, [currentUserId]);
-  useEffect(() => { aiStepRef.current = aiStep; }, [aiStep]);
-  useEffect(() => { waitingForPostIdRef.current = waitingForPostId; }, [waitingForPostId]);
+  const skippedMatchIdsRef = useRef([]);
+  skippedMatchIdsRef.current = skippedMatchIds;
+
+  const currentUserIdRef = useRef(null);
+  currentUserIdRef.current = currentUserId;
+
+  const aiStepRef = useRef('SEARCHING');
+  aiStepRef.current = aiStep;
+
+  const silentPostIdRef = useRef(null);
+  silentPostIdRef.current = silentPostId;
+
+  const waitingForPostIdRef = useRef(null);
+  waitingForPostIdRef.current = waitingForPostId;
 
   useEffect(() => {
     const savedPostId = localStorage.getItem('autoMatch_silentPostId');
     const savedCriteria = localStorage.getItem('autoMatch_criteria');
-    const savedWaitId = localStorage.getItem('autoMatch_waitingForPostId');
-    
-    if (savedPostId && savedCriteria) {
-        setSilentPostId(savedPostId);
-        setSearchCriteria(JSON.parse(savedCriteria));
-        if (savedWaitId) {
-            setWaitingForPostId(savedWaitId);
-            setAiStep('WAITING_OPPONENT');
-        } else {
-            setAiStep('SEARCHING');
-        }
-        setIsPolling(true);
+    const savedWaitingId = localStorage.getItem('autoMatch_waitingForPostId');
+
+    if (savedPostId) setSilentPostId(savedPostId);
+    if (savedCriteria) setSearchCriteria(JSON.parse(savedCriteria));
+    if (savedWaitingId) {
+        setWaitingForPostId(savedWaitingId);
+        setAiStep('WAITING_OPPONENT');
         onChangeViewMode('ai');
+        setIsPolling(true);
+    } else if (savedCriteria) {
+        setAiStep('SEARCHING');
+        onChangeViewMode('ai');
+        setIsPolling(true);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCancelSearch = async () => {
     setIsPolling(false);
     setSearchCriteria(null);
-    setSkippedMatchIds([]);
+    setAiResults([]);
     setPendingRequest(null);
     setFoundLivePost(null);
     setWaitingForPostId(null);
-    
-    const currentSilentId = silentPostIdRef.current ? String(silentPostIdRef.current) : null;
+
+    const currentSilentId = silentPostIdRef.current;
     silentPostIdRef.current = null;
     setSilentPostId(null);
     localStorage.removeItem('autoMatch_silentPostId');
@@ -70,9 +72,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
     if (currentSilentId) {
         try {
-            const token = localStorage.getItem('accessToken');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            await axios.delete(`${API_URL}/match-posts/${currentSilentId}`, config);
+            await api.delete(`/match-posts/${currentSilentId}`);
         } catch (e) {}
     }
     onChangeViewMode('all');
@@ -88,11 +88,10 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
       isActiveRequest = true;
 
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('access_token');
         if (!token) { setIsPolling(false); return; }
-        const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        const postsRes = await axios.get(`${API_URL}/match-posts?size=100`, config);
+        const postsRes = await api.get('/match-posts?size=100');
         const currentMatches = postsRes.data.content || postsRes.data || [];
         if (isMounted) onMatchesFetched(currentMatches);
 
@@ -114,19 +113,18 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                fieldId: searchCriteriaRef.current.fieldId || null
              };
              try {
-                 const resPost = await axios.post(`${API_URL}/match-posts`, postData, config);
+                 const resPost = await api.post('/match-posts', postData);
                  const newId = resPost.data.id || resPost.data.matchPostId || resPost.data;
                  const stringId = String(typeof newId === 'object' ? newId.id : newId);
                  if (isMounted) {
                      setSilentPostId(stringId);
-                     silentPostIdRef.current = stringId;
                      localStorage.setItem('autoMatch_silentPostId', stringId);
                  }
              } catch (e) {}
         }
 
         const currentSilentId = silentPostIdRef.current;
-        if (currentSilentId) {
+        if (aiStepRef.current === 'SEARCHING' && currentSilentId && currentMatches.length > 0) {
              const cleanSilentId = String(typeof currentSilentId === 'object' ? currentSilentId.id : currentSilentId);
              const mySilentPost = currentMatches.find((p) => String(p.id) === cleanSilentId);
              
@@ -139,10 +137,10 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                  const pending = mySilentPost.requests.find((r) => r.status === 'PENDING');
                  if (pending && aiStepRef.current !== 'RECEIVE_REQUEST') {
                      if (isMounted) {
-                         setPendingRequest(pending);
-                         setFoundLivePost(null);
-                         setAiStep('RECEIVE_REQUEST');
-                         onChangeViewMode('ai');
+                          setPendingRequest(pending);
+                          setFoundLivePost(null);
+                          setAiStep('RECEIVE_REQUEST');
+                          onChangeViewMode('ai');
                      }
                      return;
                  }
@@ -155,109 +153,109 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                  const myReq = targetPost.requests?.find((r) => r.requesterId === currentUserIdRef.current);
                  if (myReq) {
                      if (myReq.status === 'ACCEPTED') {
-                         if (isMounted) {
-                             setIsPolling(false);
-                             setIsProcessingMatch(true); 
-                             alert('Đối phương đã chốt! Chuyển đến phòng chat...');
-                             
-                             if (silentPostIdRef.current) {
-                                 try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
-                             }
-                             setSilentPostId(null);
-                             setWaitingForPostId(null);
-                             localStorage.removeItem('autoMatch_silentPostId');
-                             localStorage.removeItem('autoMatch_criteria');
-                             localStorage.removeItem('autoMatch_waitingForPostId');
-                             
-                             setIsProcessingMatch(false);
-                             navigate('/messages');
-                         }
-                         return;
-                     } else if (myReq.status === 'REJECTED') {
-                         if (isMounted) {
-                             setSkippedMatchIds(prev => [...prev, waitingForPostIdRef.current]);
-                             setWaitingForPostId(null);
-                             localStorage.removeItem('autoMatch_waitingForPostId');
-                             setAiStep('SEARCHING');
-                         }
-                     }
+                          if (isMounted) {
+                              setIsPolling(false);
+                              setIsProcessingMatch(true); 
+                              alert('Đối phương đã chốt! Chuyển đến phòng chat...');
+                              
+                              if (silentPostIdRef.current) {
+                                  try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
+                              }
+                              setSilentPostId(null);
+                              setWaitingForPostId(null);
+                              localStorage.removeItem('autoMatch_silentPostId');
+                              localStorage.removeItem('autoMatch_criteria');
+                              localStorage.removeItem('autoMatch_waitingForPostId');
+                              
+                              setIsProcessingMatch(false);
+                              navigate('/messages');
+                          }
+                          return;
+                      } else if (myReq.status === 'REJECTED') {
+                          if (isMounted) {
+                              setSkippedMatchIds(prev => [...prev, waitingForPostIdRef.current]);
+                              setWaitingForPostId(null);
+                              localStorage.removeItem('autoMatch_waitingForPostId');
+                              setAiStep('SEARCHING');
+                          }
+                      }
                  }
              } else {
-                 if (isMounted) {
-                     setSkippedMatchIds(prev => [...prev, waitingForPostIdRef.current]);
-                     setWaitingForPostId(null);
-                     localStorage.removeItem('autoMatch_waitingForPostId');
-                     setAiStep('SEARCHING');
-                 }
+                  if (isMounted) {
+                      setSkippedMatchIds(prev => [...prev, waitingForPostIdRef.current]);
+                      setWaitingForPostId(null);
+                      localStorage.removeItem('autoMatch_waitingForPostId');
+                      setAiStep('SEARCHING');
+                  }
              }
         }
 
         if (aiStepRef.current === 'SEARCHING') {
-            const otherLivePost = currentMatches.find((p) =>
-                p.userId !== currentUserIdRef.current &&
-                p.message && p.message.startsWith("[LIVE_MATCH]") &&
-                (p.status === 'OPEN' || p.status === 'OPENING') &&
-                (!searchCriteriaRef.current.date || p.date.startsWith(searchCriteriaRef.current.date)) &&
-                (!searchCriteriaRef.current.fieldId || p.fieldId === searchCriteriaRef.current.fieldId) &&
-                !skippedMatchIdsRef.current.includes(p.id)
-            );
+             const otherLivePost = currentMatches.find((p) =>
+                 p.userId !== currentUserIdRef.current &&
+                 p.message && p.message.startsWith("[LIVE_MATCH]") &&
+                 (p.status === 'OPEN' || p.status === 'OPENING') &&
+                 (!searchCriteriaRef.current.date || p.date.startsWith(searchCriteriaRef.current.date)) &&
+                 (!searchCriteriaRef.current.fieldId || p.fieldId === searchCriteriaRef.current.fieldId) &&
+                 !skippedMatchIdsRef.current.includes(p.id)
+             );
 
-            if (otherLivePost) {
-                if (isMounted) {
-                    setFoundLivePost(otherLivePost);
-                    setPendingRequest(null);
-                    setAiStep('MATCH_FOUND');
-                    onChangeViewMode('ai');
-                    setIsPolling(false);
-                }
-                return;
-            }
+             if (otherLivePost) {
+                 if (isMounted) {
+                     setFoundLivePost(otherLivePost);
+                     setPendingRequest(null);
+                     setAiStep('MATCH_FOUND');
+                     onChangeViewMode('ai');
+                     setIsPolling(false);
+                 }
+                 return;
+             }
 
-            let staticMatches = [];
-            try {
-                const resAi = await axios.get(`${API_URL}/match-posts/recommendations?playstyle=${encodeURIComponent(searchCriteriaRef.current.message)}`, config);
-                staticMatches = resAi.data.map((rec) => {
-                  const fullMatch = currentMatches.find((m) => 
-                      m.id === rec.matchId && 
-                      m.userId !== currentUserIdRef.current && 
-                      (m.status === 'OPEN' || m.status === 'OPENING') && 
-                      (!m.message || !m.message.startsWith("[LIVE_MATCH]"))
-                  );
-                  return { ...rec, fullMatch };
-                }).filter((r) => r.fullMatch);
-            } catch (error) {}
+             let staticMatches = [];
+             try {
+                 const resAi = await api.get(`/match-posts/recommendations?playstyle=${encodeURIComponent(searchCriteriaRef.current.message)}`);
+                 staticMatches = resAi.data.map((rec) => {
+                   const fullMatch = currentMatches.find((m) => 
+                       m.id === rec.matchId && 
+                       m.userId !== currentUserIdRef.current && 
+                       (m.status === 'OPEN' || m.status === 'OPENING') && 
+                       (!m.message || !m.message.startsWith("[LIVE_MATCH]"))
+                   );
+                   return { ...rec, fullMatch };
+                 }).filter((r) => r.fullMatch);
+             } catch (error) {}
 
-            if (staticMatches.length === 0) {
-                const fallbackMatches = currentMatches.filter((m) => 
-                    m.userId !== currentUserIdRef.current && 
-                    (m.status === 'OPEN' || m.status === 'OPENING') && 
-                    (!m.message || !m.message.startsWith("[LIVE_MATCH]"))
-                );
-                staticMatches = fallbackMatches.map((m) => ({
-                    fullMatch: m,
-                    aiExplanation: "Hệ thống gợi ý bổ sung dựa trên dữ liệu sân và ngày giờ phù hợp với bạn."
-                }));
-            }
+             if (staticMatches.length === 0) {
+                 const fallbackMatches = currentMatches.filter((m) => 
+                     m.userId !== currentUserIdRef.current && 
+                     (m.status === 'OPEN' || m.status === 'OPENING') && 
+                     (!m.message || !m.message.startsWith("[LIVE_MATCH]"))
+                 );
+                 staticMatches = fallbackMatches.map((m) => ({
+                     fullMatch: m,
+                     aiExplanation: "Hệ thống gợi ý bổ sung dựa trên dữ liệu sân và ngày giờ phù hợp với bạn."
+                 }));
+             }
 
-            if (searchCriteriaRef.current.date) {
-                staticMatches = staticMatches.filter((r) => r.fullMatch.date.startsWith(searchCriteriaRef.current.date));
-            }
-            if (searchCriteriaRef.current.fieldId) {
-                staticMatches = staticMatches.filter((r) => r.fullMatch.fieldId === searchCriteriaRef.current.fieldId);
-            }
-            staticMatches = staticMatches.filter((r) => !skippedMatchIdsRef.current.includes(r.fullMatch.id));
+             if (searchCriteriaRef.current.date) {
+                 staticMatches = staticMatches.filter((r) => r.fullMatch.date.startsWith(searchCriteriaRef.current.date));
+             }
+             if (searchCriteriaRef.current.fieldId) {
+                 staticMatches = staticMatches.filter((r) => r.fullMatch.fieldId === searchCriteriaRef.current.fieldId);
+             }
+             staticMatches = staticMatches.filter((r) => !skippedMatchIdsRef.current.includes(r.fullMatch.id));
 
-            if (isMounted) {
-                setAiResults(staticMatches);
-                setAiStep('RESULTS');
-                setIsPolling(false);
-            }
-        }
+             if (isMounted) {
+                 setAiResults(staticMatches);
+                 setAiStep('RESULTS');
+                 setIsPolling(false);
+             }
+         }
       } catch (error) {
           if (error.response && (error.response.status === 401 || error.response.status === 403)) {
               if (isMounted) { setIsPolling(false); handleCancelSearch(); }
           }
-      } finalId: {
+      } finally {
         isActiveRequest = false;
         if (isMounted && isPolling && !isProcessingMatch && (aiStepRef.current === 'SEARCHING' || aiStepRef.current === 'WAITING_OPPONENT')) {
             timeoutId = setTimeout(pollForMatches, 3000);
@@ -273,7 +271,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isPolling, isProcessingMatch, API_URL, navigate]);
+  }, [isPolling, isProcessingMatch, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAutoMatchSubmit = async (criteria) => {
     setSearchCriteria(criteria);
@@ -286,8 +284,6 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsPolling(false);
     
     try {
-        const token = localStorage.getItem('accessToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
         let finalTimeStart = null;
         let finalTimeEnd = null;
         if (criteria.date && criteria.timeStartStr) {
@@ -304,7 +300,7 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
           postType: 'FIND_OPPONENT',
           fieldId: criteria.fieldId || null
         };
-        const resPost = await axios.post(`${API_URL}/match-posts`, postData, config);
+        const resPost = await api.post('/match-posts', postData);
         const newId = resPost.data.id || resPost.data.matchPostId || resPost.data;
         const stringId = String(typeof newId === 'object' ? newId.id : newId);
         
@@ -318,16 +314,14 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
 
   const handleAcceptLiveMatch = async () => {
     setIsProcessingMatch(true);
-    const token = localStorage.getItem('accessToken');
-    const config = { headers: { Authorization: `Bearer ${token}` } };
 
     if (foundLivePost) {
         try {
-            await axios.post(`${API_URL}/match-requests`, {
+            await api.post('/match-requests', {
                 postId: foundLivePost.id,
                 requesterId: currentUserIdRef.current,
                 message: "Auto Match Live: Chốt kèo!"
-            }, config);
+            });
             
             setWaitingForPostId(foundLivePost.id);
             localStorage.setItem('autoMatch_waitingForPostId', foundLivePost.id);
@@ -360,16 +354,14 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('accessToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.post(`${API_URL}/match-requests`, {
+        await api.post('/match-requests', {
             postId: matchId,
             requesterId: currentUserIdRef.current,
             message: "Gợi ý AI: Mình thấy rất phù hợp! Chốt kèo nhé."
-        }, config);
+        });
         
         if (silentPostIdRef.current) {
-            try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
+            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');
@@ -391,12 +383,9 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
   const handleRejectPending = async () => {
     setIsProcessingMatch(true);
     try {
-        const token = localStorage.getItem('accessToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
         if (pendingRequest) {
-            await axios.put(`${API_URL}/match-requests/${pendingRequest.id}/status`, { status: 'REJECTED' }, config);
-            const postsRes = await axios.get(`${API_URL}/match-posts?size=100`, config);
+            await api.put(`/match-requests/${pendingRequest.id}/status`, { status: 'REJECTED' });
+            const postsRes = await api.get('/match-posts?size=100');
             const currentMatches = postsRes.data.content || postsRes.data || [];
             const theirPost = currentMatches.find((p) => p.userId === pendingRequest.requesterId && p.message?.startsWith("[LIVE_MATCH]"));
             if (theirPost) setSkippedMatchIds(prev => [...prev, theirPost.id]);
@@ -413,13 +402,10 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
-        const token = localStorage.getItem('accessToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
-        await axios.put(`${API_URL}/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' }, config);
+        await api.put(`/match-requests/${pendingRequest.id}/status`, { status: 'ACCEPTED' });
         
         if (silentPostIdRef.current) {
-            try { await axios.delete(`${API_URL}/match-posts/${silentPostIdRef.current}`, config); } catch (e) {}
+            try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch (e) {}
             setSilentPostId(null);
             localStorage.removeItem('autoMatch_silentPostId');
             localStorage.removeItem('autoMatch_criteria');
