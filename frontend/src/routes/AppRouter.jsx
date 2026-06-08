@@ -43,18 +43,16 @@ const PaymentCancelPage = lazy(
 import CommunityPage from "../pages/community/CommunityPage";
 
 // ── Admin ─────────────────────────────────────────────────────────────
-const AdminDashboardPage = lazy(
-  () => import("../pages/admin/AdminDashboardPage"),
-);
+const AdminDashboardPage = lazy(() => import("../pages/admin/AdminDashboardPage"));
 const AdminUsersPage = lazy(() => import("../pages/admin/AdminUsersPage"));
-const AdminBookingsPage = lazy(
-  () => import("../pages/admin/AdminBookingsPage"),
-);
+const AdminFieldsPage = lazy(() => import("../pages/admin/AdminFieldsPage"));
 const AdminMatchesPage = lazy(() => import("../pages/admin/AdminMatchesPage"));
+const AdminReviewsPage = lazy(() => import("../pages/admin/AdminReviewsPage"));
 
 // Owner
 import OwnerFieldsPage from "../pages/owner/OwnerFieldsPage";
 import OwnerBookingsPage from "../pages/owner/OwnerBookingsPage";
+
 
 /**
  * Central router — all application routes are defined here.
@@ -184,10 +182,10 @@ export default function AppRouter() {
             }
           />
           <Route
-            path="/admin/bookings"
+            path="/admin/fields"
             element={
               <ProtectedRoute roles={["ADMIN"]}>
-                <AdminBookingsPage />
+                <AdminFieldsPage />
               </ProtectedRoute>
             }
           />
@@ -196,6 +194,14 @@ export default function AppRouter() {
             element={
               <ProtectedRoute roles={["ADMIN"]}>
                 <AdminMatchesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/reviews"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminReviewsPage />
               </ProtectedRoute>
             }
           />
