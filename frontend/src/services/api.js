@@ -36,7 +36,9 @@ api.interceptors.response.use(
           stored.state.user = null
           localStorage.setItem('auth-storage', JSON.stringify(stored))
         }
-      } catch (_) {}
+      } catch {
+        // ignore parsing errors
+      }
       window.location.href = '/login'
     }
     return Promise.reject(error)

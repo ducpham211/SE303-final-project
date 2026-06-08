@@ -49,6 +49,7 @@ export default function NotificationDropdown() {
     // Initial fetch
     const fetchInitialData = async () => {
       try {
+        setLoading(true)
         const [countData, listData] = await Promise.all([
           notificationService.getUnreadCount(),
           notificationService.getNotifications()
@@ -57,6 +58,8 @@ export default function NotificationDropdown() {
         setNotifications(listData || [])
       } catch (err) {
         console.error('Notification initial fetch error:', err)
+      } finally {
+        setLoading(false)
       }
     }
     fetchInitialData()
@@ -90,7 +93,7 @@ export default function NotificationDropdown() {
         },
       })
       stompClient.activate()
-    } catch (err) {
+    } catch {
       // Ignore ws setup errors
     }
 
@@ -110,7 +113,9 @@ export default function NotificationDropdown() {
       await notificationService.markAsRead(id)
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n))
       setUnreadCount((c) => Math.max(0, c - 1))
-    } catch {}
+    } catch {
+      // ignore error
+    }
   }
 
   const handleMarkAllRead = async () => {
@@ -118,7 +123,9 @@ export default function NotificationDropdown() {
       await notificationService.markAllAsRead()
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
       setUnreadCount(0)
-    } catch {}
+    } catch {
+      // ignore error
+    }
   }
 
   if (!isLoggedIn) return null
