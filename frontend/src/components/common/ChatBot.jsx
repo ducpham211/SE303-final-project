@@ -25,8 +25,8 @@ const FloatingChatbot = () => {
         /* ignore */
       }
     }
-    setCurrentUserId(userId); // eslint-disable-line react-hooks/set-state-in-effect
-    setSessionId(userId); // eslint-disable-line react-hooks/set-state-in-effect
+    setCurrentUserId(userId);
+    setSessionId(userId);
   }, []);
 
   useEffect(() => {
