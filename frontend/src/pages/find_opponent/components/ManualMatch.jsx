@@ -243,7 +243,7 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
                 <option value="50-50">50-50</option>
                 <option value="60-40">60-40</option>
                 <option value="70-30">70-30</option>
-                <option value="Share đều">Chia đều</option>
+                <option value="Tự thỏa thuận">Tự thỏa thuận</option>
               </select>
             </div>
           </div>
