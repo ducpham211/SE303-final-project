@@ -259,7 +259,6 @@ export default function FindOpponentPage() {
               {historyMatches.length > 0 ? historyMatches.map((match) => {
                 const isMyPost = match.userId === currentUserId;
                 const myRequest = match.requests?.find((r) => r.requesterId === currentUserId);
-<<<<<<< HEAD
 
                 // compute review eligibility
                 const isClosed = match.status === 'CLOSED';
@@ -273,13 +272,13 @@ export default function FindOpponentPage() {
                 const canReview = isClosed && opponentId && !submittedReviews.includes(match.id);
 
                 return (
-                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
                       <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
                       <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="flex flex-col gap-3 w-full sm:w-auto">
                       {isMyPost ? (
                         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                           <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
@@ -295,45 +294,17 @@ export default function FindOpponentPage() {
                       ) : null}
 
                       {canReview && (
-                        <div className="self-start sm:self-auto mt-0">
-                          <button 
-                            onClick={() => {
-                              setReviewTarget({ matchId: match.id, revieweeId: opponentId });
-                              setReviewModalOpen(true);
-                            }}
-                            className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-semibold text-sm hover:bg-emerald-100 whitespace-nowrap"
-                          >
-                            Đánh giá đối thủ
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setReviewTarget({ matchId: match.id, revieweeId: opponentId });
+                            setReviewModalOpen(true);
+                          }}
+                          className="self-end w-40 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-100"
+                        >
+                          Đánh giá đối thủ
+                        </button>
                       )}
                     </div>
-=======
-                return (
-                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                      <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                      <p className="text-sm text-slate-500 mb-1">Trình độ: <span className="font-semibold">{match.skillLevel || 'Không rõ'}</span></p>
-                      <p className="text-sm text-slate-500 mb-1">Chia tiền: <span className="font-semibold">{match.costSharing || 'Không rõ'}</span></p>
-                      <p className="text-sm text-slate-500 mb-1">Thời gian: <span className="font-semibold">{(match.timeStart && match.timeEnd) ? `${match.timeStart.split('T')[1].substring(0,5)} - ${match.timeEnd.split('T')[1].substring(0,5)}` : (match.timeStart ? match.timeStart.split('T')[1].substring(0,5) : 'Chưa rõ')}</span></p>
-                      <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
-                      <p className="text-sm text-slate-500">Loại: <span className="font-semibold text-slate-700">{isMyPost ? 'Bài của tôi' : 'Yêu cầu của tôi'}</span></p>
-                    </div>
-                    {isMyPost ? (
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
-                        <p className="mt-2">Trạng thái: <span className="font-semibold">{match.requests?.[0]?.status || 'COMPLETED'}</span></p>
-                        <p className="mt-2">Lời nhắn: {match.requests?.[0]?.message || 'Không có'}</p>
-                      </div>
-                    ) : myRequest ? (
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        <p className="font-semibold">Bạn đã gửi yêu cầu nhận kèo này.</p>
-                        <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'COMPLETED'}</span></p>
-                        <p className="mt-2">Lời nhắn: {myRequest.message || 'Không có'}</p>
-                      </div>
-                    ) : null}
->>>>>>> 82b79f93e44903e844e3ef23590519c52d1bfd0e
                   </div>
                 );
               }) : (
@@ -433,7 +404,6 @@ export default function FindOpponentPage() {
           match={selectedMatch}
           onClose={closeConfirmApply}
           onConfirm={handleConfirmApply}
-<<<<<<< HEAD
         />
         <FairplayReviewModal 
           isOpen={reviewModalOpen}
@@ -446,8 +416,6 @@ export default function FindOpponentPage() {
           }}
           matchId={reviewTarget?.matchId}
           revieweeId={reviewTarget?.revieweeId}
-=======
->>>>>>> 82b79f93e44903e844e3ef23590519c52d1bfd0e
         />
       </section>
     </main>
