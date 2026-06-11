@@ -1,4 +1,4 @@
-import { FaFutbol, FaClock, FaCalendarAlt, FaMoneyBillWave, FaUserCircle } from 'react-icons/fa';
+import { FaFutbol, FaClock, FaCalendarAlt, FaMoneyBillWave, FaUserCircle, FaTimes } from 'react-icons/fa';
 
 const formatTime = (timeStr) => {
   if (!timeStr) return '';
@@ -29,11 +29,11 @@ const translateSkillLevel = (level) => {
   }
 };
 
-const MatchCard = ({ match, fieldName, onApply }) => {
+const MatchCard = ({ match, fieldName, onApply, onDelete, className = '' }) => {
   const displayField = fieldName ? fieldName : (match.fieldId ? `Sân ID: ${match.fieldId.substring(0, 8)}...` : 'Chưa chọn sân');
 
   return (
-    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition">
+    <div className={`bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition ${className}`}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           <FaUserCircle className="text-3xl text-gray-400" />
@@ -48,6 +48,16 @@ const MatchCard = ({ match, fieldName, onApply }) => {
             </span>
           </div>
         </div>
+        {typeof onDelete === 'function' && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-gray-400 hover:text-red-600 transition p-2 rounded-full focus:outline-none"
+            aria-label="Hủy bài đăng"
+          >
+            <FaTimes />
+          </button>
+        )}
       </div>
       
       <h3 className="text-lg font-bold text-gray-800 mb-2 truncate" title={match.message}>
@@ -70,16 +80,16 @@ const MatchCard = ({ match, fieldName, onApply }) => {
             <FaClock className="text-orange-500" />
             <span>{formatTime(match.timeStart)} - {formatTime(match.timeEnd)}</span>
           </p>
+          <p className="flex items-center gap-2">
+            <span className="font-bold text-gray-700">Trình độ:</span>
+            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">{translateSkillLevel(match.skillLevel)}</span>
+          </p>
+          <p className="flex items-center gap-2">
+            <FaMoneyBillWave className="text-green-500" />
+            <span className="font-bold text-gray-700">Tỉ lệ chia tiền:</span>
+            <span>{match.costSharing || 'Chia đều'}</span>
+          </p>
         </div>
-        <p className="flex items-center gap-2 mt-2">
-          <span className="font-bold text-gray-700">Trình độ:</span>
-          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">{translateSkillLevel(match.skillLevel)}</span>
-        </p>
-        <p className="flex items-center gap-2">
-          <FaMoneyBillWave className="text-green-500" />
-          <span className="font-bold text-gray-700">Tỉ lệ chia tiền:</span>
-          <span>{match.costSharing || 'Chia đều'}</span>
-        </p>
       </div>
 
       {typeof onApply === 'function' && (

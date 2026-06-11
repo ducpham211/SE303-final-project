@@ -328,6 +328,8 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             setFoundLivePost(null);
             setAiStep('WAITING_OPPONENT');
             setIsPolling(true);
+            alert('Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để tiếp tục trao đổi.');
+            navigate('/messages');
         } catch {
             alert('Đối phương đã rời đi hoặc từ chối, Tiếp tục quét...');
             setSkippedMatchIds(prev => [...prev, foundLivePost.id]);
@@ -350,14 +352,15 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
     setIsProcessingMatch(false);
   };
 
-  const handleAcceptStaticSuggestion = async (matchId) => {
+  const handleAcceptStaticSuggestion = async (matchId, userMessage = null) => {
     setIsProcessingMatch(true);
     setIsPolling(false);
     try {
+        const message = userMessage || "Gợi ý AI: Mình thấy rất phù hợp! Chốt kèo nhé.";
         await api.post('/match-requests', {
             postId: matchId,
             requesterId: currentUserIdRef.current,
-            message: "Gợi ý AI: Mình thấy rất phù hợp! Chốt kèo nhé."
+            message: message
         });
         
         if (silentPostIdRef.current) {
@@ -368,9 +371,9 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             localStorage.removeItem('autoMatch_waitingForPostId');
         }
 
-        alert('Đã gửi yêu cầu ghép trận! Đang chờ đối phương xác nhận. Bạn có thể xem ở tab Lịch Sử.');
+        alert('Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để trao đổi với chủ kèo.');
         setSearchCriteria(null);
-        onChangeViewMode('history');
+        navigate('/messages');
     } catch {
         alert('Trận này đã bị đóng hoặc bạn đã gửi yêu cầu rồi!');
         setSkippedMatchIds(prev => [...prev, matchId]);

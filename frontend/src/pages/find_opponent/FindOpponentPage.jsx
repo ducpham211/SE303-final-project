@@ -4,6 +4,7 @@ import { FaPlus, FaGlobe, FaListAlt, FaHistory, FaRobot } from 'react-icons/fa';
 import ManualMatch from './components/ManualMatch'
 import AutoMatch from './components/AutoMatch'
 import AutoMatchView from './components/AutoMatchView';
+import MatchCard from './components/common/MatchCard';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
 import ConfirmApply from './components/ConfirmApply';
 import api from '../../services/api';
@@ -90,7 +91,7 @@ export default function FindOpponentPage() {
   const handleConfirmApply = async () => {
     closeConfirmApply();
     await refreshMatches();
-    navigate('/messages');
+    setViewMode('history');
   };
 
   const handleAcceptMatchRequest = async (requestId) => {
@@ -98,9 +99,9 @@ export default function FindOpponentPage() {
 
     try {
       await api.put(`/match-requests/${requestId}/status`, { status: 'ACCEPTED' });
-      alert('Đã chốt kèo! Đang chuyển tới chat.');
       await refreshMatches();
-      navigate('/messages');
+      alert('Đã chốt kèo! Chuyển sang tab Lịch sử để xem trạng thái mới.');
+      setViewMode('history');
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || 'Không thể chốt kèo. Vui lòng thử lại.');
@@ -131,20 +132,37 @@ export default function FindOpponentPage() {
     }
   };
 
+  const handleDeleteMatchPost = async (postId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy bài đăng này?')) return;
+
+    try {
+      await api.delete(`/match-posts/${postId}`);
+      alert('Đã hủy bài đăng thành công.');
+      await refreshMatches();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Không thể hủy bài đăng. Vui lòng thử lại.');
+    }
+  };
+
   const publicMatches = matches.filter((m) =>
     (m.status === 'OPEN' || m.status === 'OPENING') &&
     (!m.message || !m.message.startsWith('[LIVE_MATCH]'))
   );
 
-  const myMatches = matches.filter((m) =>
-    m.userId === currentUserId &&
-    (!m.message || !m.message.startsWith('[LIVE_MATCH]'))
-  );
+  const myMatches = matches.filter((m) => {
+    const isMyPost = m.userId === currentUserId && (!m.message || !m.message.startsWith('[LIVE_MATCH]'));
+    const hasPendingRequests = m.requests && m.requests.some((r) => r.status === 'PENDING');
+    return isMyPost && (m.status !== 'CLOSED' || hasPendingRequests);
+  });
 
-  const historyMatches = matches.filter((m) =>
-    (m.userId === currentUserId && (m.status === 'CLOSED' || (m.requests && m.requests.length > 0))) ||
-    (m.requests && m.requests.some((r) => r.requesterId === currentUserId))
-  );
+  const historyMatches = matches.filter((m) => {
+    const isMyClosedPost = m.userId === currentUserId && m.status === 'CLOSED' && (!m.message || !m.message.startsWith('[LIVE_MATCH]'));
+    const isMyCompletedRequest = m.requests && m.requests.some((r) => 
+      r.requesterId === currentUserId && (r.status === 'ACCEPTED' || r.status === 'REJECTED')
+    );
+    return isMyClosedPost || isMyCompletedRequest;
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -232,43 +250,15 @@ export default function FindOpponentPage() {
                       <p className="text-sm text-slate-500">Loại: <span className="font-semibold text-slate-700">{isMyPost ? 'Bài của tôi' : 'Yêu cầu của tôi'}</span></p>
                     </div>
                     {isMyPost ? (
-                      match.requests && match.requests.length > 0 ? (
-                        <div className="space-y-3">
-                          {match.requests.map((req) => (
-                            <div key={req.id || req.requesterId} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                              <p className="text-sm text-slate-700 font-semibold">Người nhận: {req.requesterId}</p>
-                              <p className="text-sm text-slate-600 mt-2">Lời nhắn: {req.message || 'Không có'}</p>
-                              <p className="text-sm text-slate-600 mt-1">Trạng thái: <span className="font-semibold">{req.status || 'PENDING'}</span></p>
-                              {match.status !== 'CLOSED' && req.status !== 'ACCEPTED' && (
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAcceptMatchRequest(req.id)}
-                                    className="rounded-full bg-[#60D86E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#45c45a]"
-                                  >
-                                    Chốt kèo
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRejectMatchRequest(req.id)}
-                                    className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-                                  >
-                                    Từ chối
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
-                          Chưa có ai gửi yêu cầu nhận kèo này.
-                        </div>
-                      )
+                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                        <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
+                        <p className="mt-2">Trạng thái: <span className="font-semibold">{match.requests?.[0]?.status || 'COMPLETED'}</span></p>
+                        <p className="mt-2">Lời nhắn: {match.requests?.[0]?.message || 'Không có'}</p>
+                      </div>
                     ) : myRequest ? (
                       <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                         <p className="font-semibold">Bạn đã gửi yêu cầu nhận kèo này.</p>
-                        <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'PENDING'}</span></p>
+                        <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'COMPLETED'}</span></p>
                         <p className="mt-2">Lời nhắn: {myRequest.message || 'Không có'}</p>
                       </div>
                     ) : null}
@@ -283,16 +273,16 @@ export default function FindOpponentPage() {
           ) : viewMode === 'mine' ? (
             <div className="grid gap-6">
               {myMatches.length > 0 ? myMatches.map((match) => (
-                <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                  <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                  <p className="text-sm text-slate-500 mb-1">Trình độ: <span className="font-semibold">{match.skillLevel || 'Không rõ'}</span></p>
-                  <p className="text-sm text-slate-500 mb-1">Chia tiền: <span className="font-semibold">{match.costSharing || 'Không rõ'}</span></p>
-                  <p className="text-sm text-slate-500 mb-1">Thời gian: <span className="font-semibold">{(match.timeStart && match.timeEnd) ? `${match.timeStart.split('T')[1].substring(0,5)} - ${match.timeEnd.split('T')[1].substring(0,5)}` : (match.timeStart ? match.timeStart.split('T')[1].substring(0,5) : 'Chưa rõ')}</span></p>
-                  <p className="text-sm text-slate-500 mb-4">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
-                  {match.requests && match.requests.length > 0 ? (
+                <div key={match.id} className="grid gap-4">
+                  <MatchCard
+                    match={match}
+                    fieldName={fields.find((f) => f.id === match.fieldId)?.name}
+                    className="rounded-3xl shadow-sm border border-gray-100"
+                    onDelete={() => handleDeleteMatchPost(match.id)}
+                  />
+                  {match.requests && match.requests.filter(req => req.status !== 'REJECTED').length > 0 ? (
                     <div className="space-y-3">
-                      {match.requests.map((req) => (
+                      {match.requests.filter(req => req.status !== 'REJECTED').map((req) => (
                         <div key={req.id || req.requesterId} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                           <p className="text-sm text-slate-700 font-semibold">Người nhận: {req.requesterId}</p>
                           <p className="text-sm text-slate-600 mt-2">Lời nhắn: {req.message || 'Không có'}</p>
@@ -333,21 +323,13 @@ export default function FindOpponentPage() {
           ) : (
             <div className="grid gap-6">
               {publicMatches.length > 0 ? publicMatches.map((match) => (
-                <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                  <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                  <p className="text-sm text-slate-500 mb-1">Trình độ: <span className="font-semibold">{match.skillLevel || 'Không rõ'}</span></p>
-                  <p className="text-sm text-slate-500 mb-1">Chia tiền: <span className="font-semibold">{match.costSharing || 'Không rõ'}</span></p>
-                  <p className="text-sm text-slate-500 mb-1">Thời gian: <span className="font-semibold">{(match.timeStart && match.timeEnd) ? `${match.timeStart.split('T')[1].substring(0,5)} - ${match.timeEnd.split('T')[1].substring(0,5)}` : (match.timeStart ? match.timeStart.split('T')[1].substring(0,5) : 'Chưa rõ')}</span></p>
-                  <p className="text-sm text-slate-500 mb-4">Ngày: {match.date || 'Chưa rõ'}</p>
-                  <button
-                    type="button"
-                    onClick={() => openConfirmApply(match)}
-                    className="mt-2 inline-flex items-center justify-center rounded-full bg-[#60D86E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#45c45a]"
-                  >
-                    Nhận kèo
-                  </button>
-                </div>
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  fieldName={fields.find((f) => f.id === match.fieldId)?.name}
+                  onApply={() => openConfirmApply(match)}
+                  className="rounded-3xl shadow-sm border border-gray-100"
+                />
               )) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-500 shadow-sm">
                   <p className="text-lg font-medium">Hiện chưa có bài đăng tìm đối thủ nào.</p>
