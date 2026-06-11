@@ -86,6 +86,7 @@ export default function ProfilePage() {
         setAvatar(url)
         setToast({ type: 'success', msg: 'Cập nhật ảnh đại diện thành công!' })
       } catch (err) {
+        console.error('Avatar upload error:', err)
         setToast({ type: 'error', msg: 'Tải ảnh thất bại.' })
       }
     }

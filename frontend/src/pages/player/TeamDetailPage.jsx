@@ -45,7 +45,7 @@ export default function TeamDetailPage() {
 
   useEffect(() => {
     loadTeamAndMembers()
-  }, [id])
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
