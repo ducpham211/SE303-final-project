@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
@@ -73,18 +73,27 @@ export default function AdminFieldsPage() {
   const [view, setView] = useState('table')
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const requestCountRef = useRef(0)
 
   const load = async () => {
+    requestCountRef.current += 1
+    const currentRequestId = requestCountRef.current
     setLoading(true)
     setError('')
     try {
       const data = await adminService.getFields()
-      setFields(Array.isArray(data) ? data : [])
+      if (currentRequestId === requestCountRef.current) {
+        setFields(Array.isArray(data) ? data : [])
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải danh sách sân.')
-      setFields([])
+      if (currentRequestId === requestCountRef.current) {
+        setError(e?.response?.data?.message || 'Không thể tải danh sách sân.')
+        setFields([])
+      }
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestCountRef.current) {
+        setLoading(false)
+      }
     }
   }
 

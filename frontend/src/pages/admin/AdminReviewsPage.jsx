@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
@@ -169,6 +169,7 @@ export default function AdminReviewsPage() {
   const [selected, setSelected] = useState(null)
   const [adjudicating, setAdjudicating] = useState(null)
   const [toast, setToast] = useState('')
+  const requestCountRef = useRef(0)
 
   const showToast = (msg) => {
     setToast(msg)
@@ -176,16 +177,24 @@ export default function AdminReviewsPage() {
   }
 
   const loadReviews = useCallback(async () => {
+    requestCountRef.current += 1
+    const currentRequestId = requestCountRef.current
     setLoading(true)
     setError('')
     try {
       const data = await adminService.getReviews({ status: reviewStatus || undefined, page: reviewPage, size: 12 })
-      setReviews(data)
+      if (currentRequestId === requestCountRef.current) {
+        setReviews(data)
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải danh sách review.')
-      setReviews({ content: [], totalPages: 0, totalElements: 0 })
+      if (currentRequestId === requestCountRef.current) {
+        setError(e?.response?.data?.message || 'Không thể tải danh sách review.')
+        setReviews({ content: [], totalPages: 0, totalElements: 0 })
+      }
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestCountRef.current) {
+        setLoading(false)
+      }
     }
   }, [reviewStatus, reviewPage])
 

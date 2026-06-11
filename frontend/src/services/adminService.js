@@ -37,10 +37,32 @@ const adminService = {
 
   // ── REVIEWS ───────────────────────────────────────────────────────────
   getReviews: async ({ status, page = 0, size = 15 } = {}) => {
-    const params = new URLSearchParams({ page, size })
-    if (status) params.set('status', status)
-    const { data } = await api.get(`/admin/reviews?${params}`)
-    return data // Spring Page<Review>
+    // Backend only supports GET /api/admin/fairplay/pending for pending reviews.
+    // If the requested status is not PENDING_ADMIN_REVIEW (or empty for 'All'), return empty page.
+    if (status && status !== 'PENDING_ADMIN_REVIEW') {
+      return { content: [], totalPages: 0, totalElements: 0 }
+    }
+    const { data } = await api.get('/admin/fairplay/pending')
+    
+    // Map backend OpponentReview data to what AdminReviewsPage expects
+    const content = (Array.isArray(data) ? data : []).map(item => ({
+      id: item.id,
+      reviewerId: item.reviewerId,
+      revieweeId: item.revieweeId,
+      matchRequestId: item.matchId,
+      scoreChange: item.pointsApplied,
+      reason: item.comment || (item.ratingType === 'NO_SHOW' ? 'Bùng kèo không lý do' : item.ratingType === 'BAD_BEHAVIOR' ? 'Hành vi xấu' : 'Đánh giá tốt'),
+      aiSuggestedPenalty: item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 10,
+      status: 'PENDING_ADMIN_REVIEW',
+      createdAt: item.createdAt,
+      ratingType: item.ratingType
+    }))
+
+    return {
+      content,
+      totalPages: 1,
+      totalElements: content.length
+    }
   },
 
   /**
@@ -50,7 +72,10 @@ const adminService = {
    * @param {number}  [finalPenalty] - point deduction (only when approve=true)
    */
   adjudicateReview: async (reviewId, { approve, finalPenalty }) => {
-    const { data } = await api.put(`/admin/reviews/${reviewId}`, { approve, finalPenalty })
+    const { data } = await api.put(`/admin/fairplay/resolve/${reviewId}`, {
+      isAccepted: approve,
+      pointsApplied: approve ? -Math.abs(finalPenalty) : 0
+    })
     return data
   },
 
