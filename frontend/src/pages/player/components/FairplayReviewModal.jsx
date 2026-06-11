@@ -1,19 +1,12 @@
 import { useState } from 'react'
-import reviewService from '../../../services/reviewService'
+import fairplayService from '../../../services/fairplayService'
 import uploadService from '../../../services/uploadService'
 
 /**
- * Modal for reviewing a field after a completed booking.
- * Sends POST /api/reviews with { fieldId, bookingId, rating, comment, imageUrl }
- *
- * Props:
- *   isOpen    – boolean
- *   onClose   – (submitted: boolean) => void
- *   fieldId   – ID of the field being reviewed
- *   bookingId – ID of the completed booking
+ * Modal for reviewing an opponent's fairplay after a match.
  */
-export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
-  const [rating, setRating] = useState(5)
+export default function FairplayReviewModal({ isOpen, onClose, revieweeId, matchId }) {
+  const [ratingType, setRatingType] = useState('GOOD') // GOOD, NO_SHOW, BAD_BEHAVIOR
   const [comment, setComment] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -36,10 +29,10 @@ export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
         imageUrl = await uploadService.uploadImage(imageFile)
       }
 
-      await reviewService.createReview({
-        fieldId,
-        bookingId,
-        rating,
+      await fairplayService.submitReview({
+        matchId,
+        revieweeId,
+        ratingType,
         comment: comment.trim(),
         imageUrl,
       })
@@ -49,7 +42,7 @@ export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
         setSuccess(false)
         setComment('')
         setImageFile(null)
-        setRating(5)
+        setRatingType('GOOD')
         onClose(true) // true = review submitted
       }, 1500)
     } catch (err) {
@@ -79,8 +72,8 @@ export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-extrabold text-[#1a202c]">Đánh giá sân bóng</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Chia sẻ trải nghiệm của bạn về chất lượng sân</p>
+              <h3 className="text-lg font-extrabold text-[#1a202c]">Đánh giá Fairplay Đối thủ</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Xây dựng cộng đồng thể thao lành mạnh</p>
             </div>
             <button
               onClick={() => onClose(false)}
@@ -96,27 +89,34 @@ export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
         {/* Body */}
         <form onSubmit={handleSubmit} className="px-6 pb-6">
           <div className="mb-4">
-            <label className="block text-xs font-bold text-gray-700 mb-2">Đánh giá (Số sao)</label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
-                  }`}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill={star <= rating ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </button>
-              ))}
+            <label className="block text-xs font-bold text-gray-700 mb-2">Loại đánh giá</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setRatingType('GOOD')}
+                className={`py-2 text-xs font-bold rounded-xl border ${ratingType === 'GOOD' ? 'bg-[#60D86E]/10 border-[#60D86E] text-[#60D86E]' : 'bg-white border-gray-200 text-gray-600'}`}
+              >
+                Tốt
+              </button>
+              <button
+                type="button"
+                onClick={() => setRatingType('BAD_BEHAVIOR')}
+                className={`py-2 text-xs font-bold rounded-xl border ${ratingType === 'BAD_BEHAVIOR' ? 'bg-orange-50 border-orange-400 text-orange-500' : 'bg-white border-gray-200 text-gray-600'}`}
+              >
+                Chơi xấu
+              </button>
+              <button
+                type="button"
+                onClick={() => setRatingType('NO_SHOW')}
+                className={`py-2 text-xs font-bold rounded-xl border ${ratingType === 'NO_SHOW' ? 'bg-red-50 border-red-400 text-red-500' : 'bg-white border-gray-200 text-gray-600'}`}
+              >
+                Bỏ thi đấu
+              </button>
             </div>
           </div>
 
           <div className="mb-4">
-            <label className="block text-xs font-bold text-gray-700 mb-2">Hình ảnh (Tuỳ chọn)</label>
+            <label className="block text-xs font-bold text-gray-700 mb-2">Minh chứng (Hình ảnh)</label>
             <input 
               type="file" 
               accept="image/*"
@@ -133,7 +133,7 @@ export default function ReviewModal({ isOpen, onClose, fieldId, bookingId }) {
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Chia sẻ thêm về trải nghiệm của bạn (chất lượng cỏ, ánh sáng, dịch vụ...)"
+            placeholder="Nhận xét chi tiết về đối thủ..."
             rows={4}
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all resize-none"
             disabled={submitting || success}

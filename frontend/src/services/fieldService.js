@@ -80,6 +80,25 @@ const fieldService = {
   },
 
   /**
+   * Get paginated fields with optional filters
+   * @param {number} page 0-indexed page number
+   * @param {number} size number of items per page
+   * @param {Object} filters { name, type }
+   * @returns {Promise<Object>} Page object with content and pagination info
+   */
+  getFieldsPage: async (page = 0, size = 8, filters = {}) => {
+    const params = new URLSearchParams()
+    params.append('page', page)
+    params.append('size', size)
+    if (filters.type) params.append('type', filters.type)
+    if (filters.name) params.append('name', filters.name)
+    
+    const query = params.toString()
+    const { data } = await api.get(`/fields/page?${query}`)
+    return data
+  },
+
+  /**
    * Get field detail by ID
    * @param {string} id 
    * @returns {Promise<Object>} Field detail

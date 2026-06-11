@@ -48,6 +48,45 @@ const teamService = {
     const { data } = await api.delete(`/teams/${teamId}`)
     return data
   },
+  /**
+   * GET /api/teams/{id}/members
+   */
+  getTeamMembers: async (teamId) => {
+    const { data } = await api.get(`/teams/${teamId}/members`)
+    return data
+  },
+
+  /**
+   * POST /api/teams/{id}/invite
+   */
+  inviteMember: async (teamId, email) => {
+    const { data } = await api.post(`/teams/${teamId}/invite`, { email })
+    return data
+  },
+
+  /**
+   * DELETE /api/teams/{id}/members/{memberId}
+   */
+  removeMember: async (teamId, memberId) => {
+    const { data } = await api.delete(`/teams/${teamId}/members/${memberId}`)
+    return data
+  },
+
+  /**
+   * GET /api/teams/invitations/me
+   */
+  getMyInvitations: async () => {
+    const { data } = await api.get('/teams/invitations/me')
+    return data
+  },
+
+  /**
+   * PUT /api/teams/invitations/{id}
+   */
+  respondToInvitation: async (invitationId, accept) => {
+    const { data } = await api.put(`/teams/invitations/${invitationId}`, { accept })
+    return data
+  },
 }
 
 export default teamService
