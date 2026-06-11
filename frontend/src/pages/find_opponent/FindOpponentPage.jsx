@@ -11,6 +11,31 @@ import api from '../../services/api';
 import fairplayService from '../../services/fairplayService'
 import FairplayReviewModal from '../player/components/FairplayReviewModal'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const str = String(dateStr);
+  const clean = str.includes('T') ? str.split('T')[0] : str.includes(' ') ? str.split(' ')[0] : str;
+  const parts = clean.split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : clean;
+};
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  const str = String(timeStr);
+  if (str.includes('T')) return str.split('T')[1].substring(0, 5);
+  if (str.includes(' ')) return str.split(' ')[1].substring(0, 5);
+  return str.substring(0, 5);
+};
+
+const translateSkillLevel = (level) => {
+  switch (level) {
+    case 'BEGINNER': return 'Tân binh / Vui vẻ';
+    case 'INTERMEDIATE': return 'Nghiệp dư / Khá';
+    case 'ADVANCED': return 'Chuyên nghiệp / Tốt';
+    default: return level || 'Mọi trình độ';
+  }
+};
+
 const tabs = [
   {
     key: 'all',
@@ -276,7 +301,10 @@ export default function FindOpponentPage() {
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
                       <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                      <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
+                      <p className="text-sm text-slate-500">Ngày: <span className="font-semibold text-slate-700">{formatDate(match.date)}</span></p>
+                      <p className="text-sm text-slate-500">Khung giờ: <span className="font-semibold text-slate-700">{formatTime(match.timeStart)} - {formatTime(match.timeEnd)}</span></p>
+                      <p className="text-sm text-slate-500">Trình độ: <span className="font-semibold text-slate-700">{translateSkillLevel(match.skillLevel)}</span></p>
+                      <p className="text-sm text-slate-500">Tỉ lệ chia tiền: <span className="font-semibold text-slate-700">{match.costSharing || 'Chia đều'}</span></p>
                     </div>
                     <div className="flex flex-col gap-3 w-full sm:w-auto">
                       {isMyPost ? (
