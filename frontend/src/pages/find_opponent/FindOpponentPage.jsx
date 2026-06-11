@@ -5,6 +5,8 @@ import AutoMatch from './components/AutoMatch'
 import AutoMatchView from './components/AutoMatchView';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
 import api from '../../services/api';
+import fairplayService from '../../services/fairplayService';
+import FairplayReviewModal from '../player/components/FairplayReviewModal';
 
 const tabs = [
   {
@@ -26,23 +28,27 @@ export default function FindOpponentPage() {
   const [isAutoOpen, setIsAutoOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState('');
+  
+  const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null);
 
   const autoMatch = useAutoMatch(currentUserId, (data) => setMatches(data), setViewMode);
 
   useEffect(() => {
+    let userId = '';
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '');
+        userId = decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '';
+        setCurrentUserId(userId);
       } catch (error) {
         console.error('Không thể đọc token', error);
       }
     }
-  }, []);
 
-  useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -53,6 +59,15 @@ export default function FindOpponentPage() {
 
         setMatches(postsRes.data.content || postsRes.data || []);
         setFields(fieldsRes.data.content || fieldsRes.data || []);
+
+        if (userId) {
+          try {
+            const reviews = await fairplayService.getMySubmitted();
+            setSubmittedReviews(reviews || []);
+          } catch (e) {
+            console.warn('Lỗi tải fairplay reviews', e);
+          }
+        }
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu', error);
       } finally {
@@ -169,13 +184,39 @@ export default function FindOpponentPage() {
             />
           ) : viewMode === 'history' ? (
             <div className="space-y-4">
-              {historyMatches.length > 0 ? historyMatches.map((match) => (
-                <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                  <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                  <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
-                </div>
-              )) : (
+              {historyMatches.length > 0 ? historyMatches.map((match) => {
+                const isClosed = match.status === 'CLOSED';
+                let opponentId = null;
+                if (match.userId === currentUserId && match.requests && match.requests.length > 0) {
+                   const acceptedReq = match.requests.find(r => r.status === 'ACCEPTED');
+                   if (acceptedReq) opponentId = acceptedReq.requesterId;
+                } else if (match.requests && match.requests.some(r => r.requesterId === currentUserId && r.status === 'ACCEPTED')) {
+                   opponentId = match.userId;
+                }
+                
+                const canReview = isClosed && opponentId && !submittedReviews.includes(match.id);
+
+                return (
+                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
+                      <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
+                      <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
+                    </div>
+                    {canReview && (
+                      <button 
+                        onClick={() => {
+                          setReviewTarget({ matchId: match.id, revieweeId: opponentId });
+                          setReviewModalOpen(true);
+                        }}
+                        className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-semibold text-sm hover:bg-emerald-100 whitespace-nowrap self-start sm:self-auto"
+                      >
+                        Đánh giá đối thủ
+                      </button>
+                    )}
+                  </div>
+                )
+              }) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-500 shadow-sm">
                   <p className="text-lg font-medium">Không có lịch sử ghép trận nào.</p>
                 </div>
@@ -227,6 +268,19 @@ export default function FindOpponentPage() {
             setIsAutoOpen(false);
           }}
           fields={fields}
+        />
+
+        <FairplayReviewModal 
+          isOpen={reviewModalOpen}
+          onClose={(submitted) => {
+             setReviewModalOpen(false);
+             if (submitted && reviewTarget?.matchId) {
+               setSubmittedReviews([...submittedReviews, reviewTarget.matchId]);
+             }
+             setReviewTarget(null);
+          }}
+          matchId={reviewTarget?.matchId}
+          revieweeId={reviewTarget?.revieweeId}
         />
       </section>
     </main>

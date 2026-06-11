@@ -21,14 +21,36 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
+
+  const handleSendOtp = async () => {
+    if (!email) {
+      setError('Vui lòng nhập email trước khi gửi OTP.')
+      return
+    }
+    setSendingOtp(true)
+    setError('')
+    setSuccess('')
+    try {
+      await authService.sendRegisterOtp(email.trim())
+      setOtpSent(true)
+      setSuccess('Mã OTP đã được gửi đến email của bạn.')
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không thể gửi OTP. Vui lòng thử lại.')
+    } finally {
+      setSendingOtp(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!fullName.trim() || !email || !password || !confirmPassword) {
-      setError('Vui lòng nhập đầy đủ các thông tin bắt buộc.')
+    if (!fullName.trim() || !email || !password || !confirmPassword || !otp) {
+      setError('Vui lòng nhập đầy đủ các thông tin bắt buộc (bao gồm OTP).')
       return
     }
     if (password !== confirmPassword) {
@@ -42,7 +64,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      const data = await authService.register(email, password, fullName.trim())
+      const data = await authService.register(email, password, fullName.trim(), otp)
       // Backend returns success message; token may be null if email verification is required
       if (data.accessToken) {
         login(data.accessToken)
@@ -129,17 +151,48 @@ export default function RegisterPage() {
               <label htmlFor="reg-email" className="auth-label">
                 Email
               </label>
-              <input
-                id="reg-email"
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="ban@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`auth-input ${error && !email ? 'auth-input--error' : ''}`}
-              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  id="reg-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="ban@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`auth-input ${error && !email ? 'auth-input--error' : ''}`}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={sendingOtp || !email}
+                  className="auth-btn-primary"
+                  style={{ whiteSpace: 'nowrap', padding: '0 16px', width: 'auto', marginTop: 0 }}
+                >
+                  {sendingOtp ? 'Đang gửi...' : (otpSent ? 'Gửi lại OTP' : 'Gửi OTP')}
+                </button>
+              </div>
             </div>
+
+            {/* OTP */}
+            {otpSent && (
+              <div className="auth-field">
+                <label htmlFor="reg-otp" className="auth-label">
+                  Mã OTP
+                </label>
+                <input
+                  id="reg-otp"
+                  type="text"
+                  required
+                  placeholder="Nhập mã OTP 6 số từ email"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className={`auth-input ${error && !otp ? 'auth-input--error' : ''}`}
+                  maxLength={6}
+                />
+              </div>
+            )}
 
             {/* Password */}
             <div className="auth-field">
