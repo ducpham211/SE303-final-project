@@ -8,6 +8,8 @@ import MatchCard from './components/common/MatchCard';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
 import ConfirmApply from './components/ConfirmApply';
 import api from '../../services/api';
+import fairplayService from '../../services/fairplayService';
+import FairplayReviewModal from '../player/components/FairplayReviewModal';
 
 const tabs = [
   {
@@ -32,23 +34,27 @@ export default function FindOpponentPage() {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState('');
+  
+  const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null);
 
   const autoMatch = useAutoMatch(currentUserId, (data) => setMatches(data), setViewMode);
 
   useEffect(() => {
+    let userId = '';
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '');
+        userId = decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '';
+        setCurrentUserId(userId);
       } catch (error) {
         console.error('Không thể đọc token', error);
       }
     }
-  }, []);
 
-  useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -59,6 +65,15 @@ export default function FindOpponentPage() {
 
         setMatches(postsRes.data.content || postsRes.data || []);
         setFields(fieldsRes.data.content || fieldsRes.data || []);
+
+        if (userId) {
+          try {
+            const reviews = await fairplayService.getMySubmitted();
+            setSubmittedReviews(reviews || []);
+          } catch (e) {
+            console.warn('Lỗi tải fairplay reviews', e);
+          }
+        }
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu', error);
       } finally {

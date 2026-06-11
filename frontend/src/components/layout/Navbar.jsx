@@ -65,6 +65,8 @@ export default function Navbar() {
 
   const navLinks = getNavLinks()
 
+  const avatarUrl = user?.id ? localStorage.getItem('avatar_' + user.id) : null;
+
   return (
     <>
       {/* Fixed floating pill navbar */}
@@ -123,8 +125,8 @@ export default function Navbar() {
                         onClick={() => setDropdownOpen(!dropdownOpen)}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#e8f9eb] hover:bg-[#60D86E] hover:text-white transition-all duration-200 group ml-1"
                       >
-                        <div className="w-6 h-6 rounded-full bg-[#60D86E] group-hover:bg-white flex items-center justify-center text-white group-hover:text-[#60D86E] font-semibold text-xs flex-shrink-0 transition-all">
-                          {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                        <div className="w-6 h-6 rounded-full bg-[#60D86E] group-hover:bg-white flex items-center justify-center text-white group-hover:text-[#60D86E] font-semibold text-xs flex-shrink-0 transition-all overflow-hidden">
+                          {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> : (user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U')}
                         </div>
                         <div className="flex flex-col items-start leading-tight">
                           <span className="text-sm font-semibold text-[#1a202c] group-hover:text-white transition-all">

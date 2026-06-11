@@ -2,46 +2,40 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import authService from '../../services/authService'
 
-/**
- * Reset password page — /dat-lai-mat-khau
- * Handles the redirect from Supabase recovery email.
- * Parses the access_token from the URL hash.
- */
 export default function ResetPasswordPage() {
+  const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [accessToken, setAccessToken] = useState(null)
 
   const navigate = useNavigate()
   const location = useLocation()
+  
+  const email = location.state?.email
+  const [accessToken, setAccessToken] = useState(null)
 
   useEffect(() => {
-    // Parse the hash: #access_token=...&refresh_token=...&type=recovery
-    const hash = location.hash
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1)) // remove '#'
-      const token = params.get('access_token')
-      const type = params.get('type')
-      
-      if (token && type === 'recovery') {
-        setAccessToken(token)
-      } else {
-        setError('Liên kết khôi phục không hợp lệ hoặc đã hết hạn.')
-      }
-    } else {
-      setError('Không tìm thấy token khôi phục trong URL.')
+    // Check if there is an access token in the URL hash (from Supabase recovery link)
+    const hash = window.location.hash
+    const urlParams = new URLSearchParams(hash.replace('#', '?'))
+    const token = urlParams.get('access_token')
+    
+    if (token) {
+      setAccessToken(token)
+    } else if (!email) {
+      // If no token and no email in state, redirect back to forgot password
+      navigate('/forgot-password')
     }
-  }, [location])
+  }, [email, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!accessToken) {
-      setError('Không có quyền thực hiện thao tác này.')
+    if (!accessToken && !otp.trim()) {
+      setError('Vui lòng nhập mã OTP.')
       return
     }
     if (password.length < 6) {
@@ -55,9 +49,14 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
     try {
-      await authService.resetPassword(accessToken, password)
+      if (accessToken) {
+        // Reset using Supabase token
+        await authService.resetPassword(accessToken, password)
+      } else {
+        // Reset using Backend OTP
+        await authService.resetPasswordOTP(email, otp.trim(), password)
+      }
       setSuccess(true)
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login')
       }, 3000)
@@ -65,16 +64,17 @@ export default function ResetPasswordPage() {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.msg ||
-        'Không thể đặt lại mật khẩu. Vui lòng thử lại.'
+        'Liên kết hoặc mã OTP không hợp lệ/đã hết hạn.'
       setError(msg)
     } finally {
       setLoading(false)
     }
   }
 
+  if (!email && !accessToken) return null;
+
   return (
     <div className="auth-page">
-      {/* ── Brand Panel ── */}
       <div className="auth-brand">
         <div className="auth-brand__inner">
           <div className="auth-logo">
@@ -82,16 +82,14 @@ export default function ResetPasswordPage() {
           </div>
           <h1 className="auth-brand__title">Timsanbong</h1>
           <p className="auth-brand__sub">
-            Tạo mật khẩu mới cho tài khoản của bạn.
+            Vui lòng nhập mật khẩu mới của bạn.
           </p>
         </div>
       </div>
 
-      {/* ── Form Panel ── */}
       <div className="auth-form-panel">
         <div className="auth-form-card">
           {success ? (
-            /* ── Success State ── */
             <div className="text-center py-6">
               <div className="w-16 h-16 rounded-full bg-[#F0FDF4] flex items-center justify-center mx-auto mb-4">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60D86E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -112,19 +110,32 @@ export default function ResetPasswordPage() {
               </Link>
             </div>
           ) : (
-            /* ── Form State ── */
             <>
               <h2 className="auth-form-card__title">Đặt lại mật khẩu</h2>
               <p className="auth-form-card__sub">
-                Vui lòng nhập mật khẩu mới.
+                Đang đặt lại mật khẩu cho tài khoản của bạn.
               </p>
 
               <form id="reset-password-form" onSubmit={handleSubmit} className="auth-form" noValidate>
-                {/* New Password */}
+                {!accessToken && (
+                  <div className="auth-field">
+                    <label htmlFor="otp" className="auth-label">Mã OTP (6 số)</label>
+                    <input
+                      id="otp"
+                      type="text"
+                      required
+                      placeholder="123456"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      className={`auth-input ${error ? 'auth-input--error' : ''}`}
+                      disabled={loading}
+                    />
+                  </div>
+                )}
+
                 <div className="auth-field">
-                  <label htmlFor="reset-password" className="auth-label">
-                    Mật khẩu mới
-                  </label>
+                  <label htmlFor="reset-password" className="auth-label">Mật khẩu mới</label>
                   <input
                     id="reset-password"
                     type="password"
@@ -133,15 +144,12 @@ export default function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={`auth-input ${error ? 'auth-input--error' : ''}`}
-                    disabled={!accessToken || loading}
+                    disabled={loading}
                   />
                 </div>
 
-                {/* Confirm Password */}
                 <div className="auth-field">
-                  <label htmlFor="confirm-password" className="auth-label">
-                    Xác nhận mật khẩu
-                  </label>
+                  <label htmlFor="confirm-password" className="auth-label">Xác nhận mật khẩu mới</label>
                   <input
                     id="confirm-password"
                     type="password"
@@ -150,11 +158,10 @@ export default function ResetPasswordPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={`auth-input ${error ? 'auth-input--error' : ''}`}
-                    disabled={!accessToken || loading}
+                    disabled={loading}
                   />
                 </div>
 
-                {/* Error */}
                 {error && (
                   <div id="reset-error" className="auth-error" role="alert">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -166,14 +173,13 @@ export default function ResetPasswordPage() {
                   </div>
                 )}
 
-                {/* Submit */}
                 <button
                   id="reset-submit"
                   type="submit"
-                  disabled={loading || !accessToken}
+                  disabled={loading}
                   className="auth-btn-primary"
                 >
-                  {loading ? <span className="auth-spinner" /> : 'Lưu mật khẩu mới'}
+                  {loading ? <span className="auth-spinner" /> : 'Đổi mật khẩu'}
                 </button>
               </form>
             </>

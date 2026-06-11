@@ -192,16 +192,9 @@ export default function FieldListPage() {
       setSlotsByField({})
 
       // 1. Lấy danh sách sân
-      const allFields = await fieldService.getFields({ type: filterType, name: debouncedSearch || undefined })
-      // Client-side search nếu backend không hỗ trợ name filter:
-      const filtered = debouncedSearch
-        ? allFields.filter(f => f.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
-        : allFields
-      // Client-side pagination:
-      const PAGE_SIZE = 8
-      const start = page * PAGE_SIZE
-      const fieldsData = filtered.slice(start, start + PAGE_SIZE)
-      const calculatedTotalPages = Math.ceil(filtered.length / PAGE_SIZE)
+      const pageData = await fieldService.getFieldsPage(page, 8, { type: filterType, name: debouncedSearch || undefined })
+      const fieldsData = pageData.content || []
+      const calculatedTotalPages = pageData.totalPages || 1
       setTotalPages(calculatedTotalPages)
 
       // Gộp các sân trùng tên lại với nhau
