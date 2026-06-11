@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore'
 import teamService from '../../services/teamService'
 import uploadService from '../../services/uploadService'
@@ -258,7 +258,14 @@ function InvitationsTab() {
 }
 
 export default function TeamPage() {
-  const [tab, setTab] = useState('teams')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const params = new URLSearchParams(location.search)
+  const tab = params.get('tab') || 'teams'
+
+  const setTab = (newTab) => {
+    navigate(`/teams?tab=${newTab}`)
+  }
 
   return (
     <main className="pt-28 pb-16 min-h-screen bg-[#f8faf8]">
