@@ -36,7 +36,7 @@ const adminService = {
   },
 
   // ── REVIEWS ───────────────────────────────────────────────────────────
-  getReviews: async ({ status, page = 0, size = 15 } = {}) => {
+  getReviews: async ({ status } = {}) => {
     // Backend only supports GET /api/admin/fairplay/pending for pending reviews.
     // If the requested status is not PENDING_ADMIN_REVIEW (or empty for 'All'), return empty page.
     if (status && status !== 'PENDING_ADMIN_REVIEW') {

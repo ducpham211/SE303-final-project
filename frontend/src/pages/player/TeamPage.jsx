@@ -137,15 +137,19 @@ function TeamsTab() {
                   >
                     Quản lý →
                   </button>
-                  <span className="text-gray-200">|</span>
-                  <button
-                    onClick={() => { setEditTarget(team); setModalOpen(true) }}
-                    className="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
-                  >
-                    Sửa
-                  </button>
-                  <span className="text-gray-200">|</span>
-                  <button onClick={() => setDeleteTarget(team)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
+                  {team.isCaptain && (
+                    <>
+                      <span className="text-gray-200">|</span>
+                      <button
+                        onClick={() => { setEditTarget(team); setModalOpen(true) }}
+                        className="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                      >
+                        Sửa
+                      </button>
+                      <span className="text-gray-200">|</span>
+                      <button onClick={() => setDeleteTarget(team)} className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">Xóa</button>
+                    </>
+                  )}
                 </div>
               </div>
             )

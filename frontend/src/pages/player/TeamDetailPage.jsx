@@ -77,7 +77,7 @@ export default function TeamDetailPage() {
 
   const lvl = LEVEL_LABELS[team.level] || LEVEL_LABELS.BEGINNER
   const logo = localStorage.getItem('logo_' + team.id)
-  const isCaptain = user && (user.id === team.captainId || user.email === team.captainId)
+  const isCaptain = team.isCaptain || (user && (user.id === team.captainId || user.email === team.captainId))
 
   const activeMembers = members.filter(m => m.status === 'ACCEPTED')
   const pendingMembers = members.filter(m => m.status === 'PENDING')
