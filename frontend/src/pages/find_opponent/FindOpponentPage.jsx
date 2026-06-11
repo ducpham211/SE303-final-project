@@ -8,6 +8,8 @@ import MatchCard from './components/common/MatchCard';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
 import ConfirmApply from './components/ConfirmApply';
 import api from '../../services/api';
+import fairplayService from '../../services/fairplayService'
+import FairplayReviewModal from '../player/components/FairplayReviewModal'
 
 const tabs = [
   {
@@ -32,6 +34,9 @@ export default function FindOpponentPage() {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState('');
+  const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null);
 
   const autoMatch = useAutoMatch(currentUserId, (data) => setMatches(data), setViewMode);
 
@@ -68,6 +73,22 @@ export default function FindOpponentPage() {
 
     loadData();
   }, []);
+
+  // Load user's submitted fairplay reviews when we know currentUserId
+  useEffect(() => {
+    if (!currentUserId) return;
+    let cancelled = false;
+    const loadReviews = async () => {
+      try {
+        const list = await fairplayService.getMySubmitted();
+        if (!cancelled) setSubmittedReviews(list || []);
+      } catch (e) {
+        console.warn('Lỗi tải fairplay reviews', e);
+      }
+    }
+    loadReviews();
+    return () => { cancelled = true }
+  }, [currentUserId]);
 
   const refreshMatches = async () => {
     try {
@@ -238,30 +259,54 @@ export default function FindOpponentPage() {
               {historyMatches.length > 0 ? historyMatches.map((match) => {
                 const isMyPost = match.userId === currentUserId;
                 const myRequest = match.requests?.find((r) => r.requesterId === currentUserId);
+
+                // compute review eligibility
+                const isClosed = match.status === 'CLOSED';
+                let opponentId = null;
+                if (match.userId === currentUserId && match.requests && match.requests.length > 0) {
+                  const acceptedReq = match.requests.find(r => r.status === 'ACCEPTED');
+                  if (acceptedReq) opponentId = acceptedReq.requesterId;
+                } else if (match.requests && match.requests.some(r => r.requesterId === currentUserId && r.status === 'ACCEPTED')) {
+                  opponentId = match.userId;
+                }
+                const canReview = isClosed && opponentId && !submittedReviews.includes(match.id);
+
                 return (
-                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                    <div className="mb-4">
+                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                      <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                      <p className="text-sm text-slate-500 mb-1">Trình độ: <span className="font-semibold">{match.skillLevel || 'Không rõ'}</span></p>
-                      <p className="text-sm text-slate-500 mb-1">Chia tiền: <span className="font-semibold">{match.costSharing || 'Không rõ'}</span></p>
-                      <p className="text-sm text-slate-500 mb-1">Thời gian: <span className="font-semibold">{(match.timeStart && match.timeEnd) ? `${match.timeStart.split('T')[1].substring(0,5)} - ${match.timeEnd.split('T')[1].substring(0,5)}` : (match.timeStart ? match.timeStart.split('T')[1].substring(0,5) : 'Chưa rõ')}</span></p>
+                      <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
                       <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
-                      <p className="text-sm text-slate-500">Loại: <span className="font-semibold text-slate-700">{isMyPost ? 'Bài của tôi' : 'Yêu cầu của tôi'}</span></p>
                     </div>
-                    {isMyPost ? (
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
-                        <p className="mt-2">Trạng thái: <span className="font-semibold">{match.requests?.[0]?.status || 'COMPLETED'}</span></p>
-                        <p className="mt-2">Lời nhắn: {match.requests?.[0]?.message || 'Không có'}</p>
-                      </div>
-                    ) : myRequest ? (
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        <p className="font-semibold">Bạn đã gửi yêu cầu nhận kèo này.</p>
-                        <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'COMPLETED'}</span></p>
-                        <p className="mt-2">Lời nhắn: {myRequest.message || 'Không có'}</p>
-                      </div>
-                    ) : null}
+                    <div className="flex flex-col items-end gap-3">
+                      {isMyPost ? (
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                          <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
+                          <p className="mt-2">Trạng thái: <span className="font-semibold">{match.requests?.[0]?.status || 'COMPLETED'}</span></p>
+                          <p className="mt-2">Lời nhắn: {match.requests?.[0]?.message || 'Không có'}</p>
+                        </div>
+                      ) : myRequest ? (
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                          <p className="font-semibold">Bạn đã gửi yêu cầu nhận kèo này.</p>
+                          <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'COMPLETED'}</span></p>
+                          <p className="mt-2">Lời nhắn: {myRequest.message || 'Không có'}</p>
+                        </div>
+                      ) : null}
+
+                      {canReview && (
+                        <div className="self-start sm:self-auto mt-0">
+                          <button 
+                            onClick={() => {
+                              setReviewTarget({ matchId: match.id, revieweeId: opponentId });
+                              setReviewModalOpen(true);
+                            }}
+                            className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-semibold text-sm hover:bg-emerald-100 whitespace-nowrap"
+                          >
+                            Đánh giá đối thủ
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               }) : (
@@ -361,6 +406,18 @@ export default function FindOpponentPage() {
           match={selectedMatch}
           onClose={closeConfirmApply}
           onConfirm={handleConfirmApply}
+        />
+        <FairplayReviewModal 
+          isOpen={reviewModalOpen}
+          onClose={(submitted) => {
+             setReviewModalOpen(false);
+             if (submitted && reviewTarget?.matchId) {
+               setSubmittedReviews([...submittedReviews, reviewTarget.matchId]);
+             }
+             setReviewTarget(null);
+          }}
+          matchId={reviewTarget?.matchId}
+          revieweeId={reviewTarget?.revieweeId}
         />
       </section>
     </main>

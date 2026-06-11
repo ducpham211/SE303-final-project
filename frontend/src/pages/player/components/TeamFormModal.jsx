@@ -19,6 +19,7 @@ export default function TeamFormModal({ isOpen, onClose, onSubmit, initialData }
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [level, setLevel] = useState('BEGINNER')
+  const [imageFile, setImageFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,10 +31,12 @@ export default function TeamFormModal({ isOpen, onClose, onSubmit, initialData }
       setName(initialData.name || '')
       setDescription(initialData.description || '')
       setLevel(initialData.level || 'BEGINNER')
+      setImageFile(null)
     } else if (isOpen && !initialData) {
       setName('')
       setDescription('')
       setLevel('BEGINNER')
+      setImageFile(null)
     }
     setError('')
   }, [isOpen, initialData])
@@ -49,7 +52,7 @@ export default function TeamFormModal({ isOpen, onClose, onSubmit, initialData }
     setSubmitting(true)
     setError('')
     try {
-      await onSubmit({ name: name.trim(), description: description.trim(), level })
+      await onSubmit({ name: name.trim(), description: description.trim(), level, imageFile })
       onClose()
     } catch (err) {
       setError(err?.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
@@ -100,6 +103,29 @@ export default function TeamFormModal({ isOpen, onClose, onSubmit, initialData }
               onChange={(e) => setName(e.target.value)}
               placeholder="VD: FC Thunder Q7"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-[#1a202c] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#60D86E]/30 focus:border-[#60D86E] transition-all"
+              disabled={submitting}
+            />
+          </div>
+
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+              Logo đội (Tuỳ chọn)
+            </label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setImageFile(e.target.files[0])
+                }
+              }}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-xl file:border-0
+                file:text-xs file:font-semibold
+                file:bg-[#60D86E]/10 file:text-[#60D86E]
+                hover:file:bg-[#60D86E]/20"
               disabled={submitting}
             />
           </div>

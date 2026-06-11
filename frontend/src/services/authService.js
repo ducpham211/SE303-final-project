@@ -24,28 +24,28 @@ const authService = {
   },
 
   /**
-   * Register a new account with email + password + fullName.
+   * Register a new account with email + password + fullName + otp.
    * @returns {{ accessToken: string, message: string }}
    */
-  register: async (email, password, fullName) => {
-    const { data } = await api.post('/auth/register', { email, password, fullName })
+  register: async (email, password, fullName, otp) => {
+    const { data } = await api.post('/auth/register', { email, password, fullName, otp })
     return data
   },
 
   /**
-   * Forgot password — calls Supabase directly to send a password reset email.
-   * Supabase handles the email sending and reset link generation.
+   * Send registration OTP to email.
+   * @returns {{ message: string }}
+   */
+  sendRegisterOtp: async (email) => {
+    const { data } = await api.post('/auth/send-register-otp', { email })
+    return data
+  },
+
+  /**
+   * Forgot password — calls backend API to send an OTP via email.
    */
   forgotPassword: async (email) => {
-    const redirectTo = `${window.location.origin}/reset-password`
-    const { data } = await axios.post(
-      `${SUPABASE_URL}/auth/v1/recover`,
-      { email },
-      { 
-        headers: supabaseHeaders,
-        params: { redirect_to: redirectTo } // Pass via query param as required by Supabase REST
-      }
-    )
+    const { data } = await api.post('/auth/forgot-password', { email })
     return data
   },
 
@@ -64,6 +64,14 @@ const authService = {
         },
       }
     )
+    return data
+  },
+
+  /**
+   * Reset password using OTP from backend.
+   */
+  resetPasswordOTP: async (email, otp, newPassword) => {
+    const { data } = await api.post('/auth/reset-password', { email, otp, newPassword })
     return data
   },
 }

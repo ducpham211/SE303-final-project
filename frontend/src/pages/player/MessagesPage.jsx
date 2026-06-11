@@ -19,9 +19,7 @@ function formatTime(dateStr) {
 function getInitials(str) {
   if (!str) return '?'
   const trimmed = str.trim()
-  // If it looks like a name (has spaces), use first letters of each word
   if (trimmed.includes(' ')) return trimmed.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-  // Otherwise use first 2 chars
   return trimmed.slice(0, 2).toUpperCase()
 }
 
@@ -39,10 +37,9 @@ function avatarColor(str) {
 /* ─── Sub-components ───────────────────────────────────────────────── */
 
 function ConversationItem({ conv, isActive, onClick }) {
-  // Use partnerName from API if available, fallback to short ID
-  const displayName = conv.partnerName || `User ...${(conv.partnerId || '').slice(-6)}`
-  const initials = getInitials(conv.partnerName || (conv.partnerId || '').slice(-4))
-  const bg = avatarColor(conv.partnerId)
+  const displayName = conv.partnerName || (conv.type === 'TEAM' ? 'Nhóm Đội bóng' : conv.type === 'MATCH_GROUP' ? 'Nhóm Trận đấu' : `User ...${(conv.partnerId || '').slice(-6)}`)
+  const initials = getInitials(displayName)
+  const bg = avatarColor(conv.partnerId || conv.id)
 
   return (
     <button
@@ -64,7 +61,11 @@ function ConversationItem({ conv, isActive, onClick }) {
           <span className="text-sm font-semibold text-[#1a202c] truncate">{displayName}</span>
           <span className="text-[11px] text-gray-400 flex-shrink-0">{formatTime(conv.updatedAt)}</span>
         </div>
-        <p className="text-xs text-gray-500 truncate mt-0.5">{conv.lastMessage || 'Chưa có tin nhắn'}</p>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className="text-xs text-gray-500 truncate">{conv.lastMessage || 'Chưa có tin nhắn'}</p>
+          {conv.type === 'TEAM' && <span className="text-[9px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold">TEAM</span>}
+          {conv.type === 'MATCH_GROUP' && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-bold">MATCH</span>}
+        </div>
       </div>
     </button>
   )
@@ -82,6 +83,7 @@ function MessageBubble({ msg, isOwn }) {
         </div>
       )}
       <div className={`flex flex-col gap-0.5 max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
+        {!isOwn && msg.senderName && <span className="text-[10px] text-gray-500 ml-1">{msg.senderName}</span>}
         <div
           className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
             isOwn
@@ -124,8 +126,8 @@ function EmptyInbox() {
       </div>
       <p className="text-sm text-gray-600 font-semibold">Chưa có cuộc trò chuyện nào</p>
       <p className="text-xs text-gray-400 leading-relaxed">
-        Phòng chat tự động mở khi bạn gửi hoặc nhận<br />
-        một yêu cầu kèo giao hữu từ trang Tìm đối thủ.
+        Phòng chat tự động mở khi bạn tham gia đội<br />
+        hoặc có kèo giao hữu.
       </p>
       <button
         onClick={() => navigate('/matchmaking')}
@@ -149,15 +151,14 @@ export default function MessagesPage() {
 
   const [inputText, setInputText] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [tab, setTab] = useState('ALL')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  /* ── Auth guard ── */
   useEffect(() => {
     if (!isLoggedIn) navigate('/login')
   }, [isLoggedIn, navigate])
 
-  /* ── Connect WS & load inbox on mount ── */
   useEffect(() => {
     if (!isLoggedIn) return
     connectWebSocket(token)
@@ -165,15 +166,18 @@ export default function MessagesPage() {
     return () => disconnectWebSocket()
   }, [isLoggedIn]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── Auto-scroll to latest message ── */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, activeId])
 
-  /* ── Focus input when conversation opens ── */
   useEffect(() => {
     if (activeId) inputRef.current?.focus()
   }, [activeId])
+
+  const filteredConversations = conversations.filter(c => {
+    if (tab === 'ALL') return true
+    return c.type === tab
+  })
 
   const currentMessages = activeId ? (messages[activeId] || []) : []
   const activeConv = conversations.find(c => c.id === activeId)
@@ -198,29 +202,15 @@ export default function MessagesPage() {
     }
   }
 
-  /*
-   * isOwnMessage: senderId in MessageResponse is a UUID.
-   * user.id is populated by App.jsx via enrichUser() → GET /api/users/me.
-   * Falls back to email comparison for the edge case where enrichUser hasn't resolved yet.
-   */
   const isOwnMessage = (msg) => {
     if (!msg?.senderId) return false
     return msg.senderId === user?.id || msg.senderId === user?.email
   }
 
-  const activeDisplayName = activeConv?.partnerName
-    || (activeConv ? `User ...${(activeConv.partnerId || '').slice(-6)}` : '')
+  const activeDisplayName = activeConv?.partnerName || (activeConv?.type === 'TEAM' ? 'Nhóm Đội bóng' : activeConv?.type === 'MATCH_GROUP' ? 'Nhóm Trận đấu' : `User ...${(activeConv?.partnerId || '').slice(-6)}`)
 
   return (
-    /*
-     * Full-height layout:
-     * - pt-[72px] = navbar height (the pill navbar is ~72px including padding)
-     * - The container itself stretches to fill the viewport
-     * - Footer is NOT shown on this page — the chat fills everything below navbar
-     */
     <div className="fixed inset-0 top-[72px] flex bg-[#f8faf8] overflow-hidden">
-
-      {/* ── Mobile sidebar overlay ── */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 lg:hidden"
@@ -232,21 +222,27 @@ export default function MessagesPage() {
       <aside
         className={`
           absolute lg:relative top-0 left-0 bottom-0 z-40 lg:z-auto
-          w-72 flex-shrink-0 bg-white border-r border-gray-100
+          w-80 flex-shrink-0 bg-white border-r border-gray-100
           flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Sidebar header */}
         <div className="px-4 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-bold text-[#1a202c]">Tin nhắn</h2>
             <span className="text-xs bg-[#e8f9eb] text-[#3a9e47] font-semibold px-2 py-0.5 rounded-full">
-              {conversations.length}
+              {filteredConversations.length}
             </span>
           </div>
-          {/* Search bar */}
+
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3 pb-1">
+            <button onClick={() => setTab('ALL')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${tab === 'ALL' ? 'bg-[#1a202c] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tất cả</button>
+            <button onClick={() => setTab('DIRECT')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${tab === 'DIRECT' ? 'bg-[#1a202c] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Cá nhân</button>
+            <button onClick={() => setTab('TEAM')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${tab === 'TEAM' ? 'bg-[#1a202c] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Đội bóng</button>
+            <button onClick={() => setTab('MATCH_GROUP')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${tab === 'MATCH_GROUP' ? 'bg-[#1a202c] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Trận đấu</button>
+          </div>
+
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -255,16 +251,15 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Conversation list */}
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-          {loading && conversations.length === 0 ? (
+          {loading && filteredConversations.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-5 h-5 border-2 border-[#60D86E] border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : conversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <EmptyInbox />
           ) : (
-            conversations.map(conv => (
+            filteredConversations.map(conv => (
               <ConversationItem
                 key={conv.id}
                 conv={conv}
@@ -278,10 +273,7 @@ export default function MessagesPage() {
 
       {/* ── MAIN CHAT AREA ── */}
       <main className="flex-1 flex flex-col bg-white min-w-0 overflow-hidden border-l border-gray-100">
-
-        {/* Chat header */}
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 bg-white">
-          {/* Mobile toggle */}
           <button
             className="lg:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 mr-0.5 flex-shrink-0"
             onClick={() => setSidebarOpen(true)}
@@ -295,19 +287,34 @@ export default function MessagesPage() {
           {activeConv ? (
             <>
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                style={{ backgroundColor: avatarColor(activeConv.partnerId) }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                style={{ backgroundColor: avatarColor(activeConv.partnerId || activeConv.id) }}
               >
-                {getInitials(activeConv.partnerName || (activeConv.partnerId || '').slice(-4))}
+                {getInitials(activeDisplayName)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#1a202c] truncate">{activeDisplayName}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#60D86E] inline-block" />
-                  <span className="text-xs text-gray-400">Online</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {activeConv.type === 'DIRECT' && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#60D86E] inline-block" />
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">CÁ NHÂN</span>
+                    </>
+                  )}
+                  {activeConv.type === 'TEAM' && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      NHÓM ĐỘI BÓNG
+                    </span>
+                  )}
+                  {activeConv.type === 'MATCH_GROUP' && (
+                    <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                      NHÓM TRẬN ĐẤU
+                    </span>
+                  )}
                 </div>
               </div>
-              {/* Refresh button */}
               <button
                 onClick={() => openConversation(activeId)}
                 className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#60D86E] transition-colors flex-shrink-0"
@@ -320,12 +327,10 @@ export default function MessagesPage() {
               </button>
             </>
           ) : (
-            /* No active conversation — only show mobile toggle */
             <h1 className="text-sm font-medium text-gray-400 hidden lg:block">Chọn cuộc trò chuyện</h1>
           )}
         </div>
 
-        {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 bg-gray-50/40">
           {!activeId ? (
             <EmptyChat />
@@ -352,7 +357,6 @@ export default function MessagesPage() {
           )}
         </div>
 
-        {/* Input area — only shown when a conversation is active */}
         {activeId && (
           <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 py-3">
             <form onSubmit={handleSend} className="flex items-end gap-2">
