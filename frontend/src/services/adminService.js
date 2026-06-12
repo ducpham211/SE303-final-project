@@ -8,10 +8,10 @@ import api from './api'
  *        → Spring Page<{ id, fullName, email, role, trustScore }>
  *
  * ─── Reviews ──────────────────────────────────────────────────────────
- *   GET  /api/admin/reviews?status=&page=&size=
- *        → Spring Page<Review>
- *   PUT  /api/admin/reviews/:id
- *        body: { approve: boolean, finalPenalty?: number }
+ *   GET  /api/admin/fairplay/reviews?status=&page=&size=
+ *        → Spring Page<OpponentReview>
+ *   PUT  /api/admin/fairplay/resolve/:id
+ *        body: { isAccepted: boolean, pointsApplied: number }
  *
  * ─── Dashboard ────────────────────────────────────────────────────────
  *   GET  /api/admin/dashboard/overview
@@ -36,32 +36,31 @@ const adminService = {
   },
 
   // ── REVIEWS ───────────────────────────────────────────────────────────
-  getReviews: async ({ status } = {}) => {
-    // Backend only supports GET /api/admin/fairplay/pending for pending reviews.
-    // If the requested status is not PENDING_ADMIN_REVIEW (or empty for 'All'), return empty page.
-    if (status && status !== 'PENDING_ADMIN_REVIEW') {
-      return { content: [], totalPages: 0, totalElements: 0 }
-    }
-    const { data } = await api.get('/admin/fairplay/pending')
+  getReviews: async ({ status, page = 0, size = 12 } = {}) => {
+    const params = new URLSearchParams({ page, size })
+    if (status) params.set('status', status)
+    const { data } = await api.get(`/admin/fairplay/reviews?${params}`)
     
     // Map backend OpponentReview data to what AdminReviewsPage expects
-    const content = (Array.isArray(data) ? data : []).map(item => ({
+    const rawContent = Array.isArray(data) ? data : (data.content || [])
+    const content = rawContent.map(item => ({
       id: item.id,
       reviewerId: item.reviewerId,
       revieweeId: item.revieweeId,
       matchRequestId: item.matchId,
       scoreChange: item.pointsApplied,
       reason: item.comment || (item.ratingType === 'NO_SHOW' ? 'Bùng kèo không lý do' : item.ratingType === 'BAD_BEHAVIOR' ? 'Hành vi xấu' : 'Đánh giá tốt'),
-      aiSuggestedPenalty: item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 10,
-      status: 'PENDING_ADMIN_REVIEW',
+      aiSuggestedPenalty: item.pointsApplied ? Math.abs(item.pointsApplied) : item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 10,
+      status: item.status,
       createdAt: item.createdAt,
-      ratingType: item.ratingType
+      ratingType: item.ratingType,
+      imageUrl: item.imageUrl
     }))
 
     return {
       content,
-      totalPages: 1,
-      totalElements: content.length
+      totalPages: data.totalPages ?? 1,
+      totalElements: data.totalElements ?? content.length
     }
   },
 

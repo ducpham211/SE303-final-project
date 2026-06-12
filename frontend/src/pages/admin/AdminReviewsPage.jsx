@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
 const STATUS_META = {
-  PENDING_ADMIN_REVIEW: { label: 'Chờ xử lý', badge: 'border-amber-200 bg-amber-100 text-amber-700' },
-  AUTO_PASSED: { label: 'Tự động duyệt', badge: 'border-emerald-200 bg-emerald-100 text-emerald-700' },
-  PENALIZED: { label: 'Đã phạt', badge: 'border-red-200 bg-red-100 text-red-700' },
+  PENDING: { label: 'Chờ xử lý', badge: 'border-amber-200 bg-amber-100 text-amber-700' },
+  RESOLVED: { label: 'Đã xử lý', badge: 'border-red-200 bg-red-100 text-red-700' },
+  REJECTED: { label: 'Đã bác bỏ', badge: 'border-emerald-200 bg-emerald-100 text-emerald-700' },
 }
 
 function severity(penalty) {
@@ -28,7 +28,7 @@ function fmtDate(value) {
 
 function ReviewDrawer({ review, onClose, onAdjudicate }) {
   if (!review) return null
-  const status = STATUS_META[review.status] || STATUS_META.AUTO_PASSED
+  const status = STATUS_META[review.status] || STATUS_META.PENDING
   const level = severity(review.aiSuggestedPenalty)
   const rows = [
     ['Review ID', review.id],
@@ -72,7 +72,7 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
           ))}
         </div>
 
-        {review.status === 'PENDING_ADMIN_REVIEW' && (
+        {review.status === 'PENDING' && (
           <button onClick={() => onAdjudicate(review)} className="mt-5 w-full rounded-md bg-gray-950 px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800">
             Mở phán quyết
           </button>
@@ -162,7 +162,7 @@ function AdjudicateModal({ review, onClose, onDone }) {
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState({ content: [], totalPages: 0, totalElements: 0 })
   const [reviewPage, setReviewPage] = useState(0)
-  const [reviewStatus, setReviewStatus] = useState('PENDING_ADMIN_REVIEW')
+  const [reviewStatus, setReviewStatus] = useState('PENDING')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -233,9 +233,9 @@ export default function AdminReviewsPage() {
             <div className="flex flex-wrap gap-2">
               {[
                 { key: '', label: 'Tất cả' },
-                { key: 'PENDING_ADMIN_REVIEW', label: 'Chờ xử lý' },
-                { key: 'PENALIZED', label: 'Đã phạt' },
-                { key: 'AUTO_PASSED', label: 'Tự động duyệt' },
+                { key: 'PENDING', label: 'Chờ xử lý' },
+                { key: 'RESOLVED', label: 'Đã xử lý' },
+                { key: 'REJECTED', label: 'Đã bác bỏ' },
               ].map(tab => (
                 <button key={tab.key} onClick={() => setReviewStatus(tab.key)} className={`rounded-md border px-3 py-1.5 text-sm font-black ${reviewStatus === tab.key ? 'border-gray-950 bg-gray-950 text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                   {tab.label}
@@ -261,7 +261,7 @@ export default function AdminReviewsPage() {
         ) : (
           <div className="mt-5 space-y-3">
             {filtered.map(r => {
-              const status = STATUS_META[r.status] || STATUS_META.AUTO_PASSED
+              const status = STATUS_META[r.status] || STATUS_META.PENDING
               const level = severity(r.aiSuggestedPenalty)
               return (
                 <article key={r.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -277,7 +277,7 @@ export default function AdminReviewsPage() {
                     </button>
                     <div className="flex shrink-0 gap-2">
                       <button onClick={() => setSelected(r)} className="rounded-md border border-gray-200 px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50">Chi tiết</button>
-                      {r.status === 'PENDING_ADMIN_REVIEW' && <button onClick={() => setAdjudicating(r)} className="rounded-md bg-rose-600 px-3 py-2 text-sm font-black text-white hover:bg-rose-700">Phán quyết</button>}
+                      {r.status === 'PENDING' && <button onClick={() => setAdjudicating(r)} className="rounded-md bg-rose-600 px-3 py-2 text-sm font-black text-white hover:bg-rose-700">Phán quyết</button>}
                     </div>
                   </div>
                 </article>
