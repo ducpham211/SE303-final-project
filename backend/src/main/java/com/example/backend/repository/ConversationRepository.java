@@ -15,11 +15,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, Stri
     List<Conversation> findConversationsByUserId(@Param("userId") String userId);
 
     @Query("SELECT c FROM Conversation c " +
-           "JOIN ConversationMember cm1 ON c.id = cm1.conversationId " +
-           "JOIN ConversationMember cm2 ON c.id = cm2.conversationId " +
+           "JOIN c.members cm1 " +
+           "JOIN c.members cm2 " +
            "WHERE c.type = :type " +
            "AND cm1.userId = :userId1 AND cm2.userId = :userId2")
-    Optional<Conversation> findDirectConversationBetweenUsers(
+    List<Conversation> findDirectConversationsBetweenUsers(
         @Param("type") com.example.backend.utils.Enums.ConversationType type,
         @Param("userId1") String userId1,
         @Param("userId2") String userId2

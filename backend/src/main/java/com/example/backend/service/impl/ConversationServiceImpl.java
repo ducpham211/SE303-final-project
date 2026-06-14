@@ -64,6 +64,17 @@ public class ConversationServiceImpl implements ConversationService {
     @Override
     @Transactional 
     public ConversationResponse createDirectConversation(ConversationCreateRequest request, String user1Id, String user2Id) {
+        List<Conversation> existing = conversationRepository.findDirectConversationsBetweenUsers(
+            Enums.ConversationType.DIRECT, user1Id, user2Id
+        );
+        if (!existing.isEmpty()) {
+            Conversation conversation = existing.get(0);
+            conversation.setStatus(Enums.ConversationStatus.ACTIVE);
+            conversation.setMatchId(request.getMatchId());
+            Conversation savedConversation = conversationRepository.save(conversation);
+            return conversationMapper.toResponse(savedConversation);
+        }
+
         Conversation conversation = conversationMapper.toEntity(request);
         conversation.setStatus(Enums.ConversationStatus.ACTIVE);
         
