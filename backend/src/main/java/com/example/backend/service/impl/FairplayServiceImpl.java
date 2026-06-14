@@ -10,6 +10,9 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.service.FairplayService;
 import com.example.backend.utils.Enums;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +56,15 @@ public class FairplayServiceImpl implements FairplayService {
     @Override
     public List<?> getPendingReviews() {
         return reviewRepository.findByStatusOrderByCreatedAtDesc(Enums.FairplayStatus.PENDING);
+    }
+
+    @Override
+    public Page<OpponentReview> getReviews(Enums.FairplayStatus status, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (status == null) {
+            return reviewRepository.findAll(pageable);
+        }
+        return reviewRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
     }
 
     @Override

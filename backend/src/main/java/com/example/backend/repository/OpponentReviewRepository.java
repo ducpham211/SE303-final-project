@@ -2,6 +2,8 @@ package com.example.backend.repository;
 
 import com.example.backend.entity.OpponentReview;
 import com.example.backend.utils.Enums;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +13,7 @@ import java.util.List;
 @Repository
 public interface OpponentReviewRepository extends JpaRepository<OpponentReview, String> {
     List<OpponentReview> findByStatusOrderByCreatedAtDesc(Enums.FairplayStatus status);
+    Page<OpponentReview> findByStatusOrderByCreatedAtDesc(Enums.FairplayStatus status, Pageable pageable);
     List<OpponentReview> findByRevieweeIdOrderByCreatedAtDesc(String revieweeId);
 
     // Kiểm tra xem đã gửi đánh giá chưa
