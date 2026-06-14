@@ -4,10 +4,37 @@ import { FaPlus, FaGlobe, FaListAlt, FaHistory, FaRobot } from 'react-icons/fa';
 import ManualMatch from './components/ManualMatch'
 import AutoMatch from './components/AutoMatch'
 import AutoMatchView from './components/AutoMatchView';
+import MatchCard from './components/common/MatchCard';
 import { useAutoMatch } from './components/hooks/useAutoMatch';
+import ConfirmApply from './components/ConfirmApply';
 import api from '../../services/api';
-import fairplayService from '../../services/fairplayService';
-import FairplayReviewModal from '../player/components/FairplayReviewModal';
+import fairplayService from '../../services/fairplayService'
+import FairplayReviewModal from '../player/components/FairplayReviewModal'
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const str = String(dateStr);
+  const clean = str.includes('T') ? str.split('T')[0] : str.includes(' ') ? str.split(' ')[0] : str;
+  const parts = clean.split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : clean;
+};
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  const str = String(timeStr);
+  if (str.includes('T')) return str.split('T')[1].substring(0, 5);
+  if (str.includes(' ')) return str.split(' ')[1].substring(0, 5);
+  return str.substring(0, 5);
+};
+
+const translateSkillLevel = (level) => {
+  switch (level) {
+    case 'BEGINNER': return 'Tân binh / Vui vẻ';
+    case 'INTERMEDIATE': return 'Nghiệp dư / Khá';
+    case 'ADVANCED': return 'Chuyên nghiệp / Tốt';
+    default: return level || 'Mọi trình độ';
+  }
+};
 
 const tabs = [
   {
@@ -35,9 +62,10 @@ export default function FindOpponentPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAutoOpen, setIsAutoOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState('');
-  
   const [submittedReviews, setSubmittedReviews] = useState([]);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null);
@@ -45,19 +73,19 @@ export default function FindOpponentPage() {
   const autoMatch = useAutoMatch(currentUserId, (data) => setMatches(data), setViewMode);
 
   useEffect(() => {
-    let userId = '';
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        userId = decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '';
-        setCurrentUserId(userId);
+        setCurrentUserId(decodedPayload.sub || decodedPayload.id || decodedPayload.userId || '');
       } catch (error) {
         console.error('Không thể đọc token', error);
       }
     }
+  }, []);
 
+  useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -68,15 +96,6 @@ export default function FindOpponentPage() {
 
         setMatches(postsRes.data.content || postsRes.data || []);
         setFields(fieldsRes.data.content || fieldsRes.data || []);
-
-        if (userId) {
-          try {
-            const reviews = await fairplayService.getMySubmitted();
-            setSubmittedReviews(reviews || []);
-          } catch (e) {
-            console.warn('Lỗi tải fairplay reviews', e);
-          }
-        }
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu', error);
       } finally {
@@ -87,12 +106,71 @@ export default function FindOpponentPage() {
     loadData();
   }, []);
 
+  // Load user's submitted fairplay reviews when we know currentUserId
+  useEffect(() => {
+    if (!currentUserId) return;
+    let cancelled = false;
+    const loadReviews = async () => {
+      try {
+        const list = await fairplayService.getMySubmitted();
+        if (!cancelled) setSubmittedReviews(list || []);
+      } catch (e) {
+        console.warn('Lỗi tải fairplay reviews', e);
+      }
+    }
+    loadReviews();
+    return () => { cancelled = true }
+  }, [currentUserId]);
+
   const refreshMatches = async () => {
     try {
       const postsRes = await api.get('/match-posts?size=100');
       setMatches(postsRes.data.content || postsRes.data || []);
     } catch (error) {
       console.error('Lỗi khi refresh match posts', error);
+    }
+  };
+
+  const openConfirmApply = (match) => {
+    setSelectedMatch(match);
+    setIsConfirmOpen(true);
+  };
+
+  const closeConfirmApply = () => {
+    setSelectedMatch(null);
+    setIsConfirmOpen(false);
+  };
+
+  const handleConfirmApply = async () => {
+    closeConfirmApply();
+    await refreshMatches();
+    setViewMode('history');
+  };
+
+  const handleAcceptMatchRequest = async (requestId) => {
+    if (!window.confirm('Bạn chắc chắn muốn chốt kèo với người này?')) return;
+
+    try {
+      await api.put(`/match-requests/${requestId}/status`, { status: 'ACCEPTED' });
+      await refreshMatches();
+      alert('Đã chốt kèo! Chuyển sang tab Lịch sử để xem trạng thái mới.');
+      setViewMode('history');
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Không thể chốt kèo. Vui lòng thử lại.');
+    }
+  };
+
+  const handleRejectMatchRequest = async (requestId) => {
+    if (!window.confirm('Bạn muốn từ chối yêu cầu này?')) return;
+
+    try {
+      await api.put(`/match-requests/${requestId}/status`, { status: 'REJECTED' });
+      alert('Đã từ chối yêu cầu.');
+      await refreshMatches();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Không thể từ chối yêu cầu. Vui lòng thử lại.');
     }
   };
 
@@ -107,20 +185,37 @@ export default function FindOpponentPage() {
     }
   };
 
+  const handleDeleteMatchPost = async (postId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy bài đăng này?')) return;
+
+    try {
+      await api.delete(`/match-posts/${postId}`);
+      alert('Đã hủy bài đăng thành công.');
+      await refreshMatches();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Không thể hủy bài đăng. Vui lòng thử lại.');
+    }
+  };
+
   const publicMatches = matches.filter((m) =>
     (m.status === 'OPEN' || m.status === 'OPENING') &&
     (!m.message || !m.message.startsWith('[LIVE_MATCH]'))
   );
 
-  const myMatches = matches.filter((m) =>
-    m.userId === currentUserId &&
-    (!m.message || !m.message.startsWith('[LIVE_MATCH]'))
-  );
+  const myMatches = matches.filter((m) => {
+    const isMyPost = m.userId === currentUserId && (!m.message || !m.message.startsWith('[LIVE_MATCH]'));
+    const hasPendingRequests = m.requests && m.requests.some((r) => r.status === 'PENDING');
+    return isMyPost && (m.status !== 'CLOSED' || hasPendingRequests);
+  });
 
-  const historyMatches = matches.filter((m) =>
-    (m.userId === currentUserId && (m.status === 'CLOSED' || (m.requests && m.requests.length > 0))) ||
-    (m.requests && m.requests.some((r) => r.requesterId === currentUserId))
-  );
+  const historyMatches = matches.filter((m) => {
+    const isMyClosedPost = m.userId === currentUserId && m.status === 'CLOSED' && (!m.message || !m.message.startsWith('[LIVE_MATCH]'));
+    const isMyCompletedRequest = m.requests && m.requests.some((r) => 
+      r.requesterId === currentUserId && (r.status === 'ACCEPTED' || r.status === 'REJECTED')
+    );
+    return isMyClosedPost || isMyCompletedRequest;
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -194,37 +289,59 @@ export default function FindOpponentPage() {
           ) : viewMode === 'history' ? (
             <div className="space-y-4">
               {historyMatches.length > 0 ? historyMatches.map((match) => {
+                const isMyPost = match.userId === currentUserId;
+                const myRequest = match.requests?.find((r) => r.requesterId === currentUserId);
+
+                // compute review eligibility
                 const isClosed = match.status === 'CLOSED';
                 let opponentId = null;
                 if (match.userId === currentUserId && match.requests && match.requests.length > 0) {
-                   const acceptedReq = match.requests.find(r => r.status === 'ACCEPTED');
-                   if (acceptedReq) opponentId = acceptedReq.requesterId;
+                  const acceptedReq = match.requests.find(r => r.status === 'ACCEPTED');
+                  if (acceptedReq) opponentId = acceptedReq.requesterId;
                 } else if (match.requests && match.requests.some(r => r.requesterId === currentUserId && r.status === 'ACCEPTED')) {
-                   opponentId = match.userId;
+                  opponentId = match.userId;
                 }
-                
                 const canReview = isClosed && opponentId && !submittedReviews.includes(match.id);
 
                 return (
-                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
                       <p className="text-sm text-slate-500 mb-2">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                      <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
+                      <p className="text-sm text-slate-500">Ngày: <span className="font-semibold text-slate-700">{formatDate(match.date)}</span></p>
+                      <p className="text-sm text-slate-500">Khung giờ: <span className="font-semibold text-slate-700">{formatTime(match.timeStart)} - {formatTime(match.timeEnd)}</span></p>
+                      <p className="text-sm text-slate-500">Trình độ: <span className="font-semibold text-slate-700">{translateSkillLevel(match.skillLevel)}</span></p>
+                      <p className="text-sm text-slate-500">Tỉ lệ chia tiền: <span className="font-semibold text-slate-700">{match.costSharing || 'Chia đều'}</span></p>
                     </div>
-                    {canReview && (
-                      <button 
-                        onClick={() => {
-                          setReviewTarget({ matchId: match.id, revieweeId: opponentId });
-                          setReviewModalOpen(true);
-                        }}
-                        className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-semibold text-sm hover:bg-emerald-100 whitespace-nowrap self-start sm:self-auto"
-                      >
-                        Đánh giá đối thủ
-                      </button>
-                    )}
+                    <div className="flex flex-col gap-3 w-full sm:w-auto">
+                      {isMyPost ? (
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                          <p className="font-semibold">Người nhận: {match.requests?.[0]?.requesterId || 'Chưa xác định'}</p>
+                          <p className="mt-2">Trạng thái: <span className="font-semibold">{match.requests?.[0]?.status || 'COMPLETED'}</span></p>
+                          <p className="mt-2">Lời nhắn: {match.requests?.[0]?.message || 'Không có'}</p>
+                        </div>
+                      ) : myRequest ? (
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                          <p className="font-semibold">Bạn đã gửi yêu cầu nhận kèo này.</p>
+                          <p className="mt-2">Trạng thái: <span className="font-semibold">{myRequest.status || 'COMPLETED'}</span></p>
+                          <p className="mt-2">Lời nhắn: {myRequest.message || 'Không có'}</p>
+                        </div>
+                      ) : null}
+
+                      {canReview && (
+                        <button
+                          onClick={() => {
+                            setReviewTarget({ matchId: match.id, revieweeId: opponentId });
+                            setReviewModalOpen(true);
+                          }}
+                          className="self-end w-40 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-100"
+                        >
+                          Đánh giá đối thủ
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )
+                );
               }) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-500 shadow-sm">
                   <p className="text-lg font-medium">Không có lịch sử ghép trận nào.</p>
@@ -234,10 +351,46 @@ export default function FindOpponentPage() {
           ) : viewMode === 'mine' ? (
             <div className="grid gap-6">
               {myMatches.length > 0 ? myMatches.map((match) => (
-                <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                  <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                  <p className="text-sm text-slate-500">Trạng thái: <span className="font-semibold text-slate-700">{match.status}</span></p>
+                <div key={match.id} className="grid gap-4">
+                  <MatchCard
+                    match={match}
+                    fieldName={fields.find((f) => f.id === match.fieldId)?.name}
+                    className="rounded-3xl shadow-sm border border-gray-100"
+                    onDelete={() => handleDeleteMatchPost(match.id)}
+                  />
+                  {match.requests && match.requests.filter(req => req.status !== 'REJECTED').length > 0 ? (
+                    <div className="space-y-3">
+                      {match.requests.filter(req => req.status !== 'REJECTED').map((req) => (
+                        <div key={req.id || req.requesterId} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="text-sm text-slate-700 font-semibold">Người nhận: {req.requesterId}</p>
+                          <p className="text-sm text-slate-600 mt-2">Lời nhắn: {req.message || 'Không có'}</p>
+                          <p className="text-sm text-slate-600 mt-1">Trạng thái: <span className="font-semibold">{req.status || 'PENDING'}</span></p>
+                          {match.status !== 'CLOSED' && req.status !== 'ACCEPTED' && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleAcceptMatchRequest(req.id)}
+                                className="rounded-full bg-[#60D86E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#45c45a]"
+                              >
+                                Chốt kèo
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRejectMatchRequest(req.id)}
+                                className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                      Chưa có ai gửi yêu cầu nhận kèo này.
+                    </div>
+                  )}
                 </div>
               )) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-500 shadow-sm">
@@ -248,11 +401,13 @@ export default function FindOpponentPage() {
           ) : (
             <div className="grid gap-6">
               {publicMatches.length > 0 ? publicMatches.map((match) => (
-                <div key={match.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{match.message?.replace('[LIVE_MATCH]', '').trim() || 'Tin tìm đối thủ'}</h3>
-                  <p className="text-sm text-slate-500 mb-1">Sân: {fields.find((f) => f.id === match.fieldId)?.name || 'Mọi sân'}</p>
-                  <p className="text-sm text-slate-500">Ngày: {match.date || 'Chưa rõ'}</p>
-                </div>
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  fieldName={fields.find((f) => f.id === match.fieldId)?.name}
+                  onApply={() => openConfirmApply(match)}
+                  className="rounded-3xl shadow-sm border border-gray-100"
+                />
               )) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-500 shadow-sm">
                   <p className="text-lg font-medium">Hiện chưa có bài đăng tìm đối thủ nào.</p>
@@ -279,6 +434,12 @@ export default function FindOpponentPage() {
           fields={fields}
         />
 
+        <ConfirmApply
+          isOpen={isConfirmOpen}
+          match={selectedMatch}
+          onClose={closeConfirmApply}
+          onConfirm={handleConfirmApply}
+        />
         <FairplayReviewModal 
           isOpen={reviewModalOpen}
           onClose={(submitted) => {

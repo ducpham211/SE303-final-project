@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 
 const ConfirmApplyModal = ({ isOpen, match, onClose, onConfirm }) => {
+  const navigate = useNavigate();
   const [message, setMessage] = useState('Chào bạn, đội mình muốn nhận kèo này!');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -43,8 +45,9 @@ const ConfirmApplyModal = ({ isOpen, match, onClose, onConfirm }) => {
         message: message
       });
 
-      alert('Đã gửi yêu cầu nhận kèo và tạo phòng chat thành công!');
+      alert('Đã gửi yêu cầu nhận kèo và tạo phòng chat thành công! Chuyển đến Tin nhắn để trò chuyện.');
       onConfirm();
+      navigate('/messages');
     } catch (err) {
       console.error(err);
       const backendMessage = err.response?.data?.message || err.response?.data;
