@@ -147,7 +147,7 @@ export default function NotificationDropdown() {
         navigate('/messages')
         break
       case 'MATCH_REQUEST':
-        navigate('/matchmaking?tab=mine')
+        navigate('/messages')
         break
       case 'USER_UPDATE':
         navigate('/profile')
