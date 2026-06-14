@@ -144,7 +144,6 @@ export default function FindOpponentPage() {
   const handleConfirmApply = async () => {
     closeConfirmApply();
     await refreshMatches();
-    setViewMode('history');
   };
 
   const handleAcceptMatchRequest = async (requestId) => {
