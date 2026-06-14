@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
@@ -65,6 +65,7 @@ export default function AdminDashboardPage() {
   const [transactions, setTransactions] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const requestCountRef = useRef(0)
 
   const metrics = useMemo(() => ([
     {
@@ -97,6 +98,8 @@ export default function AdminDashboardPage() {
   ]), [overview, transactions])
 
   const load = async () => {
+    requestCountRef.current += 1
+    const currentRequestId = requestCountRef.current
     setLoading(true)
     setError('')
     try {
@@ -104,12 +107,18 @@ export default function AdminDashboardPage() {
         adminService.getOverview(),
         adminService.getTransactions(),
       ])
-      setOverview(ov)
-      setTransactions(tx)
+      if (currentRequestId === requestCountRef.current) {
+        setOverview(ov)
+        setTransactions(tx)
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải dữ liệu dashboard.')
+      if (currentRequestId === requestCountRef.current) {
+        setError(e?.response?.data?.message || 'Không thể tải dữ liệu dashboard.')
+      }
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestCountRef.current) {
+        setLoading(false)
+      }
     }
   }
 

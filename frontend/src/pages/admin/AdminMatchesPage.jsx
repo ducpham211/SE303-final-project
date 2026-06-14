@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
@@ -94,18 +94,27 @@ export default function AdminMatchesPage() {
   const [postType, setPostType] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+  const requestCountRef = useRef(0)
 
   const loadPosts = useCallback(async () => {
+    requestCountRef.current += 1
+    const currentRequestId = requestCountRef.current
     setLoading(true)
     setError('')
     try {
       const data = await adminService.getMatchPosts({ page: postPage, size: 12, skillLevel: skillLevel || undefined, postType: postType || undefined })
-      setPosts(data)
+      if (currentRequestId === requestCountRef.current) {
+        setPosts(data)
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải bài đăng ghép kèo.')
-      setPosts({ content: [], totalPages: 0, totalElements: 0 })
+      if (currentRequestId === requestCountRef.current) {
+        setError(e?.response?.data?.message || 'Không thể tải bài đăng ghép kèo.')
+        setPosts({ content: [], totalPages: 0, totalElements: 0 })
+      }
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestCountRef.current) {
+        setLoading(false)
+      }
     }
   }, [postPage, skillLevel, postType])
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom'
 import { FaPlus, FaGlobe, FaListAlt, FaHistory, FaRobot } from 'react-icons/fa';
 import ManualMatch from './components/ManualMatch'
 import AutoMatch from './components/AutoMatch'
@@ -49,10 +49,17 @@ const tabs = [
 ]
 
 export default function FindOpponentPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [fields, setFields] = useState([]);
   const [matches, setMatches] = useState([]);
-  const [viewMode, setViewMode] = useState('all');
+  const params = new URLSearchParams(location.search);
+  const viewMode = params.get('tab') || 'all';
+
+  const setViewMode = (newMode) => {
+    navigate(`/matchmaking?tab=${newMode}`);
+  };
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAutoOpen, setIsAutoOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);

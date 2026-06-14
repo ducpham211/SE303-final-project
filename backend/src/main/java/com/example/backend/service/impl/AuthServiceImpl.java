@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(senderEmail, "Pitch IE303");
+            helper.setFrom(senderEmail, "Pitch SE330");
             helper.setTo(email);
             helper.setSubject("Mã OTP Đăng ký tài khoản");
             helper.setText("Mã OTP đăng ký của bạn là: " + otp + ". Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này cho người khác.");

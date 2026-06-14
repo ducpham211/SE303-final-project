@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
 
@@ -110,8 +110,11 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const requestCountRef = useRef(0)
 
   const load = useCallback(async () => {
+    requestCountRef.current += 1
+    const currentRequestId = requestCountRef.current
     setLoading(true)
     setError('')
     try {
@@ -121,12 +124,18 @@ export default function AdminUsersPage() {
         page,
         size: 15,
       })
-      setResult(data)
+      if (currentRequestId === requestCountRef.current) {
+        setResult(data)
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải danh sách người dùng.')
-      setResult({ content: [], totalElements: 0, totalPages: 0 })
+      if (currentRequestId === requestCountRef.current) {
+        setError(e?.response?.data?.message || 'Không thể tải danh sách người dùng.')
+        setResult({ content: [], totalElements: 0, totalPages: 0 })
+      }
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestCountRef.current) {
+        setLoading(false)
+      }
     }
   }, [role, minTrustScore, page])
 

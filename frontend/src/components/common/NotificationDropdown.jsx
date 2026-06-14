@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
+import { useNavigate } from 'react-router-dom'
 import notificationService from '../../services/notificationService'
 import useAuthStore from '../../store/useAuthStore'
 
@@ -29,6 +30,7 @@ function timeAgo(dateStr) {
 
 export default function NotificationDropdown() {
   const { isLoggedIn } = useAuthStore()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -128,6 +130,35 @@ export default function NotificationDropdown() {
     }
   }
 
+  const handleNotificationClick = async (n) => {
+    if (!n.isRead) {
+      await handleMarkRead(n.id)
+    }
+    setOpen(false)
+    switch (n.type) {
+      case 'TEAM_INVITE':
+        navigate('/teams?tab=invitations')
+        break
+      case 'BOOKING_UPDATE':
+      case 'PAYMENT_UPDATE':
+        navigate('/booking-history')
+        break
+      case 'NEW_MESSAGE':
+        navigate('/messages')
+        break
+      case 'MATCH_REQUEST':
+        navigate('/matchmaking?tab=mine')
+        break
+      case 'USER_UPDATE':
+        navigate('/profile')
+        break
+      case 'SYSTEM':
+      default:
+        navigate('/dashboard')
+        break
+    }
+  }
+
   if (!isLoggedIn) return null
 
   return (
@@ -180,7 +211,7 @@ export default function NotificationDropdown() {
               return (
                 <button
                   key={n.id}
-                  onClick={() => !n.isRead && handleMarkRead(n.id)}
+                  onClick={() => handleNotificationClick(n)}
                   className={`w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 ${!n.isRead ? 'bg-[#FAFFFE]' : ''}`}
                 >
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: typeStyle.bg }}>

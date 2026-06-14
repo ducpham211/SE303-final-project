@@ -4,11 +4,13 @@ import com.example.backend.dto.request.FairplayDecisionRequest;
 import com.example.backend.service.FairplayService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/fairplay")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminFairplayController {
     private final FairplayService fairplayService;
 
