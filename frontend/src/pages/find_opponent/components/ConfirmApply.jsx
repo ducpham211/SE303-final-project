@@ -46,7 +46,7 @@ const ConfirmApplyModal = ({ isOpen, match, onClose, onConfirm }) => {
       });
 
       alert('Đã gửi yêu cầu nhận kèo và tạo phòng chat thành công! Chuyển đến Tin nhắn để trò chuyện.');
-      onConfirm();
+      onClose();
       navigate('/messages');
     } catch (err) {
       console.error(err);
