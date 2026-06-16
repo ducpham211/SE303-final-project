@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import fieldService from '../../services/fieldService'
+import useModalStore from '../../store/useModalStore'
 
 const FIELD_TYPES = [
   { value: 'FIVE_A_SIDE', label: 'Sân 5' },
@@ -377,7 +378,9 @@ function SlotForm({ form, onChange, onSubmit, onReset, editing, disabled, submit
 }
 
 export default function OwnerFieldsPage() {
+  const { showConfirm } = useModalStore()
   const cachedFields = fieldService.peekFields()
+
   const [fields, setFields] = useState(() => cachedFields || [])
   const [fieldDetails, setFieldDetails] = useState(() => {
     if (!cachedFields) return {}
@@ -558,29 +561,32 @@ export default function OwnerFieldsPage() {
   }
 
   const handleDeleteField = async (field) => {
-    const ok = window.confirm(`Xóa ${field.name || 'sân này'}? Các khung giờ liên quan cũng sẽ bị xóa.`)
-    if (!ok) return
-
-    setActionLoading(`field-delete-${field.id}`)
-    setError('')
-    try {
-      await fieldService.deleteField(field.id)
-      const remainingFields = fields.filter((item) => item.id !== field.id)
-      setFields(remainingFields)
-      setFieldDetails((prev) => {
-        const next = { ...prev }
-        delete next[field.id]
-        return next
-      })
-      if (selectedFieldId === field.id) setSelectedFieldId(remainingFields[0]?.id || null)
-      if (editingFieldId === field.id) resetFieldForm()
-      showNotice('Đã xóa sân.')
-    } catch (deleteError) {
-      console.error('Owner field delete error:', deleteError)
-      setError(deleteError?.response?.data?.message || 'Không xóa được sân.')
-    } finally {
-      setActionLoading('')
-    }
+    showConfirm(
+      'Xóa sân bóng',
+      `Xóa ${field.name || 'sân này'}? Các khung giờ liên quan cũng sẽ bị xóa.`,
+      async () => {
+        setActionLoading(`field-delete-${field.id}`)
+        setError('')
+        try {
+          await fieldService.deleteField(field.id)
+          const remainingFields = fields.filter((item) => item.id !== field.id)
+          setFields(remainingFields)
+          setFieldDetails((prev) => {
+            const next = { ...prev }
+            delete next[field.id]
+            return next
+          })
+          if (selectedFieldId === field.id) setSelectedFieldId(remainingFields[0]?.id || null)
+          if (editingFieldId === field.id) resetFieldForm()
+          showNotice('Đã xóa sân.')
+        } catch (deleteError) {
+          console.error('Owner field delete error:', deleteError)
+          setError(deleteError.response?.data?.message || 'Không thể xóa sân. Vui lòng thử lại sau.')
+        } finally {
+          setActionLoading('')
+        }
+      }
+    )
   }
 
   const handleSlotSubmit = async (event) => {
@@ -651,23 +657,27 @@ export default function OwnerFieldsPage() {
 
   const handleDeleteSlot = async (slot) => {
     if (!selectedField) return
-    const ok = window.confirm('Xóa khung giờ này?')
-    if (!ok) return
-
-    setActionLoading(`slot-delete-${slot.id}`)
-    setError('')
-    try {
-      await fieldService.deleteTimeSlot(selectedField.id, slot.id)
-      if (editingSlotId === slot.id) resetSlotForm()
-      showNotice('Đã xóa khung giờ.')
-      await loadFieldDetail(selectedField.id)
-    } catch (deleteError) {
-      console.error('Owner slot delete error:', deleteError)
-      setError(deleteError?.response?.data?.message || 'Không xóa được khung giờ.')
-    } finally {
-      setActionLoading('')
-    }
+    showConfirm(
+      'Xóa khung giờ',
+      'Xóa khung giờ này?',
+      async () => {
+        setActionLoading(`slot-delete-${slot.id}`)
+        setError('')
+        try {
+          await fieldService.deleteTimeSlot(selectedField.id, slot.id)
+          if (editingSlotId === slot.id) resetSlotForm()
+          showNotice('Đã xóa khung giờ.')
+          await loadFieldDetail(selectedField.id)
+        } catch (deleteError) {
+          console.error('Owner slot delete error:', deleteError)
+          setError(deleteError.response?.data?.message || 'Không thể xóa khung giờ. Vui lòng thử lại sau.')
+        } finally {
+          setActionLoading('')
+        }
+      }
+    )
   }
+
 
   return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">

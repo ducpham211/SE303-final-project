@@ -151,7 +151,7 @@ export default function DashboardTeaser() {
             </div>
           )}
 
-          {!loading && bookings.map(b => <BookingRow key={b.id} booking={b} />)}
+          {!loading && bookings.map((b, idx) => <BookingRow key={b.bookingId || b.id || idx} booking={b} />)}
         </div>
 
         <div className="mt-4 sm:hidden text-center">

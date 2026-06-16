@@ -10,6 +10,7 @@ import ConfirmApply from './components/ConfirmApply';
 import api from '../../services/api';
 import fairplayService from '../../services/fairplayService'
 import FairplayReviewModal from '../player/components/FairplayReviewModal'
+import useModalStore from '../../store/useModalStore';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -39,13 +40,16 @@ const translateSkillLevel = (level) => {
 const tabs = [
   {
     key: 'all',
-    label: (<> <FaGlobe className="inline-block mr-2" />Bảng chung </>)},
+    label: (<> <FaGlobe className="inline-block mr-2" />Bảng chung </>)
+  },
   {
     key: 'mine',
-    label: (<> <FaListAlt className="inline-block mr-2" />Bài của tôi </>)},
+    label: (<> <FaListAlt className="inline-block mr-2" />Bài của tôi </>)
+  },
   {
     key: 'history',
-    label: (<> <FaHistory className="inline-block mr-2" />Lịch sử </>)}
+    label: (<> <FaHistory className="inline-block mr-2" />Lịch sử </>)
+  }
 ]
 
 export default function FindOpponentPage() {
@@ -55,6 +59,8 @@ export default function FindOpponentPage() {
   const [matches, setMatches] = useState([]);
   const params = new URLSearchParams(location.search);
   const viewMode = params.get('tab') || 'all';
+
+  const { showConfirm, showAlert } = useModalStore();
 
   const setViewMode = (newMode) => {
     navigate(`/matchmaking?tab=${newMode}`);
@@ -144,34 +150,42 @@ export default function FindOpponentPage() {
   const handleConfirmApply = async () => {
     closeConfirmApply();
     await refreshMatches();
-    setViewMode('history');
   };
 
   const handleAcceptMatchRequest = async (requestId) => {
-    if (!window.confirm('Bạn chắc chắn muốn chốt kèo với người này?')) return;
-
-    try {
-      await api.put(`/match-requests/${requestId}/status`, { status: 'ACCEPTED' });
-      await refreshMatches();
-      alert('Đã chốt kèo! Chuyển sang tab Lịch sử để xem trạng thái mới.');
-      setViewMode('history');
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || 'Không thể chốt kèo. Vui lòng thử lại.');
-    }
+    showConfirm(
+      'Chốt kèo',
+      'Bạn chắc chắn muốn chốt kèo với người này?',
+      async () => {
+        try {
+          await api.put(`/match-requests/${requestId}/status`, { status: 'ACCEPTED' });
+          await refreshMatches();
+          showAlert('Thành công', 'Đã chốt kèo! Chuyển sang tab Lịch sử để xem trạng thái mới.', () => {
+            setViewMode('history');
+          });
+        } catch (error) {
+          console.error(error);
+          showAlert('Lỗi', error.response?.data?.message || 'Không thể chốt kèo. Vui lòng thử lại.');
+        }
+      }
+    );
   };
 
   const handleRejectMatchRequest = async (requestId) => {
-    if (!window.confirm('Bạn muốn từ chối yêu cầu này?')) return;
-
-    try {
-      await api.put(`/match-requests/${requestId}/status`, { status: 'REJECTED' });
-      alert('Đã từ chối yêu cầu.');
-      await refreshMatches();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || 'Không thể từ chối yêu cầu. Vui lòng thử lại.');
-    }
+    showConfirm(
+      'Từ chối kèo',
+      'Bạn muốn từ chối yêu cầu này?',
+      async () => {
+        try {
+          await api.put(`/match-requests/${requestId}/status`, { status: 'REJECTED' });
+          showAlert('Từ chối thành công', 'Đã từ chối yêu cầu.');
+          await refreshMatches();
+        } catch (error) {
+          console.error(error);
+          showAlert('Lỗi', error.response?.data?.message || 'Không thể từ chối yêu cầu. Vui lòng thử lại.');
+        }
+      }
+    );
   };
 
   const handleCreatePostSubmit = async (post) => {
@@ -181,21 +195,25 @@ export default function FindOpponentPage() {
       setIsCreateOpen(false);
     } catch (error) {
       console.error(error);
-      alert('Không thể tạo bài đăng. Vui lòng thử lại!');
+      showAlert('Lỗi', 'Không thể tạo bài đăng. Vui lòng thử lại!');
     }
   };
 
   const handleDeleteMatchPost = async (postId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy bài đăng này?')) return;
-
-    try {
-      await api.delete(`/match-posts/${postId}`);
-      alert('Đã hủy bài đăng thành công.');
-      await refreshMatches();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || 'Không thể hủy bài đăng. Vui lòng thử lại.');
-    }
+    showConfirm(
+      'Hủy bài đăng',
+      'Bạn có chắc chắn muốn hủy bài đăng này?',
+      async () => {
+        try {
+          await api.delete(`/match-posts/${postId}`);
+          showAlert('Thành công', 'Đã hủy bài đăng thành công.');
+          await refreshMatches();
+        } catch (error) {
+          console.error(error);
+          showAlert('Lỗi', error.response?.data?.message || 'Không thể hủy bài đăng. Vui lòng thử lại.');
+        }
+      }
+    );
   };
 
   const publicMatches = matches.filter((m) =>

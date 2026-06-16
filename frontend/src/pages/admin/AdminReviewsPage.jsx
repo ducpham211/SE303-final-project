@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
+import useModalStore from '../../store/useModalStore'
 
 const STATUS_META = {
   PENDING: { label: 'Chờ xử lý', badge: 'border-amber-200 bg-amber-100 text-amber-700' },
@@ -55,14 +56,8 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
         <div className="mt-5 flex flex-wrap gap-2">
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
-          <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">Mặc định: -{review.defaultPenalty}đ</span>
-          {review.hasAiFeedback && (
-            review.aiSuggestedPenalty > 0 ? (
-              <span className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700">AI gợi ý: -{review.aiSuggestedPenalty}đ</span>
-            ) : (
-              <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">AI gợi ý: -0đ (Không cần trừ điểm)</span>
-            )
-          )}
+          {review.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(review.aiSuggestedPenalty)}</span>}
+          {review.isToxic && <span className="rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-black text-red-700">⚠️ AI: Toxic</span>}
         </div>
 
         <div className="mt-6 rounded-lg border border-gray-200 p-4">
@@ -71,11 +66,9 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
         </div>
 
         {review.aiReason && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
-            <p className="text-xs font-bold uppercase text-blue-500">AI Phân tích & Lý do gợi ý</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-blue-900">
-              <strong>AI giải thích:</strong> {review.aiReason}
-            </p>
+          <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50/50 p-4">
+            <p className="text-xs font-bold uppercase text-purple-600">AI Phân Tích & Giải Thích</p>
+            <p className="mt-2 text-sm leading-6 text-purple-900 font-medium">{review.aiReason}</p>
           </div>
         )}
 
@@ -99,6 +92,7 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
 }
 
 function AdjudicateModal({ review, onClose, onDone }) {
+  const { showConfirm } = useModalStore()
   const [approve, setApprove] = useState(true)
   const [finalPenalty, setFinalPenalty] = useState(
     review?.hasAiFeedback
@@ -106,6 +100,7 @@ function AdjudicateModal({ review, onClose, onDone }) {
       : (review?.defaultPenalty || 10)
   )
   const [saving, setSaving] = useState(false)
+
   const [err, setErr] = useState('')
 
   const validPenalty = !approve || (finalPenalty >= 0 && finalPenalty <= 100)
@@ -116,22 +111,24 @@ function AdjudicateModal({ review, onClose, onDone }) {
       setErr('Điểm phạt phải nằm trong khoảng 1 đến 100.')
       return
     }
-    const ok = window.confirm(approve
-      ? `Xác nhận trừ ${finalPenalty} điểm uy tín?`
-      : 'Xác nhận bác bỏ tố cáo này?')
-    if (!ok) return
-
-    setSaving(true)
-    try {
-      await adminService.adjudicateReview(review.id, { approve, finalPenalty: approve ? finalPenalty : 0 })
-      onDone()
-      onClose()
-    } catch (e) {
-      setErr(e?.response?.data?.message || 'Không thể lưu phán quyết.')
-    } finally {
-      setSaving(false)
-    }
+    showConfirm(
+      'Phán quyết tố cáo',
+      approve ? `Xác nhận trừ ${finalPenalty} điểm uy tín?` : 'Xác nhận bác bỏ tố cáo này?',
+      async () => {
+        setSaving(true)
+        try {
+          await adminService.adjudicateReview(review.id, { approve, finalPenalty: approve ? finalPenalty : 0 })
+          onDone()
+          onClose()
+        } catch (e) {
+          setErr(e?.response?.data?.message || 'Không thể lưu phán quyết.')
+        } finally {
+          setSaving(false)
+        }
+      }
+    )
   }
+
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
@@ -147,6 +144,11 @@ function AdjudicateModal({ review, onClose, onDone }) {
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs font-bold uppercase text-gray-400">Lý do tố cáo</p>
           <p className="mt-2 max-h-28 overflow-y-auto text-sm leading-6 text-gray-700">{review.reason || 'Không có lý do.'}</p>
+          <p className="mt-3 text-sm font-bold text-amber-700">AI đề xuất: -{Math.abs(Number(review.aiSuggestedPenalty) || 0)} điểm</p>
+          {review.aiReason && (
+            <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-purple-700">
+              <span className="font-bold">AI giải thích:</span> {review.aiReason}
+            </div>
           
           <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between text-xs text-gray-500 font-bold">
             <span>Mặc định: -{review.defaultPenalty}đ</span>
@@ -305,6 +307,8 @@ export default function AdminReviewsPage() {
                       <div className="flex flex-wrap gap-2">
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
+                        {r.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(r.aiSuggestedPenalty)}</span>}
+                        {r.isToxic && <span className="rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-black text-red-700">⚠️ AI: Toxic</span>}
                         <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">Mặc định: -{r.defaultPenalty}đ</span>
                         {r.hasAiFeedback && (
                           r.aiSuggestedPenalty > 0 ? (

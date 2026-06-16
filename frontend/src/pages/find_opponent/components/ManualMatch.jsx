@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import api from '../../../services/api';
+import useModalStore from '../../../store/useModalStore';
 
 const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
+  const { showAlert } = useModalStore();
   const [newPost, setNewPost] = useState({
+
     message: '', 
     date: '', 
     timeStartStr: '18:00', 
@@ -102,9 +105,10 @@ const ManualMatchModal = ({ isOpen, onClose, onSubmit, fields }) => {
     e.preventDefault();
 
     if (!newPost.timeStartStr || !newPost.timeEndStr) {
-        alert('Vui lòng chọn khung giờ hợp lệ!');
+        showAlert('Thông báo', 'Vui lòng chọn khung giờ hợp lệ!');
         return;
     }
+
 
     let finalTimeStart = null;
     let finalTimeEnd = null;

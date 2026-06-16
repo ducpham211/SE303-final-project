@@ -8,7 +8,13 @@ import { useEffect, useState } from 'react';
  * @param {number} duration - Auto close duration in ms
  */
 export default function Toast({ message, type = 'success', onClose, duration = 3000 }) {
-  const [isVisible, setIsVisible] = useState(true);
+  const [prevMessage, setPrevMessage] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  if (message !== prevMessage) {
+    setPrevMessage(message);
+    setIsVisible(!!message);
+  }
 
   useEffect(() => {
     if (message) {
@@ -20,7 +26,7 @@ export default function Toast({ message, type = 'success', onClose, duration = 3
     }
   }, [message, duration, onClose]);
 
-  if (!message && !isVisible) return null;
+  if (!message) return null;
 
   const bgColors = {
     success: 'bg-[#1a202c] text-white',

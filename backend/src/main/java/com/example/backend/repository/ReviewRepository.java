@@ -19,4 +19,7 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.fieldId = :fieldId")
     Double getAverageRatingByFieldId(@Param("fieldId") String fieldId);
-}
+
+    @Query("SELECT r.fieldId, AVG(r.rating) FROM Review r GROUP BY r.fieldId")
+    List<Object[]> getAverageRatingsForAllFields();
+}

@@ -60,16 +60,22 @@ public class FieldServiceImpl implements FieldService {
         } else {
             fields = fieldRepository.findFieldsWithFilters(type, minPrice, maxPrice);
         }
+        List<Object[]> avgRatingsRaw = reviewRepository.getAverageRatingsForAllFields();
+        java.util.Map<String, Double> ratingMap = avgRatingsRaw.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> row[1] != null ? ((Number) row[1]).doubleValue() : 0.0,
+                        (existing, replacement) -> existing
+                ));
+
         return fields.stream()
                 .map(f -> {
-                    // Lấy điểm trung bình từ Database
-                    Double avgRating = reviewRepository.getAverageRatingByFieldId(f.getId());
-                    Double finalRating = avgRating != null ? avgRating : 0.0;
-                    
+                    Double finalRating = ratingMap.getOrDefault(f.getId(), 0.0);
                     return new FieldResponse(f.getId(), f.getName(), f.getType(), f.getCoverImage(), finalRating);
                 })
                 .collect(Collectors.toList());
     }
+
 
     @Override
     public FieldDetailResponse getFieldById(String id) {

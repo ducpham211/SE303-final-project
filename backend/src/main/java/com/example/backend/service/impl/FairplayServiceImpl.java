@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import com.example.backend.dto.request.NotificationCreateRequest;
 import com.example.backend.service.NotificationService;
+import com.example.backend.service.ai.GroqAiService;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +29,7 @@ public class FairplayServiceImpl implements FairplayService {
     private final OpponentReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final com.example.backend.service.ai.GroqAiService groqAiService;
+    private final GroqAiService groqAiService;
 
     @Override
     public void submitReview(String reviewerId, OpponentReviewCreateRequest request) {
@@ -85,6 +86,21 @@ public class FairplayServiceImpl implements FairplayService {
         review.setStatus(Enums.FairplayStatus.PENDING);
         review.setCreatedAt(LocalDateTime.now());
         review.setImageUrl(request.getImageUrl());
+        
+        // --- GỌI AI ĐỂ PHÂN TÍCH COMMENT ---
+        if (request.getComment() != null && !request.getComment().trim().isEmpty()) {
+            try {
+                GroqAiService.AiAnalysisResult aiResult = groqAiService.analyzeReview(request.getComment());
+                review.setIsToxic(aiResult.isToxic());
+                review.setAiSuggestedPenalty(aiResult.penaltyScore());
+                review.setAiReason(aiResult.aiReason());
+            } catch (Exception e) {
+                System.err.println("Lỗi phân tích AI đánh giá Fairplay: " + e.getMessage());
+                review.setIsToxic(false);
+                review.setAiSuggestedPenalty(0);
+                review.setAiReason("Lỗi phân tích AI: " + e.getMessage());
+            }
+        }
         
         reviewRepository.save(review);
     }

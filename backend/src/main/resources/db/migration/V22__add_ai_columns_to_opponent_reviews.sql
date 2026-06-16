@@ -1,0 +1,3 @@
+ALTER TABLE opponent_reviews ADD COLUMN IF NOT EXISTS is_toxic BOOLEAN DEFAULT FALSE;
+ALTER TABLE opponent_reviews ADD COLUMN IF NOT EXISTS ai_suggested_penalty INT DEFAULT 0;
+ALTER TABLE opponent_reviews ADD COLUMN IF NOT EXISTS ai_reason TEXT;
