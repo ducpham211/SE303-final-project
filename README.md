@@ -8,7 +8,7 @@
   **A platform connecting pitch owners and players directly, integrating a smart matchmaking algorithm and automated payment management.**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen.svg?logo=springboot)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-18.x-blue.svg?logo=react)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React%20JS-19.x-blue.svg?logo=react)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg?logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7.x-red.svg?logo=redis)](https://redis.io/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payment-blueviolet.svg?logo=stripe)](https://stripe.com/)
@@ -40,20 +40,23 @@ graph TD
 
 ## 🛠 Tech Stack
 
-| Layer     | Technology                          |
-| :-------- | :---------------------------------- |
-| Backend   | Java 21, Spring Boot 3.2, MapStruct |
-| Security  | Spring Security, JWT                |
-| Database  | PostgreSQL, Hibernate, Flyway       |
-| Cache     | Redis (Dockerized)                  |
-| Real-time | WebSocket (STOMP)                   |
+| Layer      | Technology                                                      |
+| :--------- | :-------------------------------------------------------------- |
+| Frontend   | React JS (v19), Tailwind CSS, Vite, Zustand, Axios, SockJS      |
+| Backend    | Java 17, Spring Boot 3.2.0, MapStruct, Lombok                   |
+| Security   | Spring Security, JWT (JJWT)                                     |
+| Database   | PostgreSQL, Hibernate (Spring Data JPA), Flyway                 |
+| Cache      | Redis (Dockerized)                                              |
+| Real-time  | WebSocket (STOMP)                                               |
+| Cloud/Pay  | Cloudinary (Image storage), Stripe (Payment Integration)        |
+| Utilities  | JavaMail (Emails), Spring Dotenv (Env vars)                     |
 
 ## 🚀 Getting Started
 
 **Prerequisites:**
 
 - **Docker & Docker Compose** (Recommended)
-- **Java 21** (Only needed if running backend locally)
+- **Java 17** (Only needed if running backend locally)
 - **Node.js 20+** (Only needed if running frontend locally)
 
 ---
