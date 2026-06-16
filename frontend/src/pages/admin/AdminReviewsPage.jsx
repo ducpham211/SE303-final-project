@@ -29,7 +29,7 @@ function fmtDate(value) {
 function ReviewDrawer({ review, onClose, onAdjudicate }) {
   if (!review) return null
   const status = STATUS_META[review.status] || STATUS_META.PENDING
-  const level = severity(review.aiSuggestedPenalty)
+  const level = severity(review.aiSuggestedPenalty > 0 ? review.aiSuggestedPenalty : review.defaultPenalty)
   const rows = [
     ['Review ID', review.id],
     ['Reviewer ID', review.reviewerId || 'N/A'],
@@ -55,13 +55,29 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
         <div className="mt-5 flex flex-wrap gap-2">
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
-          {review.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(review.aiSuggestedPenalty)}</span>}
+          <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">Mặc định: -{review.defaultPenalty}đ</span>
+          {review.hasAiFeedback && (
+            review.aiSuggestedPenalty > 0 ? (
+              <span className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700">AI gợi ý: -{review.aiSuggestedPenalty}đ</span>
+            ) : (
+              <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">AI gợi ý: -0đ (Không cần trừ điểm)</span>
+            )
+          )}
         </div>
 
         <div className="mt-6 rounded-lg border border-gray-200 p-4">
-          <p className="text-xs font-bold uppercase text-gray-400">Lý do</p>
+          <p className="text-xs font-bold uppercase text-gray-400">Nội dung đánh giá</p>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{review.reason || 'Không có lý do.'}</p>
         </div>
+
+        {review.aiReason && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+            <p className="text-xs font-bold uppercase text-blue-500">AI Phân tích & Lý do gợi ý</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-blue-900">
+              <strong>AI giải thích:</strong> {review.aiReason}
+            </p>
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           {rows.map(([label, value]) => (
@@ -84,11 +100,15 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
 
 function AdjudicateModal({ review, onClose, onDone }) {
   const [approve, setApprove] = useState(true)
-  const [finalPenalty, setFinalPenalty] = useState(Math.abs(Number(review?.aiSuggestedPenalty) || 10))
+  const [finalPenalty, setFinalPenalty] = useState(
+    review?.hasAiFeedback
+      ? review.aiSuggestedPenalty
+      : (review?.defaultPenalty || 10)
+  )
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
-  const validPenalty = !approve || (finalPenalty >= 1 && finalPenalty <= 100)
+  const validPenalty = !approve || (finalPenalty >= 0 && finalPenalty <= 100)
 
   const submit = async () => {
     setErr('')
@@ -127,7 +147,22 @@ function AdjudicateModal({ review, onClose, onDone }) {
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs font-bold uppercase text-gray-400">Lý do tố cáo</p>
           <p className="mt-2 max-h-28 overflow-y-auto text-sm leading-6 text-gray-700">{review.reason || 'Không có lý do.'}</p>
-          <p className="mt-3 text-sm font-bold text-amber-700">AI đề xuất: -{Math.abs(Number(review.aiSuggestedPenalty) || 0)} điểm</p>
+          
+          <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between text-xs text-gray-500 font-bold">
+            <span>Mặc định: -{review.defaultPenalty}đ</span>
+            {review.hasAiFeedback && (
+              review.aiSuggestedPenalty > 0 ? (
+                <span className="text-blue-700 font-black">AI gợi ý: -{review.aiSuggestedPenalty}đ</span>
+              ) : (
+                <span className="text-emerald-700 font-black">AI gợi ý: -0đ (Không cần trừ điểm)</span>
+              )
+            )}
+          </div>
+          {review.aiReason && (
+            <p className="mt-2 text-xs text-blue-600">
+              <strong>AI giải thích:</strong> {review.aiReason}
+            </p>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -142,7 +177,7 @@ function AdjudicateModal({ review, onClose, onDone }) {
         {approve && (
           <label className="mt-4 block">
             <span className="text-sm font-bold text-gray-700">Điểm uy tín bị trừ</span>
-            <input type="number" min="1" max="100" value={finalPenalty} onChange={e => setFinalPenalty(Number(e.target.value))} className={`mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none ${validPenalty ? 'border-gray-200 focus:border-red-400' : 'border-red-300'}`} />
+            <input type="number" min="0" max="100" value={finalPenalty} onChange={e => setFinalPenalty(Number(e.target.value))} className={`mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none ${validPenalty ? 'border-gray-200 focus:border-red-400' : 'border-red-300'}`} />
           </label>
         )}
 
@@ -262,7 +297,7 @@ export default function AdminReviewsPage() {
           <div className="mt-5 space-y-3">
             {filtered.map(r => {
               const status = STATUS_META[r.status] || STATUS_META.PENDING
-              const level = severity(r.aiSuggestedPenalty)
+              const level = severity(r.aiSuggestedPenalty > 0 ? r.aiSuggestedPenalty : r.defaultPenalty)
               return (
                 <article key={r.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -270,9 +305,21 @@ export default function AdminReviewsPage() {
                       <div className="flex flex-wrap gap-2">
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
-                        {r.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(r.aiSuggestedPenalty)}</span>}
+                        <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">Mặc định: -{r.defaultPenalty}đ</span>
+                        {r.hasAiFeedback && (
+                          r.aiSuggestedPenalty > 0 ? (
+                            <span className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700">AI gợi ý: -{r.aiSuggestedPenalty}đ</span>
+                          ) : (
+                            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">AI gợi ý: -0đ (Không cần trừ điểm)</span>
+                          )
+                        )}
                       </div>
                       <p className="mt-3 text-sm font-semibold text-gray-950">Lý do: <span className="font-normal text-gray-600">{r.reason || 'Không có lý do.'}</span></p>
+                      {r.aiReason && (
+                        <p className="mt-1 text-xs text-blue-600">
+                          <strong>AI giải thích:</strong> {r.aiReason}
+                        </p>
+                      )}
                       <p className="mt-2 font-mono text-xs text-gray-400">#{r.id?.slice(0, 8)} · {fmtDate(r.createdAt)}</p>
                     </button>
                     <div className="flex shrink-0 gap-2">
