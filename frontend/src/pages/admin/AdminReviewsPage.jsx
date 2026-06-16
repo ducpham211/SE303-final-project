@@ -56,12 +56,20 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
           <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
           {review.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(review.aiSuggestedPenalty)}</span>}
+          {review.isToxic && <span className="rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-black text-red-700">⚠️ AI: Toxic</span>}
         </div>
 
         <div className="mt-6 rounded-lg border border-gray-200 p-4">
           <p className="text-xs font-bold uppercase text-gray-400">Lý do</p>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{review.reason || 'Không có lý do.'}</p>
         </div>
+
+        {review.aiReason && (
+          <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50/50 p-4">
+            <p className="text-xs font-bold uppercase text-purple-600">AI Phân Tích & Giải Thích</p>
+            <p className="mt-2 text-sm leading-6 text-purple-900 font-medium">{review.aiReason}</p>
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           {rows.map(([label, value]) => (
@@ -128,6 +136,11 @@ function AdjudicateModal({ review, onClose, onDone }) {
           <p className="text-xs font-bold uppercase text-gray-400">Lý do tố cáo</p>
           <p className="mt-2 max-h-28 overflow-y-auto text-sm leading-6 text-gray-700">{review.reason || 'Không có lý do.'}</p>
           <p className="mt-3 text-sm font-bold text-amber-700">AI đề xuất: -{Math.abs(Number(review.aiSuggestedPenalty) || 0)} điểm</p>
+          {review.aiReason && (
+            <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-purple-700">
+              <span className="font-bold">AI giải thích:</span> {review.aiReason}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -271,6 +284,7 @@ export default function AdminReviewsPage() {
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${status.badge}`}>{status.label}</span>
                         <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${level.badge}`}>{level.label}</span>
                         {r.aiSuggestedPenalty != null && <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">AI: -{Math.abs(r.aiSuggestedPenalty)}</span>}
+                        {r.isToxic && <span className="rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-black text-red-700">⚠️ AI: Toxic</span>}
                       </div>
                       <p className="mt-3 text-sm font-semibold text-gray-950">Lý do: <span className="font-normal text-gray-600">{r.reason || 'Không có lý do.'}</span></p>
                       <p className="mt-2 font-mono text-xs text-gray-400">#{r.id?.slice(0, 8)} · {fmtDate(r.createdAt)}</p>

@@ -36,6 +36,15 @@ public class OpponentReview {
     @Column(name = "points_applied")
     private Integer pointsApplied = 0;
 
+    @Column(name = "is_toxic")
+    private Boolean isToxic = false;
+
+    @Column(name = "ai_suggested_penalty")
+    private Integer aiSuggestedPenalty = 0;
+
+    @Column(name = "ai_reason", columnDefinition = "TEXT")
+    private String aiReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
