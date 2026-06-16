@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import AppRouter from './routes/AppRouter'
 import useAuthStore from './store/useAuthStore'
 import userService from './services/userService'
+import GlobalModal from './components/common/GlobalModal'
 
 export default function App() {
   const { isLoggedIn, enrichUser } = useAuthStore()
@@ -16,5 +17,11 @@ export default function App() {
       .catch(() => {/* token expired — user stays on current page, logout on next auth-required action */})
   }, [isLoggedIn]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <AppRouter />
+  return (
+    <>
+      <AppRouter />
+      <GlobalModal />
+    </>
+  )
 }
+

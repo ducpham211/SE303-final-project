@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../../services/api';
+import useModalStore from '../../../../store/useModalStore';
 
 export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) => {
   const navigate = useNavigate();
+  const { showAlert } = useModalStore();
   
   const [aiStep, setAiStep] = useState('SEARCHING');
   const [aiResults, setAiResults] = useState([]);
@@ -156,7 +158,13 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                           if (isMounted) {
                               setIsPolling(false);
                               setIsProcessingMatch(true); 
-                              alert('Đối phương đã chốt! Chuyển đến phòng chat...');
+                              showAlert(
+                                'Thành công',
+                                'Đối phương đã chốt! Chuyển đến phòng chat...',
+                                () => {
+                                  navigate('/messages');
+                                }
+                              );
                               
                               if (silentPostIdRef.current) {
                                   try { await api.delete(`/match-posts/${silentPostIdRef.current}`); } catch { /* ignore */ }
@@ -168,9 +176,9 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
                               localStorage.removeItem('autoMatch_waitingForPostId');
                               
                               setIsProcessingMatch(false);
-                              navigate('/messages');
                           }
                           return;
+
                       } else if (myReq.status === 'REJECTED') {
                           if (isMounted) {
                               setSkippedMatchIds(prev => [...prev, waitingForPostIdRef.current]);
@@ -328,10 +336,15 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             setFoundLivePost(null);
             setAiStep('WAITING_OPPONENT');
             setIsPolling(true);
-            alert('Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để tiếp tục trao đổi.');
-            navigate('/messages');
+            showAlert(
+                'Thành công',
+                'Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để tiếp tục trao đổi.',
+                () => {
+                    navigate('/messages');
+                }
+            );
         } catch {
-            alert('Đối phương đã rời đi hoặc từ chối, Tiếp tục quét...');
+            showAlert('Thông báo', 'Đối phương đã rời đi hoặc từ chối, Tiếp tục quét...');
             setSkippedMatchIds(prev => [...prev, foundLivePost.id]);
             setFoundLivePost(null);
             setAiStep('SEARCHING');
@@ -371,11 +384,16 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             localStorage.removeItem('autoMatch_waitingForPostId');
         }
 
-        alert('Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để trao đổi với chủ kèo.');
-        setSearchCriteria(null);
-        navigate('/messages');
+        showAlert(
+            'Thành công',
+            'Đã gửi yêu cầu ghép trận! Chuyển tới Tin nhắn để trao đổi với chủ kèo.',
+            () => {
+                setSearchCriteria(null);
+                navigate('/messages');
+            }
+        );
     } catch {
-        alert('Trận này đã bị đóng hoặc bạn đã gửi yêu cầu rồi!');
+        showAlert('Thông báo', 'Trận này đã bị đóng hoặc bạn đã gửi yêu cầu rồi!');
         setSkippedMatchIds(prev => [...prev, matchId]);
         setIsPolling(true);
     } finally {
@@ -415,12 +433,18 @@ export const useAutoMatch = (currentUserId, onMatchesFetched, onChangeViewMode) 
             localStorage.removeItem('autoMatch_waitingForPostId');
         }
 
-        alert('Đã chốt thành công! Chuyển tới phòng chat...');
-        setSearchCriteria(null);
-        navigate('/messages');
+        showAlert(
+            'Thành công',
+            'Đã chốt thành công! Chuyển tới phòng chat...',
+            () => {
+                setSearchCriteria(null);
+                navigate('/messages');
+            }
+        );
     } catch {
-        alert('Rất tiếc, có lỗi xảy ra hoặc đối phương đã hủy.');
-        handleRejectPending(); 
+        showAlert('Lỗi', 'Rất tiếc, có lỗi xảy ra hoặc đối phương đã hủy.', () => {
+            handleRejectPending();
+        });
     } finally {
         setIsProcessingMatch(false);
     }

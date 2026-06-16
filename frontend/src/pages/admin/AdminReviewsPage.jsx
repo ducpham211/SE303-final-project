@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import adminService from '../../services/adminService'
+import useModalStore from '../../store/useModalStore'
 
 const STATUS_META = {
   PENDING: { label: 'Chờ xử lý', badge: 'border-amber-200 bg-amber-100 text-amber-700' },
@@ -91,9 +92,11 @@ function ReviewDrawer({ review, onClose, onAdjudicate }) {
 }
 
 function AdjudicateModal({ review, onClose, onDone }) {
+  const { showConfirm } = useModalStore()
   const [approve, setApprove] = useState(true)
   const [finalPenalty, setFinalPenalty] = useState(Math.abs(Number(review?.aiSuggestedPenalty) || 10))
   const [saving, setSaving] = useState(false)
+
   const [err, setErr] = useState('')
 
   const validPenalty = !approve || (finalPenalty >= 1 && finalPenalty <= 100)
@@ -104,22 +107,24 @@ function AdjudicateModal({ review, onClose, onDone }) {
       setErr('Điểm phạt phải nằm trong khoảng 1 đến 100.')
       return
     }
-    const ok = window.confirm(approve
-      ? `Xác nhận trừ ${finalPenalty} điểm uy tín?`
-      : 'Xác nhận bác bỏ tố cáo này?')
-    if (!ok) return
-
-    setSaving(true)
-    try {
-      await adminService.adjudicateReview(review.id, { approve, finalPenalty: approve ? finalPenalty : 0 })
-      onDone()
-      onClose()
-    } catch (e) {
-      setErr(e?.response?.data?.message || 'Không thể lưu phán quyết.')
-    } finally {
-      setSaving(false)
-    }
+    showConfirm(
+      'Phán quyết tố cáo',
+      approve ? `Xác nhận trừ ${finalPenalty} điểm uy tín?` : 'Xác nhận bác bỏ tố cáo này?',
+      async () => {
+        setSaving(true)
+        try {
+          await adminService.adjudicateReview(review.id, { approve, finalPenalty: approve ? finalPenalty : 0 })
+          onDone()
+          onClose()
+        } catch (e) {
+          setErr(e?.response?.data?.message || 'Không thể lưu phán quyết.')
+        } finally {
+          setSaving(false)
+        }
+      }
+    )
   }
+
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">

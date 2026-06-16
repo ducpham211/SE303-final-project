@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import bookingService from '../../services/bookingService'
+import useModalStore from '../../store/useModalStore'
 
 const STATUS_META = {
   PENDING: { label: 'Chờ cọc', badge: 'bg-amber-100 text-amber-700' },
@@ -116,7 +117,9 @@ function sortBookings(bookingList = []) {
 }
 
 export default function OwnerBookingsPage() {
+  const { showConfirm } = useModalStore()
   const cachedBookings = bookingService.peekBookings()
+
   const [bookings, setBookings] = useState(() => (
     cachedBookings ? sortBookings(cachedBookings) : []
   ))
@@ -190,31 +193,38 @@ export default function OwnerBookingsPage() {
     const id = getBookingId(booking)
     if (!id || updatingBookingId) return
 
-    if (action.confirmText && !window.confirm(action.confirmText)) return
+    const proceedAction = async () => {
+      setUpdatingBookingId(id)
+      setError('')
+      setActionMessage(null)
 
-    setUpdatingBookingId(id)
-    setError('')
-    setActionMessage(null)
+      try {
+        const result = await action.run(id)
+        setBookings((prev) => prev.map((item) => (
+          getBookingId(item) === id ? { ...item, status: action.nextStatus } : item
+        )))
+        setActionMessage({
+          type: 'success',
+          text: typeof result === 'string' ? result : action.successText,
+        })
+      } catch (actionError) {
+        console.error('Owner booking action error:', actionError)
+        setActionMessage({
+          type: 'error',
+          text: getApiErrorMessage(actionError),
+        })
+      } finally {
+        setUpdatingBookingId('')
+      }
+    }
 
-    try {
-      const result = await action.run(id)
-      setBookings((prev) => prev.map((item) => (
-        getBookingId(item) === id ? { ...item, status: action.nextStatus } : item
-      )))
-      setActionMessage({
-        type: 'success',
-        text: typeof result === 'string' ? result : action.successText,
-      })
-    } catch (actionError) {
-      console.error('Owner booking action error:', actionError)
-      setActionMessage({
-        type: 'error',
-        text: getApiErrorMessage(actionError),
-      })
-    } finally {
-      setUpdatingBookingId('')
+    if (action.confirmText) {
+      showConfirm('Xác nhận hành động', action.confirmText, proceedAction)
+    } else {
+      await proceedAction()
     }
   }
+
 
   return (
     <main className="pt-24 pb-20 min-h-screen bg-[#f8faf8]">

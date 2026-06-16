@@ -110,8 +110,8 @@ public class TeamServiceImpl implements TeamService {
         // Lấy đội mà mình làm đội trưởng
         List<Team> teamsAsCaptain = teamRepository.findByCaptainId(userId);
         
-        // Lấy đội mà mình làm thành viên đã chấp nhận
-        List<TeamMember> memberships = teamMemberRepository.findByUserIdAndStatus(userId, "ACCEPTED");
+        // Lấy đội mà mình làm thành viên đã chấp nhận (sử dụng JOIN FETCH để tối ưu N+1)
+        List<TeamMember> memberships = teamMemberRepository.findByUserIdAndStatusWithTeam(userId, "ACCEPTED");
         List<Team> teamsAsMember = memberships.stream()
                 .map(TeamMember::getTeam)
                 .filter(Objects::nonNull)
@@ -151,7 +151,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public List<Map<String, Object>> getTeamMembers(String teamId) {
-        return teamMemberRepository.findByTeamId(teamId).stream().map(member -> {
+        // Sử dụng JOIN FETCH để nạp nhanh user của từng member
+        return teamMemberRepository.findByTeamIdWithUser(teamId).stream().map(member -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", member.getId());
             map.put("teamId", member.getTeamId());
@@ -223,7 +224,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public List<Map<String, Object>> getMyInvitations(String userId) {
-        return teamMemberRepository.findByUserIdAndStatus(userId, "PENDING").stream().map(inv -> {
+        // Sử dụng LEFT JOIN FETCH để nạp đồng thời team và captain trong 1 câu truy vấn duy nhất
+        return teamMemberRepository.findByUserIdAndStatusWithTeamAndCaptain(userId, "PENDING").stream().map(inv -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", inv.getId());
             map.put("teamId", inv.getTeamId());

@@ -29,11 +29,13 @@ public class Conversation {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "conversation")
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<ConversationMember> members;
 
     @OneToMany(mappedBy = "conversation")
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<Message> messages;
 
     @Column(name = "match_id")
     private String matchId;
-}
+}
