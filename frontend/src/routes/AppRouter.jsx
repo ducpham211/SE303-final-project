@@ -45,6 +45,7 @@ import FindOpponentPage from '../pages/find_opponent/FindOpponentPage'
 
 // ── Community ─────────────────────────────────────────────────────────
 import CommunityPage from "../pages/community/CommunityPage";
+import NewsPage from "../pages/community/NewsPage";
 
 // ── Admin ─────────────────────────────────────────────────────────────
 const AdminDashboardPage = lazy(() => import("../pages/admin/AdminDashboardPage"));
@@ -167,6 +168,7 @@ export default function AppRouter() {
 
           {/* ── Community ───────────────────────────────────────────── */}
           <Route path="/community" element={<CommunityPage />} />
+          <Route path="/community/news" element={<NewsPage />} />
 
           {/* ── Admin (ADMIN role required) ──────────────────────────── */}
           <Route
