@@ -47,7 +47,42 @@ public class FairplayServiceImpl implements FairplayService {
         review.setReviewerId(reviewerId);
         review.setRevieweeId(request.getRevieweeId());
         review.setRatingType(request.getRatingType());
-        review.setComment(request.getComment());
+        
+        String originalComment = request.getComment() != null ? request.getComment() : "";
+        String finalComment = originalComment;
+        
+        // GỌI AI QUÉT VI PHẠM (Cách 2: Injection)
+        try {
+            if (!originalComment.trim().isEmpty() && (request.getRatingType() == Enums.OpponentRatingType.BAD_BEHAVIOR || request.getRatingType() == Enums.OpponentRatingType.NO_SHOW)) {
+                var aiResult = groqAiService.analyzeReview(originalComment, request.getRatingType());
+                int suggested = aiResult.penaltyScore();
+                review.setPointsApplied(-Math.abs(suggested));
+                String aiTag = String.format("[AI PHÂN TÍCH: %s | Gợi ý trừ: %dđ | Lý do: %s] ", 
+                        aiResult.isToxic() ? "VI PHẠM" : "BÌNH THƯỜNG", 
+                        suggested,
+                        aiResult.aiReason());
+                finalComment = aiTag + originalComment;
+            } else {
+                if (request.getRatingType() == Enums.OpponentRatingType.NO_SHOW) {
+                    review.setPointsApplied(-20);
+                } else if (request.getRatingType() == Enums.OpponentRatingType.BAD_BEHAVIOR) {
+                    review.setPointsApplied(-30);
+                } else {
+                    review.setPointsApplied(0);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi AI khi quét báo cáo: " + e.getMessage());
+            if (request.getRatingType() == Enums.OpponentRatingType.NO_SHOW) {
+                review.setPointsApplied(-20);
+            } else if (request.getRatingType() == Enums.OpponentRatingType.BAD_BEHAVIOR) {
+                review.setPointsApplied(-30);
+            } else {
+                review.setPointsApplied(0);
+            }
+        }
+
+        review.setComment(finalComment);
         review.setStatus(Enums.FairplayStatus.PENDING);
         review.setCreatedAt(LocalDateTime.now());
         review.setImageUrl(request.getImageUrl());
@@ -131,6 +166,7 @@ public class FairplayServiceImpl implements FairplayService {
             }
         } else {
             review.setStatus(Enums.FairplayStatus.REJECTED);
+            review.setPointsApplied(0);
         }
 
         reviewRepository.save(review);

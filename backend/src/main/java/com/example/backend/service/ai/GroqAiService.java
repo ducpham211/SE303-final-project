@@ -5,6 +5,7 @@ import com.example.backend.dto.aiChatBot.response.ChatResponse;
 import com.example.backend.dto.aiOpponentRecommendation.AiOpponentDto;
 import com.example.backend.dto.aiOpponentRecommendation.AiRecommendationResult;
 import com.example.backend.entity.Field;
+import com.example.backend.utils.Enums;
 import com.example.backend.repository.FieldRepository;
 import com.example.backend.repository.redis.ChatSessionRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -49,29 +50,40 @@ public class GroqAiService {
     public record AiAnalysisResult(boolean isToxic, int penaltyScore, String aiReason) {
     }
 
-    public AiAnalysisResult analyzeReview(String content) {
+    public AiAnalysisResult analyzeReview(String content, Enums.OpponentRatingType ratingType) {
         try {
             String prompt = String.format(
-                    "Bạn là một trọng tài AI phân tích đánh giá trận đấu bóng đá phủi. " +
-                            "Đọc đánh giá sau: '%s'. " +
-                            "Hãy xác định xem đánh giá này có phàn nàn về hành vi phi thể thao (chơi thô bạo, chửi thề, bỏ giải, bạo lực) hay không. " +
-                            "Chỉ trả về ĐÚNG MỘT OBJECT JSON theo định dạng sau, không kèm bất kỳ ký tự markdown hay text nào khác: " +
-                            "{\"isToxic\": true/false, \"penaltyScore\": <số điểm đề xuất trừ, ví dụ 5, 10, 20. Không vi phạm là 0>, \"reason\": \"<lý do ngắn gọn>\"}",
+                    "Bạn là trọng tài AI của hệ thống bóng đá phủi. Phân tích báo cáo vi phạm đối thủ sau đây:\n" +
+                    "- Loại vi phạm người dùng báo cáo: %s\n" +
+                    "- Nội dung nhận xét: '%s'\n\n" +
+                    "Nhiệm vụ:\n" +
+                    "1. Xác định xem nội dung nhận xét có xác nhận hoặc mô tả hành vi vi phạm (bỏ thi đấu, bùng kèo, chơi xấu, bạo lực, chửi bới, phi thể thao) hay không.\n" +
+                    "2. Gợi ý điểm phạt (penaltyScore) từ tập {0, 5, 10, 15, 20, 30}. Quy tắc:\n" +
+                    "   - Nếu nhận xét xác nhận việc bỏ thi đấu/không đến/bùng kèo (kể cả khi người dùng chọn nhầm loại vi phạm là BAD_BEHAVIOR), hãy gợi ý trừ 20 điểm.\n" +
+                    "   - Nếu nhận xét mô tả hành vi chơi xấu/bạo lực/chửi bới trên sân (và loại báo cáo là BAD_BEHAVIOR), hãy gợi ý trừ từ 10 đến 30 điểm tùy mức độ nghiêm trọng.\n" +
+                    "   - Nếu nội dung nhận xét là tin nhắn rác, không liên quan, hoặc cho thấy không có vi phạm thực sự nào xảy ra, gợi ý trừ 0 điểm.\n\n" +
+                    "Trả VỀ CHÍNH XÁC MỘT JSON duy nhất, KHÔNG thêm text khác:\n" +
+                    "{\n" +
+                    "  \"isToxic\": true|false,\n" +
+                    "  \"penaltyScore\": <integer>,\n" +
+                    "  \"reason\": \"<một câu ngắn giải thích lý do gợi ý điểm phạt (<= 100 ký tự)>\",\n" +
+                    "  \"evidence\": [\"<câu trích dẫn từ nhận xét làm bằng chứng nếu có>\"]\n" +
+                    "}",
+                    ratingType.name(),
                     content
-            ).replace("\"", "\\\"");
+            );
 
-            String requestBody = """
-                    {
-                      "model": "%s",
-                      "messages": [
-                        {
-                          "role": "user",
-                          "content": "%s"
-                        }
-                      ],
-                      "temperature": 0.2
-                    }
-                    """.formatted(model, prompt);
+            ObjectNode requestBodyNode = objectMapper.createObjectNode();
+            requestBodyNode.put("model", model);
+            ArrayNode messagesArray = requestBodyNode.putArray("messages");
+
+            ObjectNode userMessageNode = messagesArray.addObject();
+            userMessageNode.put("role", "user");
+            userMessageNode.put("content", prompt);
+
+            requestBodyNode.put("temperature", 0.2);
+
+            String requestBody = objectMapper.writeValueAsString(requestBodyNode);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -115,20 +127,19 @@ public class GroqAiService {
                             "QUY TẮC BẮT BUỘC: Chỉ trả về duy nhất một mảng JSON có định dạng [{\"matchId\": \"...\", \"aiReason\": \"...\"}]. " +
                             "Tuyệt đối không thêm bất kỳ từ ngữ nào ngoài JSON. Nếu danh sách đối thủ trống, trả về [].",
                     currentTeamPlaystyle, currentTrustScore, opponentsJson
-            ).replace("\"", "\\\"");
+            );
 
-            String requestBody = """
-                    {
-                      "model": "%s",
-                      "messages": [
-                        {
-                          "role": "user",
-                          "content": "%s"
-                        }
-                      ],
-                      "temperature": 0.4
-                    }
-                    """.formatted(model, prompt);
+            ObjectNode requestBodyNode = objectMapper.createObjectNode();
+            requestBodyNode.put("model", model);
+            ArrayNode messagesArray = requestBodyNode.putArray("messages");
+
+            ObjectNode userMessageNode = messagesArray.addObject();
+            userMessageNode.put("role", "user");
+            userMessageNode.put("content", prompt);
+
+            requestBodyNode.put("temperature", 0.4);
+
+            String requestBody = objectMapper.writeValueAsString(requestBodyNode);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

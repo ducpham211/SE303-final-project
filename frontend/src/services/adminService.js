@@ -58,6 +58,40 @@ const adminService = {
       ratingType: item.ratingType,
       imageUrl: item.imageUrl
     }))
+    const content = rawContent.map(item => {
+      const defaultPenalty = item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 0;
+      
+      let userComment = item.comment || '';
+      let aiReason = '';
+      let aiSuggestedPenalty = 0;
+      const hasAiFeedback = !!(item.comment && item.comment.startsWith('[AI PHÂN TÍCH:'));
+      
+      if (hasAiFeedback) {
+        const match = item.comment.match(/^\[AI PHÂN TÍCH:\s*(.*?)\s*\|\s*Gợi ý trừ:\s*(\d+)đ\s*\|\s*Lý do:\s*(.*?)\]\s*(.*)$/);
+        if (match) {
+          aiSuggestedPenalty = parseInt(match[2], 10);
+          aiReason = match[3].trim();
+          userComment = match[4].trim();
+        }
+      }
+      
+      return {
+        id: item.id,
+        reviewerId: item.reviewerId,
+        revieweeId: item.revieweeId,
+        matchRequestId: item.matchId,
+        scoreChange: item.pointsApplied,
+        reason: userComment || (item.ratingType === 'NO_SHOW' ? 'Bùng kèo không lý do' : item.ratingType === 'BAD_BEHAVIOR' ? 'Hành vi xấu' : 'Đánh giá tốt'),
+        aiSuggestedPenalty: aiSuggestedPenalty,
+        aiReason: aiReason,
+        hasAiFeedback: hasAiFeedback,
+        defaultPenalty: defaultPenalty,
+        status: item.status,
+        createdAt: item.createdAt,
+        ratingType: item.ratingType,
+        imageUrl: item.imageUrl
+      };
+    });
 
     return {
       content,
