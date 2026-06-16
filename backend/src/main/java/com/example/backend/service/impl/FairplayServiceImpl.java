@@ -28,6 +28,7 @@ public class FairplayServiceImpl implements FairplayService {
     private final OpponentReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final com.example.backend.service.ai.GroqAiService groqAiService;
 
     @Override
     public void submitReview(String reviewerId, OpponentReviewCreateRequest request) {
@@ -45,7 +46,25 @@ public class FairplayServiceImpl implements FairplayService {
         review.setReviewerId(reviewerId);
         review.setRevieweeId(request.getRevieweeId());
         review.setRatingType(request.getRatingType());
-        review.setComment(request.getComment());
+        
+        String originalComment = request.getComment() != null ? request.getComment() : "";
+        String finalComment = originalComment;
+        
+        // GỌI AI QUÉT VI PHẠM (Cách 2: Injection)
+        try {
+            if (!originalComment.trim().isEmpty() && (request.getRatingType() == Enums.OpponentRatingType.BAD_BEHAVIOR || request.getRatingType() == Enums.OpponentRatingType.NO_SHOW)) {
+                var aiResult = groqAiService.analyzeReview(originalComment);
+                String aiTag = String.format("[AI PHÂN TÍCH: %s | Gợi ý trừ: %dđ | Lý do: %s] ", 
+                        aiResult.isToxic() ? "VI PHẠM" : "BÌNH THƯỜNG", 
+                        aiResult.penaltyScore(), 
+                        aiResult.aiReason());
+                finalComment = aiTag + originalComment;
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi AI khi quét báo cáo: " + e.getMessage());
+        }
+
+        review.setComment(finalComment);
         review.setStatus(Enums.FairplayStatus.PENDING);
         review.setCreatedAt(LocalDateTime.now());
         review.setImageUrl(request.getImageUrl());
