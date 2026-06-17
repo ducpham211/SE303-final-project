@@ -41,37 +41,23 @@ const adminService = {
     if (status) params.set('status', status)
     const { data } = await api.get(`/admin/fairplay/reviews?${params}`)
     
-    // Map backend OpponentReview data to what AdminReviewsPage expects
     const rawContent = Array.isArray(data) ? data : (data.content || [])
-    const content = rawContent.map(item => ({
-      id: item.id,
-      reviewerId: item.reviewerId,
-      revieweeId: item.revieweeId,
-      matchRequestId: item.matchId,
-      scoreChange: item.pointsApplied,
-      reason: item.comment || (item.ratingType === 'NO_SHOW' ? 'Bùng kèo không lý do' : item.ratingType === 'BAD_BEHAVIOR' ? 'Hành vi xấu' : 'Đánh giá tốt'),
-      aiSuggestedPenalty: item.aiSuggestedPenalty != null ? item.aiSuggestedPenalty : (item.pointsApplied ? Math.abs(item.pointsApplied) : item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 10),
-      aiReason: item.aiReason,
-      isToxic: item.isToxic,
-      status: item.status,
-      createdAt: item.createdAt,
-      ratingType: item.ratingType,
-      imageUrl: item.imageUrl
-    }))
     const content = rawContent.map(item => {
       const defaultPenalty = item.ratingType === 'NO_SHOW' ? 20 : item.ratingType === 'BAD_BEHAVIOR' ? 30 : 0;
       
       let userComment = item.comment || '';
-      let aiReason = '';
-      let aiSuggestedPenalty = 0;
-      const hasAiFeedback = !!(item.comment && item.comment.startsWith('[AI PHÂN TÍCH:'));
+      let aiReason = item.aiReason || '';
+      let aiSuggestedPenalty = item.aiSuggestedPenalty ?? 0;
+      let isToxic = item.isToxic ?? false;
+      const hasLegacyAiFeedback = !!(item.comment && item.comment.startsWith('[AI PHÂN TÍCH:'));
       
-      if (hasAiFeedback) {
+      if (hasLegacyAiFeedback && !item.aiReason) {
         const match = item.comment.match(/^\[AI PHÂN TÍCH:\s*(.*?)\s*\|\s*Gợi ý trừ:\s*(\d+)đ\s*\|\s*Lý do:\s*(.*?)\]\s*(.*)$/);
         if (match) {
           aiSuggestedPenalty = parseInt(match[2], 10);
           aiReason = match[3].trim();
           userComment = match[4].trim();
+          isToxic = true;
         }
       }
       
@@ -82,9 +68,10 @@ const adminService = {
         matchRequestId: item.matchId,
         scoreChange: item.pointsApplied,
         reason: userComment || (item.ratingType === 'NO_SHOW' ? 'Bùng kèo không lý do' : item.ratingType === 'BAD_BEHAVIOR' ? 'Hành vi xấu' : 'Đánh giá tốt'),
-        aiSuggestedPenalty: aiSuggestedPenalty,
+        aiSuggestedPenalty: aiSuggestedPenalty || defaultPenalty,
         aiReason: aiReason,
-        hasAiFeedback: hasAiFeedback,
+        isToxic: isToxic,
+        hasAiFeedback: isToxic || hasLegacyAiFeedback,
         defaultPenalty: defaultPenalty,
         status: item.status,
         createdAt: item.createdAt,

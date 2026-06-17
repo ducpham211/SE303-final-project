@@ -149,6 +149,7 @@ function AdjudicateModal({ review, onClose, onDone }) {
             <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-purple-700">
               <span className="font-bold">AI giải thích:</span> {review.aiReason}
             </div>
+          )}
           
           <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between text-xs text-gray-500 font-bold">
             <span>Mặc định: -{review.defaultPenalty}đ</span>
@@ -160,11 +161,6 @@ function AdjudicateModal({ review, onClose, onDone }) {
               )
             )}
           </div>
-          {review.aiReason && (
-            <p className="mt-2 text-xs text-blue-600">
-              <strong>AI giải thích:</strong> {review.aiReason}
-            </p>
-          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
