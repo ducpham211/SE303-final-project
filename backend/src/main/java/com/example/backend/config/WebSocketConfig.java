@@ -11,7 +11,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 @Configuration
-@EnableWebSocketMessageBroker // 👉 CÁI NHÃN QUAN TRỌNG NHẤT: Bật công tắc tổng cho WebSocket!
+@EnableWebSocketMessageBroker // Bật công tắc tổng cho WebSocket!
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Autowired
@@ -36,7 +36,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setApplicationDestinationPrefixes("/app");
     }
 
-    // 👉 BỔ SUNG: Cấu hình Graceful Shutdown để không văng lỗi đỏ khi tắt Server lúc đang mở tab web
+    // Cấu hình Graceful Shutdown để không văng lỗi đỏ khi tắt Server lúc đang mở tab web
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

@@ -86,23 +86,9 @@ public class FairplayServiceImpl implements FairplayService {
         review.setStatus(Enums.FairplayStatus.PENDING);
         review.setCreatedAt(LocalDateTime.now());
         review.setImageUrl(request.getImageUrl());
-        
-        // --- GỌI AI ĐỂ PHÂN TÍCH COMMENT ---
-        if (request.getComment() != null && !request.getComment().trim().isEmpty()) {
-            try {
-                GroqAiService.AiAnalysisResult aiResult = groqAiService.analyzeReview(request.getComment());
-                review.setIsToxic(aiResult.isToxic());
-                review.setAiSuggestedPenalty(aiResult.penaltyScore());
-                review.setAiReason(aiResult.aiReason());
-            } catch (Exception e) {
-                System.err.println("Lỗi phân tích AI đánh giá Fairplay: " + e.getMessage());
-                review.setIsToxic(false);
-                review.setAiSuggestedPenalty(0);
-                review.setAiReason("Lỗi phân tích AI: " + e.getMessage());
-            }
-        }
-        
+
         reviewRepository.save(review);
+
     }
 
     @Override
